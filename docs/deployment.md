@@ -1,6 +1,8 @@
 # Manual replacement
 
-Every host mutation needs explicit approval of the selected batch. Do not execute
+Every production or underlying-host mutation needs explicit approval of the
+selected batch. Designated disposable tests follow the provenance safeguards in
+AGENTS.md. Do not execute
 this procedure on real data until the disposable transfer test in host-plan.md
 has passed. No routine nixos-rebuild. Do not replace an archive under an existing
 release identity; use a new full commit.

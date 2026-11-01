@@ -19,7 +19,12 @@ Read-only discovery on 2026-11-01 found:
 
 ## Rehearsal first
 
-The initial disposable-host batch and its failed-boot result are in [rehearsal.md](rehearsal.md). CT990 now exists and is stopped; CT991 is free. Approved retry R1 enabled nesting on CT990 only and resolved core boot/networking. CT990 remains stopped with all volumes retained. The TUN mode and resolved discovery-listener findings need image corrections; nesting is not yet approved for the production service contract.
+The initial boot failure, successful nesting retry and subsequent replacement
+results are in [rehearsal.md](rehearsal.md). CT990 and CT991 now exist and are stopped;
+all test storage is retained. Bootstrap replacement and missing/wrong-volume guards
+passed, as did synthetic VA-API encoding/decoding with the planned Unix IDs.
+TUN/discovery fixes are committed and await a fresh verified image boot. Nesting
+is not yet approved for the production service contract.
 The pre-test read-only refresh confirmed CT990/991 were free and local-zfs had ~3.51 TiB free,
 and the render device still belongs to Intel PCI 0000:00:02.0. Installed Proxmox
 provides a native `nixos` setup plugin that writes networkd/DNS configuration;
@@ -45,12 +50,12 @@ is part of this batch. No storage capability changes are needed initially. Persi
 not reservations (verified from the installed ZFSPoolPlugin and parent properties); backup staging uses additional allocated
 media space. Get approval before changing any proposed capacity.
 
-Before production, separately approve a disposable transfer test (IDs 990/991,
-1 GiB mp0/mp1 each) using the same create/move-volume procedure as deployment.
-Write sentinels only on these test volumes, move them between stopped containers,
-check ownership/sentinels and unused-volume entries. No destructive cleanup is
-authorized: record exact allocated volume IDs, inspect detach/delete semantics,
-and request a separate explicit cleanup batch. Never test deletion on CT200/201.
+The disposable CT990/991 transfer test has passed. Future test iterations and
+cleanup follow AGENTS.md: verify exact creation records, GUIDs, all attachments
+and disposable data classification before storage mutations. The current record
+is [test-resources.json](test-resources.json). Never infer permission from a test
+container ID or attachment alone; production/recovery data and sole backups are
+excluded. Never test deletion on CT200/201.
 
 Host listener hardening is a separate batch after effective firewall and LAN
 checks. Do not disable host sshd or rpcbind until Tailscale SSH and physical console
