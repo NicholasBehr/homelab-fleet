@@ -54,12 +54,14 @@ Retain commit, verified digest and manifest in the deployment record.
 Contract: `nix eval --json .#deploymentContract` on Mac. Recheck `pct list`, storage
 space, bridge, default subordinate ID ranges and render PCI association first.
 Check DHCP/reservation and outbound DNS/HTTPS availability. CT200 and CT201 must
-both be free. Both persistent volumes initially use NVMe local-zfs; no hddpool
+both be free. Use the installed native `nixos` setup plugin: it writes the
+networkd DHCP and DNS configuration that this image expects. `unmanaged` skips
+that setup and is unsuitable for this network configuration. Both persistent volumes initially use NVMe local-zfs; no hddpool
 change is needed:
 
 ```sh
 CT=200
-pct create "$CT" "local:vztmpl/$ARCHIVE" --ostype unmanaged --unprivileged 1   --hostname immich --cores 6 --memory 12288 --swap 0 --onboot 0   --rootfs local-zfs:32   --mp0 local-zfs:256,mp=/persist,backup=1   --mp1 local-zfs:512,mp=/data,backup=1   --net0 name=eth0,bridge=vmbr0,ip=dhcp,ip6=manual,firewall=1   --dev0 /dev/dri/renderD128,uid=0,gid=303,mode=0660   --dev1 /dev/net/tun,uid=0,gid=0,mode=0600
+pct create "$CT" "local:vztmpl/$ARCHIVE" --ostype nixos --unprivileged 1   --hostname immich --cores 6 --memory 12288 --swap 0 --onboot 0   --rootfs local-zfs:32   --mp0 local-zfs:256,mp=/persist,backup=1   --mp1 local-zfs:512,mp=/data,backup=1   --net0 name=eth0,bridge=vmbr0,ip=dhcp,ip6=manual,firewall=1   --dev0 /dev/dri/renderD128,uid=0,gid=303,mode=0660   --dev1 /dev/net/tun,uid=0,gid=0,mode=0600
 pct config "$CT"
 pct mount "$CT"
 ROOT="/var/lib/lxc/$CT/rootfs"

@@ -18,12 +18,13 @@ Production backups are unconfigured until a Storage Box and secrets are enrolled
 1. [Architecture and persistence contract](docs/architecture.md)
 2. [Storage layout and later HDD migration](docs/storage.md)
 3. [Observed host and proposed approval batches](docs/host-plan.md)
-4. [First provisioning](docs/provisioning.md)
-5. [Secrets enrollment](docs/secrets.md)
-6. [Replacement](docs/deployment.md)
-7. [Backups and restoration](docs/backup-restore.md)
-8. [Recovery](docs/recovery.md)
-9. [Validation boundaries](docs/validation.md)
+4. [Disposable host rehearsal](docs/rehearsal.md)
+5. [First provisioning](docs/provisioning.md)
+6. [Secrets enrollment](docs/secrets.md)
+7. [Replacement](docs/deployment.md)
+8. [Backups and restoration](docs/backup-restore.md)
+9. [Recovery](docs/recovery.md)
+10. [Validation boundaries](docs/validation.md)
 
 `provision/containers.nix` is the authoritative proposed resource contract. IDs,
 capacities and ownership assignments are proposals, not existing resources.

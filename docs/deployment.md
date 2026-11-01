@@ -79,7 +79,7 @@ On the host, with OLD confirmed stopped:
 
 ```sh
 pct set "$OLD" --onboot 0
-pct create "$NEW" "local:vztmpl/$ARCHIVE" --ostype unmanaged --unprivileged 1   --hostname immich --cores 6 --memory 12288 --swap 0 --onboot 0   --rootfs local-zfs:32   --net0 name=eth0,bridge=vmbr0,ip=dhcp,ip6=manual,firewall=1   --dev0 /dev/dri/renderD128,uid=0,gid=303,mode=0660   --dev1 /dev/net/tun,uid=0,gid=0,mode=0600
+pct create "$NEW" "local:vztmpl/$ARCHIVE" --ostype nixos --unprivileged 1   --hostname immich --cores 6 --memory 12288 --swap 0 --onboot 0   --rootfs local-zfs:32   --net0 name=eth0,bridge=vmbr0,ip=dhcp,ip6=manual,firewall=1   --dev0 /dev/dri/renderD128,uid=0,gid=303,mode=0660   --dev1 /dev/net/tun,uid=0,gid=0,mode=0600
 pct move-volume "$OLD" mp0 --target-vmid "$NEW" --target-volume mp0
 pct move-volume "$OLD" mp1 --target-vmid "$NEW" --target-volume mp1
 pct config "$OLD"

@@ -17,7 +17,16 @@ Read-only discovery on 2026-11-01 found:
   Socket discovery does not prove LAN reachability. Verify from a separate LAN
   device and inspect effective rules/counters before concluding exposure is closed.
 
-## Proposed minimal batch, NOT executed
+## Rehearsal first
+
+The exact initial disposable-host batch is in [rehearsal.md](rehearsal.md).
+A read-only refresh confirmed CT990/991 are free, local-zfs has ~3.51 TiB free,
+and the render device still belongs to Intel PCI 0000:00:02.0. Installed Proxmox
+provides a native `nixos` setup plugin that writes networkd/DNS configuration;
+`unmanaged` skips that setup. Provisioning/replacement runbooks now use `nixos`.
+These are host-side setup semantics; the published image is unchanged.
+
+## Proposed eventual service batch, NOT executed
 
 Prerequisites: successful CI, verified immutable bootstrap artifact, approved
 capacities/IDs, LAN reachability test, local console recovery available.
