@@ -17,6 +17,8 @@ CT990–994 are stopped with test storage retained. Tailscale/age enrollment,
 actual Immich jobs and application backup/restore remain unverified.
 See the rehearsal runbook and validation boundaries.
 Production backups are unconfigured until a Storage Box and secrets are enrolled.
+Current SOPS recipients/ciphertext are explicitly disposable rehearsal identities;
+replace them for production. The rehearsal node is enrolled and admin SSH passed.
 
 ## Read first
 

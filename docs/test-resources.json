@@ -1,5 +1,5 @@
 {
-  "designation": "Disposable secret-free bootstrap fixtures; synthetic sentinels/media only; no production data, retained recovery data or sole backups",
+  "designation": "Disposable rehearsal fixtures with test-only identities; no production data or credentials",
   "date": "2026-11-02",
   "creationEvidence": {
     "990": "docs/rehearsal.md batch A; original off-host record /private/tmp/homelab-rehearsal-a/result.json",
@@ -34,7 +34,7 @@
       ]
     },
     "994": {
-      "state": "stopped",
+      "state": "running for interactive rehearsal enrollment",
       "volumes": [
         "local-zfs:subvol-994-disk-0",
         "local-zfs:subvol-994-disk-1",
@@ -91,5 +91,17 @@
       "role": "secret-free operational rootfs"
     }
   ],
-  "rule": "Historical creation/transfer record, not live authorization. Recheck exact IDs, GUIDs, all attachments and data classification before every storage mutation."
+  "rule": "Historical creation/transfer record, not live authorization. Recheck exact IDs, GUIDs, all attachments and data classification before every storage mutation.",
+  "enrollment": {
+    "purpose": "rehearsal only",
+    "container": 994,
+    "containerAgeRecipient": "age1wzv8cqqcn7yvk6xu0s06zkuejkqz94mwnd0xgjlq4ta383h9kvqq2m2ryj",
+    "cleanupHold": "Retain enrollment fixtures while recovery and restoration checks are in progress; recheck identity/data classification before cleanup.",
+    "tailscaleNode": "immich-rehearsal.dorper-shade.ts.net",
+    "tailscaleIPv4": "100.102.210.15",
+    "tailscaleTag": "tag:immich-test",
+    "tailscaleAdminSshVerified": true,
+    "recoveryAgeRecipient": "age15ecjyy83za7t9cjdsf2h5syfzhsp6qz5sjlfacpzfdnlhcxfve7s2vxn6v",
+    "recoveryEscrow": "1Password document import/retrieval in progress"
+  }
 }

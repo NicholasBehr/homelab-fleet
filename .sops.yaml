@@ -1,3 +1,4 @@
-# Bootstrap intentionally has no recipients. scripts/secrets-init writes the
-# public container and recovery recipients before any operational encryption.
-creation_rules: []
+# Disposable rehearsal recipients only; replace for production enrollment.
+creation_rules:
+  - path_regex: secrets/immich\.yaml$
+    age: "age1wzv8cqqcn7yvk6xu0s06zkuejkqz94mwnd0xgjlq4ta383h9kvqq2m2ryj,age15ecjyy83za7t9cjdsf2h5syfzhsp6qz5sjlfacpzfdnlhcxfve7s2vxn6v"

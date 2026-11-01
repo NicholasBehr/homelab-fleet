@@ -500,3 +500,32 @@ Next: interactive Tailscale and age/recovery enrollment, then actual Immich uplo
 thumbnails/transcode placement, identity-preserving replacement and consistent
 backup/fresh-volume restoration. Remote Borg needs a real Storage Box and escrow.
 No production deployment or production nesting approval is implied by these tests.
+
+
+## Interactive rehearsal enrollment, 2026-11-02
+
+Operator selected disposable rehearsal identities, not eventual production
+identities. CT994's exact creation GUIDs and all cluster references were checked
+before startup/key generation. Created its age key under /persist/secrets with
+mode0600, displaying only the public recipient. Independently generated a protected
+recovery identity and unique rehearsal Borg credentials outside the repository;
+only the public recipients and SOPS ciphertext are committed. Recovery decryption
+matched both credentials entirely in memory. 1Password Document import/retrieval
+verification is in progress; preserve enrollment fixtures until recovery checks pass.
+
+Operator supplied the existing tailnet policy. Prepared a separate tag:immich-test
+addition preserving hypervisor/app01 rules, with infra-admin HTTPS/checked-root-SSH
+and denial tests between the rehearsal node and existing services. Operator saved
+it after built-in tests passed, completed guest login and machine approval.
+No live tailnet policy or user-specific policy copy is committed to this repository.
+
+Node immich-rehearsal.dorper-shade.ts.net / 100.102.210.15 reports Running with the
+correct test tag. Operator verified Tailscale SSH returns UID0 and hostname immich.
+Serve points to loopback2283, but the current image remains application-gated until
+a verified ciphertext-bearing replacement. This is test enrollment only; the
+underlying Debian/Proxmox host SSH/network/policy configuration was not modified.
+
+Current local files are protected under /private/tmp/homelab-enrollment-rehearsal;
+private contents have never been printed. Exact public recipients and enrollment
+classification are recorded in test-resources.json. SOPS material in this source
+is rehearsal-only and must be replaced before any production enrollment.
