@@ -1,17 +1,45 @@
 #!/usr/bin/env bash
 set -euo pipefail
-nixfmt --check flake.nix modules/*.nix roles/*.nix hosts/*.nix provision/*.nix
-shellcheck scripts/* tests/*.sh
-python3 -m unittest discover -s tests -p 'test_*.py'
-python3 tests/secret-scan.py
-nix flake check --no-build
-nix build --no-link .#nixosConfigurations.immich-bootstrap.config.system.build.toplevel .#nixosConfigurations.immich.config.system.build.toplevel .#immich-bootstrap .#immich .#immich-recovery .#checks.x86_64-linux.backup-config
-for variant in immich-bootstrap immich immich-recovery; do
-  output=$(nix build --no-link --print-out-paths ".#$variant")
-  for archive in "$output"/tarball/*.tar.xz; do
-    python3 tests/image-layout.py "$archive"
-  done
-done
-bash tests/secrets-roundtrip.sh
-bash tests/borg-restore.sh
-sudo --preserve-env=PATH unshare --mount bash tests/storage-linux.sh
+stage=${1:-all}
+printf 'Check phase: %s\n' "$stage"
+case "$stage" in
+  lint)
+    nixfmt --check flake.nix modules/*.nix roles/*.nix hosts/*.nix provision/*.nix
+    shellcheck scripts/* tests/*.sh
+    python3 -m unittest discover -s tests -p 'test_*.py'
+    python3 tests/secret-scan.py
+    ;;
+  eval)
+    nix flake check --no-build
+    ;;
+  tests)
+    bash tests/secrets-roundtrip.sh
+    bash tests/borg-restore.sh
+    sudo --preserve-env=PATH unshare --mount bash tests/storage-linux.sh
+    ;;
+  systems)
+    nix build --print-build-logs --max-jobs 2 --cores 2 --no-link \
+      .#nixosConfigurations.immich-bootstrap.config.system.build.toplevel \
+      .#nixosConfigurations.immich.config.system.build.toplevel \
+      .#nixosConfigurations.immich-recovery.config.system.build.toplevel \
+      .#checks.x86_64-linux.backup-config
+    ;;
+  image)
+    variant=${2:?image variant required}
+    case "$variant" in immich-bootstrap|immich|immich-recovery) ;; *) exit 2 ;; esac
+    # One archive at a time: each upstream builder copies its closure before xz.
+    output=$(nix build --print-build-logs --max-jobs 1 --cores 2 --no-link --print-out-paths ".#$variant")
+    for archive in "$output"/tarball/*.tar.xz; do
+      python3 tests/image-layout.py "$archive"
+      du -h "$archive"
+    done
+    ;;
+  all)
+    "$0" lint
+    "$0" eval
+    "$0" tests
+    "$0" systems
+    for variant in immich-bootstrap immich immich-recovery; do "$0" image "$variant"; done
+    ;;
+  *) echo 'Usage: scripts/check [all|lint|eval|tests|systems|image VARIANT]' >&2; exit 2 ;;
+esac

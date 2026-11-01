@@ -73,3 +73,21 @@ No Linux image build, actual Immich boot, Proxmox test or host mutation performe
    disposable assets. Configure real remote backup only after Storage Box enrollment.
 6. Approve real service allocations after the disposable rehearsal. Any cleanup
    or later /data migration is a separate batch; /persist always stays on NVMe.
+
+## CI archive-build diagnosis, 2026-11-01
+
+The first Linux run passed ten unit/layout/hook tests and reached all system
+builds in about three minutes, then spent over 24 minutes in three concurrent
+upstream tarball derivations without progress output before being canceled for
+investigation. This does not establish successful template builds. The upstream
+builder copies each system closure before compressing it, so simultaneous archives
+also duplicate temporary disk work.
+
+CI now separates lint, evaluation, runtime tests, system builds and each template
+into named steps. Archives build sequentially with one Nix build job; the exported
+image packages use pixz level 1 with two compression workers. They retain the same
+.tar.xz deployment format, at the cost of potentially larger downloads. Each phase
+has a 15-minute limit, the whole job a 60-minute limit, and build logs are enabled.
+Release builds use the same exported packages/settings as checks. `scripts/check`
+retains an all-phases entry point; individual phases accept the documented stage
+arguments visible in the workflow. Linux success remains pending the corrected run.

@@ -33,6 +33,13 @@
             })
           ];
         };
+      # Keep xz templates compatible with Proxmox, but bound compressor CPU/memory.
+      # The upstream pixz default is expensive when several images build together.
+      mkTemplate =
+        host:
+        host.config.system.build.tarball.override {
+          compressCommand = "pixz -t -1 -p 2";
+        };
       operational = mkHost false;
       bootstrap = mkHost true;
       recovery = operational.extendModules {
@@ -54,9 +61,9 @@
         immich-recovery = recovery;
       };
       packages.${system} = {
-        immich = operational.config.system.build.tarball;
-        immich-bootstrap = bootstrap.config.system.build.tarball;
-        immich-recovery = recovery.config.system.build.tarball;
+        immich = mkTemplate operational;
+        immich-bootstrap = mkTemplate bootstrap;
+        immich-recovery = mkTemplate recovery;
         default = self.packages.${system}.immich-bootstrap;
       };
       devShells.${system}.ci = pkgs.mkShell {
