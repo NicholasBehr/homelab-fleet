@@ -9,11 +9,12 @@ no deployment script, runner, daemon, or CI route into the homelab.
 **Status:** repository implementation under validation, not a working deployment.
 The storage split is contract v2; local layout/hook tests pass.
 Linux checks passed for code commit `3ce2eb0` ([run](https://github.com/NicholasBehr/homelab-fleet/actions/runs/41348167681)).
-All three x86 templates built; actual Proxmox boot and hardware validation remain pending.
-The approved disposable host rehearsal created CT990, which is now stopped with its volumes retained.
-An approved nesting retry resolved core boot and networking, and Intel VA-API capabilities were detected.
-Actual transcoding, application/Tailscale integration and rootfs replacement remain unverified.
-TUN mode and discovery-listener image corrections remain; see the rehearsal runbook.
+All three x86 templates built. Nesting resolved the initial Proxmox boot failure.
+Disposable rootfs replacement, missing/wrong-volume guards and synthetic VA-API
+H.264 encoding/decoding passed; CT990 and CT991 are stopped with storage retained.
+Actual Immich QSV jobs and enrolled Tailscale integration remain unverified.
+TUN mode and discovery-listener corrections are committed; new Linux CI and a
+fresh-image boot check are pending. See the rehearsal runbook and validation boundaries.
 Production backups are unconfigured until a Storage Box and secrets are enrolled.
 
 ## Read first

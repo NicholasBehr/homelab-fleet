@@ -30,12 +30,14 @@ Before calling the deployment validated, record these host results with approval
 
 ```sh
 vainfo --display drm --device /dev/dri/renderD128
-runuser -u immich -- ffmpeg -hide_banner -v verbose -init_hw_device qsv=hw:/dev/dri/renderD128 \
+runuser -u immich -- "$IMMICH_FFMPEG" -hide_banner -v verbose -init_hw_device qsv=hw:/dev/dri/renderD128 \
   -filter_hw_device hw -hwaccel qsv -hwaccel_output_format qsv \
   -i /data/immich/OPERATOR_SELECTED_REPRESENTATIVE_VIDEO -c:v h264_qsv \
   -an -t 15 -f null -
 ```
 
+Set IMMICH_FFMPEG to the Jellyfin FFmpeg executable referenced by the actual
+Immich server wrapper; the bootstrap diagnostic ffmpeg lacks QSV support.
 Use approved representative media; confirm logs identify hardware decode AND encode,
 not just a visible node. Exercise actual Immich transcode job, inspect its FFmpeg
 logs/output, play resulting video, compare duration/frame count. Test available
@@ -135,3 +137,20 @@ systemd-resolved also has wildcard discovery listeners, blocked by the active
 firewall. Both should be corrected declaratively in a future image and retested.
 Actual video decode/encode, app-account access, physical-LAN reachability,
 Tailscale SSH/Serve, replacement and real Immich restoration remain unverified.
+
+
+## Post-R1 batch B result, 2026-11-01
+
+Actual Proxmox replacement using two distinct bootstrap roots passed sentinel
+checksum/ownership checks after stopped-container managed volume transfer. Missing
+mounts and swapped markers blocked storage-contract and tailscaled. Dataset GUIDs
+survived Proxmox's ownership rename. Both fixtures are stopped, all storage retained;
+see [rehearsal](rehearsal.md) and [creation records](test-resources.json).
+
+Synthetic VA-API H.264 hardware encode/decode passed for 60 frames at 320x240 as
+UID/GID1100 with render group303. This supersedes the earlier capability-only
+boundary, but does not prove representative codecs or actual Immich/QSV behavior.
+Bootstrap FFmpeg's QSV attempt failed because that binary lacks libvpl/libmfx;
+Immich uses its own Jellyfin FFmpeg and requires an operational-image test.
+Tailscale enrollment, SOPS identity continuity, application layout/backup/restore,
+physical-LAN isolation and a fresh boot of the TUN/discovery fixes remain pending.

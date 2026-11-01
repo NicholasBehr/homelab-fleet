@@ -1,6 +1,6 @@
 # Disposable Proxmox rehearsal
 
-Status: **batch A approved and executed on 2026-11-01; first boot failed integration checks; R1 subsequently resolved core boot with supported nesting. CT990 is stopped with all volumes retained; remaining image-policy deviations are recorded below.**
+Status: **post-R1 batch B passed bootstrap replacement, missing/wrong-volume guards and synthetic VA-API encoding/decoding. CT990 and CT991 are stopped; all storage retained. Image-policy fixes await a new release and boot check.**
 The underlying Debian/Proxmox host and production mutations require exact-command
 approval. Under AGENTS.md, designated test containers and verified disposable test
 volumes may now be managed autonomously. Historical batch approvals below describe
@@ -294,3 +294,50 @@ age-key generation/enrollment, representative GPU decode/encode, actual Immich
 layout, application-consistent backup and restoration. No production media is
 needed for the rehearsal. The subsequently approved AGENTS.md test-resource rule
 permits autonomous iteration and cleanup only with verified disposable provenance.
+
+
+## Post-R1 batch B result, 2026-11-01
+
+Executed under the approved AGENTS.md test-resource policy. Before mutations,
+compared batch A's creation record with exact current volume IDs and every LXC
+attachment; only CT990 existed. Recorded ZFS GUIDs off-host before transfers.
+[Resource provenance](test-resources.json) records creation and rename history;
+it must be checked against live attachments before future storage mutations.
+
+- Added synthetic sentinels to both disposable volumes, UID/GID 1100, mode0600,
+  and recorded SHA256 checksums. No production data or credentials were involved.
+- Created designated CT991 with a new 16 GiB root on local-zfs from the same
+  authenticated bootstrap archive, native nixos setup, unprivileged mapping,
+  generated AppArmor, nesting=1, two cores/4 GiB, onboot=0 and the same two devices.
+- Booted CT991 without persistent mounts: storage-contract failed with
+  `Required mount absent: /persist`; tailscaled remained inactive and no new
+  Tailscale state appeared under the disposable root's /persist.
+- With both containers stopped, ran `pct move-volume 990 mp0 --target-vmid 991
+  --target-volume mp0` and the corresponding mp1 transfer. Proxmox renamed datasets
+  to subvol-991-disk-1/2; their GUIDs remained unchanged. CT990 retains its old root.
+- Swapped only the two test mount destinations while stopped. Wrong markers
+  failed storage-contract and blocked tailscaled. Restored correct destinations.
+- Booted the replacement with correct volumes: both sentinel checksums,
+  UID/GID1100 and mode0600 survived. Zero failed units; tailscaled reported NeedsLogin.
+  This proves bootstrap state transfer across distinct roots, not enrolled
+  Tailscale identity continuity, age decryption or database migration safety.
+- Attempted QSV using bootstrap's diagnostic FFmpeg 8.1.3; initialization failed.
+  Build configuration shows both libvpl and libmfx disabled. This binary cannot
+  validate QSV; the operational Immich wrapper uses a separate Jellyfin FFmpeg.
+- Synthetic VA-API H.264 encode AND hardware decode passed as numeric UID/GID1100
+  with supplementary render group303: 60 frames, 320x240, two seconds. Output was
+  written only to CT991's /tmp/rehearsal-qsv. This is application-equivalent Unix
+  device access, not an actual Immich job or representative codec workload.
+- Both containers ended stopped. All four datasets remain. No underlying host
+  packages, drivers, pool settings, firewall or networking configuration changed.
+
+Non-secret command output and results: /private/tmp/homelab-rehearsal-b on the Mac.
+The test-volume root files contain synthetic sentinels only, alongside bootstrap
+runtime state; neither volume is a production volume or a sole backup.
+
+Code commit d6aa0707cf842401a6e415872aace0617e4b4909 adds an early tmpfiles TUN
+mode0600 rule and disables resolved LLMNR/mDNS. Local lint, ten unit tests and
+all-system evaluation passed. GitHub Linux checks are running at
+[run 41354418773](https://github.com/NicholasBehr/homelab-fleet/actions/runs/41354418773).
+No new release or in-place image repair has been performed; the runtime fixes
+still require a fresh verified image boot.
