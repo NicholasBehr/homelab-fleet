@@ -1,0 +1,75 @@
+# Validation boundaries
+
+Local checks on the ARM Mac can evaluate x86 Nix derivations, format Nix, lint
+shell, exercise hook failure paths with mocked external commands and round-trip
+SOPS with disposable keys. They cannot build/run the x86 image or prove LXC support.
+
+GitHub Linux checks explicitly build bootstrap/operational systems and tarballs,
+run hook failure tests, perform real PostgreSQL dump/restore through encrypted local
+Borg, and exercise real mount absence/wrong-marker guards in a disposable mount
+namespace. The namespace persistence test changes a disposable directory root;
+it does NOT emulate Proxmox rootfs replacement. Source leak checks are heuristic,
+not a claim that arbitrary secrets are detectable. CI receives no deployment secrets.
+
+Before calling the deployment validated, record these host results with approval:
+- Bootstrap boot without secrets; correct DHCP, console and default confinement.
+- Age enrollment, operational decryption after actual rootfs replacement.
+- Missing mp0/mp1 and intentionally wrong disposable-volume markers prevent DB,
+  Redis, Immich and tailscaled startup. No new DB/media files on disposable root.
+- Managed volume transfer/detach semantics using approved test CT990/991; compare
+  checksums/ownership before and after; no persistent cleanup in ordinary replacement.
+- Successful backup, failed prepare and failed remote Borg operation restore services;
+  failed backup prevents deployment. Fresh-volume DB/extension/media restore rehearsal.
+- Tailscale authorized SSH/HTTPS succeeds, unauthorized policy tests fail; LAN TCP22,
+  TCP111, TCP2283 and host TCP8006 unreachable from another physical-LAN device.
+- Upload a test photo/video, generate thumbnails and transcode. Verify realpath and
+  filesystem placement: originals on /data, all generated files on /persist.
+  Preserve all six .immich markers across replacement; exercise storage templates
+  if enabled, and record the native symlink layout compatibility.
+- Real representative H.264/HEVC media transcodes via QSV. Inside container run:
+
+```sh
+vainfo --display drm --device /dev/dri/renderD128
+runuser -u immich -- ffmpeg -hide_banner -v verbose -init_hw_device qsv=hw:/dev/dri/renderD128 \
+  -filter_hw_device hw -hwaccel qsv -hwaccel_output_format qsv \
+  -i /data/immich/OPERATOR_SELECTED_REPRESENTATIVE_VIDEO -c:v h264_qsv \
+  -an -t 15 -f null -
+```
+
+Use approved representative media; confirm logs identify hardware decode AND encode,
+not just a visible node. Exercise actual Immich transcode job, inspect its FFmpeg
+logs/output, play resulting video, compare duration/frame count. Test available
+codecs separately; unsupported codecs are not a reason to weaken confinement.
+ML remains CPU and does not validate GPU media acceleration. These hardware tests
+have not been run by repository implementation.
+
+Template layout checks also require /sbin/init and reject runtime files under
+/persist, /data and /run/secrets. These complement source secret-pattern checks;
+no automatic scanner can establish absence of every possible credential format.
+
+## Recorded local result, 2026-11-01 (storage contract v2)
+
+Passed on the ARM Mac: all-system flake evaluation (including backup-enabled
+configuration), Nix formatting, ShellCheck, ten layout/hook tests, source secret
+pattern scan, and SOPS round-trip using both disposable container/recovery keys.
+The layout tests verify writes and original-file renames through the links,
+retained integrity markers, and rejection of existing directories/wrong links.
+The separate-filesystem placement test is in tests/storage-linux.sh, pending CI.
+No Linux image build, actual Immich boot, Proxmox test or host mutation performed.
+
+## Interactive verification order
+
+1. Review and explicitly authorize the initial commit/push to the existing public
+   NicholasBehr/homelab-fleet repository; run Checks. No release is needed for CI.
+2. Inspect Linux results and fix failures. Separately authorize publication of the
+   exact bootstrap release, then verify its attestation/digest on the Mac.
+3. Present an exact, small disposable-host batch with current free CT IDs and volume
+   limits. Approve before downloading/writing anything on Proxmox, then verify
+   secret-free boot, mounts, render/TUN devices, confinement and volume transfers.
+4. Enroll test identities together through the authenticated console. Publish an
+   explicitly approved encrypted operational image; exercise actual Immich upload,
+   thumbnail/encoded-video placement and GPU transcoding, then replacement.
+5. Test consistent local Borg failure/recovery and fresh-volume restoration using
+   disposable assets. Configure real remote backup only after Storage Box enrollment.
+6. Approve real service allocations after the disposable rehearsal. Any cleanup
+   or later /data migration is a separate batch; /persist always stays on NVMe.

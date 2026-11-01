@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+if test -f /run/homelab-backup/restart; then
+  systemctl start redis-immich.service immich-machine-learning.service immich-server.service
+  rm /run/homelab-backup/restart
+fi

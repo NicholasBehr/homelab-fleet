@@ -1,0 +1,22 @@
+// Merge into the existing tailnet policy; replace example identities first.
+// No CI identity. Review with Tailscale's policy tests before applying.
+{
+  "groups": {
+    "group:homelab-admins": ["admin@example.com"],
+    "group:immich-users": ["user@example.com"],
+  },
+  "tagOwners": {
+    "tag:homelab-host": ["group:homelab-admins"],
+    "tag:immich": ["group:homelab-admins"],
+  },
+  "grants": [
+    {"src": ["group:homelab-admins"], "dst": ["tag:homelab-host", "tag:immich"], "ip": ["tcp:22", "tcp:443"]},
+    {"src": ["group:immich-users"], "dst": ["tag:immich"], "ip": ["tcp:443"]},
+  ],
+  "ssh": [
+    {"action": "check", "src": ["group:homelab-admins"], "dst": ["tag:homelab-host", "tag:immich"], "users": ["root"]},
+  ],
+  "tests": [
+    {"src": "user@example.com", "accept": ["tag:immich:443"], "deny": ["tag:immich:22", "tag:homelab-host:443"]},
+  ],
+}

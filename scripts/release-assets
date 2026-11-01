@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Local/CI artifact packaging only. Never contacts Proxmox or publishes a release.
+set -euo pipefail
+variant=${1:?immich, immich-bootstrap, or immich-recovery}
+[[ "$variant" = immich || "$variant" = immich-bootstrap || "$variant" = immich-recovery ]]
+test -z "$(git status --porcelain)" || { echo 'Release requires a clean reviewed commit' >&2; exit 1; }
+commit=$(git rev-parse HEAD)
+mkdir -p dist
+output=$(nix build ".#$variant" --no-link --print-out-paths)
+archive=$(find "$output/tarball" -name '*.tar.xz' -type f)
+test "$(printf '%s\n' "$archive" | wc -l)" -eq 1
+asset="$variant-$commit-x86_64-linux.tar.xz"
+python3 tests/image-layout.py "$archive"
+cp "$archive" "dist/$asset"
+python3 - "$variant" "$commit" "$output" "$asset" <<'PY'
+import json, subprocess, sys
+variant, commit, output, archive = sys.argv[1:]
+def evaluate(expr):
+    return json.loads(subprocess.check_output(['nix', 'eval', '--json', '.#'+expr]))
+contract = json.loads(evaluate('nixosConfigurations.immich.config.environment.etc."homelab-versions.json".text'))
+manifest = dict(service='immich', variant=variant, commit=commit, architecture='x86_64-linux', buildOutput=output, archive=archive, versions=contract, contract=evaluate('deploymentContract'), encryptedSecretsIncluded=__import__('pathlib').Path('secrets/immich.yaml').exists() and variant!='immich-bootstrap')
+with open('dist/'+variant+'-manifest.json','w') as f: json.dump(manifest,f,indent=2); f.write('\n')
+PY
+(cd dist && sha256sum "$asset" "$variant-manifest.json" > "$variant-SHA256SUMS")

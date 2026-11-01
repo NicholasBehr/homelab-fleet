@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+persist=${1:?persist mount}; media=${2:?media mount}
+for path in "$persist" "$media"; do
+  mountpoint -q "$path" || { echo "Required mount absent: $path" >&2; exit 1; }
+  test "$(findmnt -n -o TARGET -T "$path")" = "$path"
+  test "$(findmnt -n -o MAJ:MIN -T "$path")" != "$(findmnt -n -o MAJ:MIN -T /)"
+done
+test "$(cat "$persist/.homelab-volume")" = "${3:?persist identity}"
+test "$(cat "$media/.homelab-volume")" = "${4:?media identity}"

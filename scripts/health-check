@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Run inside the operational container; no host connection.
+set -euo pipefail
+contract=/etc/homelab-contract.json
+verify-storage "$(jq -r .persist.path "$contract")" "$(jq -r .media.path "$contract")" \
+  "$(jq -r .persist.marker "$contract")" "$(jq -r .media.marker "$contract")"
+df -h /persist /data
+systemctl is-active storage-contract operational-ready tailscaled postgresql immich-server immich-machine-learning
+curl --fail --silent http://127.0.0.1:2283/api/server/ping | jq -e '.res == "pong"'
+tailscale status --json | jq -e '.BackendState == "Running"'
+tailscale serve status
+test "$(runuser -u postgres -- psql -d immich -Atc 'select 1')" = 1
+test -c "$(jq -r .renderDevice "$contract")"
+if systemctl list-unit-files borgbackup-job-immich.service --no-legend | grep -q borgbackup; then
+  systemctl show borgbackup-job-immich -p Result -p ExecMainStatus -p ActiveEnterTimestamp
+else
+  echo 'Production backups UNCONFIGURED' >&2
+  exit 1
+fi

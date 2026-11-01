@@ -1,0 +1,12 @@
+# Durable rules
+- Unprivileged NixOS LXC only; Immich first; standard Intel render-device sharing.
+- Replace disposable images; no routine production nixos-rebuild or deploy-rs.
+- Persist data and identity only on declared volumes. /persist stays on NVMe; /data contains only bulk originals suitable for HDD migration. Keep DBs, thumbnails, previews and encoded video on /persist.
+- GitHub builds/releases only; no homelab credentials or administrative access.
+- Operators pull explicit verified releases. MVP provisioning/replacement is manual.
+- Tailscale-only access; preserve confinement and Secure Boot (temporarily disabled by operator decision, 2026-11-01).
+- Read-only host discovery is allowed. Every host mutation requires explicit approval of exact commands.
+- Never put plaintext secrets in Git, images, the Nix store, or logs.
+- Require consistent backups before migration-bearing updates.
+- Keep imports explicit and modules simple; test replacement and restoration.
+- Never delete persistent storage or assume software rollback reverses migrations.

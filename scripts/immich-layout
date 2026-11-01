@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Native layout: hot state on NVMe; only original assets on the bulk volume.
+# Never migrate existing data implicitly or replace unexpected directories/links.
+set -euo pipefail
+hot=${1:?hot path}; bulk=${2:?bulk path}; owner=${3:?UID}; group=${4:?GID}
+test ! -L "$hot" && test ! -L "$bulk" || { echo "Immich roots must not be symlinks" >&2; exit 1; }
+# Check before creating anything: existing layouts require an explicit migration.
+for folder in upload library; do
+  link="$hot/$folder"
+  if test -L "$link"; then
+    test "$(readlink "$link")" = "$bulk/$folder" || { echo "Unexpected Immich link: $link" >&2; exit 1; }
+  elif test -e "$link"; then
+    echo "Existing Immich directory needs reviewed migration: $link" >&2
+    exit 1
+  fi
+done
+install -d -m 0700 -o "$owner" -g "$group" "$hot" "$bulk"
+for folder in thumbs encoded-video profile backups; do
+  test ! -L "$hot/$folder" || { echo "Hot directory must not be a symlink: $folder" >&2; exit 1; }
+  install -d -m 0700 -o "$owner" -g "$group" "$hot/$folder"
+done
+for folder in upload library; do
+  test ! -L "$bulk/$folder" || { echo "Bulk directory must not be a symlink: $folder" >&2; exit 1; }
+  install -d -m 0700 -o "$owner" -g "$group" "$bulk/$folder"
+  if ! test -L "$hot/$folder"; then ln -s "$bulk/$folder" "$hot/$folder"; fi
+done

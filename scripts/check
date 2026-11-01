@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+nixfmt --check flake.nix modules/*.nix roles/*.nix hosts/*.nix provision/*.nix
+shellcheck scripts/* tests/*.sh
+python3 -m unittest discover -s tests -p 'test_*.py'
+python3 tests/secret-scan.py
+nix flake check --no-build
+nix build --no-link .#nixosConfigurations.immich-bootstrap.config.system.build.toplevel .#nixosConfigurations.immich.config.system.build.toplevel .#immich-bootstrap .#immich .#immich-recovery .#checks.x86_64-linux.backup-config
+for variant in immich-bootstrap immich immich-recovery; do
+  output=$(nix build --no-link --print-out-paths ".#$variant")
+  for archive in "$output"/tarball/*.tar.xz; do
+    python3 tests/image-layout.py "$archive"
+  done
+done
+bash tests/secrets-roundtrip.sh
+bash tests/borg-restore.sh
+sudo --preserve-env=PATH unshare --mount bash tests/storage-linux.sh

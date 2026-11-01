@@ -1,0 +1,3 @@
+# Bootstrap intentionally has no recipients. scripts/secrets-init writes the
+# public container and recovery recipients before any operational encryption.
+creation_rules: []
