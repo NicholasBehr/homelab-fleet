@@ -90,4 +90,21 @@ image packages use pixz level 1 with two compression workers. They retain the sa
 has a 15-minute limit, the whole job a 60-minute limit, and build logs are enabled.
 Release builds use the same exported packages/settings as checks. `scripts/check`
 retains an all-phases entry point; individual phases accept the documented stage
-arguments visible in the workflow. Linux success remains pending the corrected run.
+arguments visible in the workflow. The corrected Linux run subsequently passed; see the recorded result below.
+
+
+## Recorded Linux result, 2026-11-01
+
+[Run 41348167681](https://github.com/NicholasBehr/homelab-fleet/actions/runs/41348167681)
+passed for code commit 3ce2eb001e096e01ac0bf0ecf24af989a720fc4d in 15 minutes
+2 seconds. Ten unit/layout/hook tests, secret round-trip, real encrypted local
+Borg/PostgreSQL restore, mount failure/placement checks, all four system
+configurations, and all three exported image builds/layout checks passed.
+
+Archive build plus layout-check times: bootstrap 2m19s, operational 4m39s,
+recovery 5m14s. Reported archive sizes: 667 MiB, approximately 1.4 GiB and 1.4 GiB.
+These times include copying system closures and reading each archive for layout
+verification; they are not isolated compressor benchmarks. No Proxmox boot,
+GPU/Tailscale integration or real Immich data restoration has yet been verified.
+No release was published and no Proxmox mutation was performed. Documentation-only
+updates recording these results do not require repeating the image builds.
