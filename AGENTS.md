@@ -5,8 +5,8 @@
 - GitHub builds/releases only; no homelab credentials or administrative access.
 - Operators pull explicit verified releases. MVP provisioning/replacement is manual.
 - Tailscale-only access; preserve confinement and Secure Boot (temporarily disabled by operator decision, 2026-11-01).
-- Read-only host discovery is allowed. Every host mutation requires explicit approval of exact commands.
+- Read-only host discovery is allowed. Mutations confined to designated test containers and verified disposable test volumes are permitted without further approval. Storage authorization requires a creation record identifying the exact volume; container IDs, names and current attachment alone are insufficient. Before storage mutations, verify provenance and attachments. Never include production volumes, retained recovery data or sole backups. If verification is incomplete or inconsistent, ask for approval. Changes to the underlying Debian/Proxmox host, shared infrastructure or production resources require explicit approval of exact commands.
 - Never put plaintext secrets in Git, images, the Nix store, or logs.
 - Require consistent backups before migration-bearing updates.
 - Keep imports explicit and modules simple; test replacement and restoration.
-- Never delete persistent storage or assume software rollback reverses migrations.
+- Never delete persistent storage outside verified disposable test volumes, or assume software rollback reverses migrations.

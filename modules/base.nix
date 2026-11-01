@@ -3,6 +3,10 @@
   system.stateVersion = "26.05";
   time.timeZone = "UTC";
   services.openssh.enable = false;
+  services.resolved.settings.Resolve = {
+    LLMNR = false;
+    MulticastDNS = false;
+  };
   users.mutableUsers = false;
   users.allowNoPasswordLogin = true; # root remains locked; recovery is pct enter
   users.users.root.hashedPassword = "!";

@@ -1,9 +1,11 @@
 # Disposable Proxmox rehearsal
 
 Status: **batch A approved and executed on 2026-11-01; first boot failed integration checks; R1 subsequently resolved core boot with supported nesting. CT990 is stopped with all volumes retained; remaining image-policy deviations are recorded below.**
-Every host mutation requires approval under AGENTS.md. These are reviewed manual
-commands, not a deployment script. Run each block interactively, inspect results,
-and stop on unexpected output. Do not execute later batches implicitly.
+The underlying Debian/Proxmox host and production mutations require exact-command
+approval. Under AGENTS.md, designated test containers and verified disposable test
+volumes may now be managed autonomously. Historical batch approvals below describe
+the policy in effect when those batches ran. Verify creation provenance and all
+attachments before each storage mutation; stop on unexpected output.
 
 ## Verified prerequisites
 
@@ -282,7 +284,7 @@ Off-host non-secret evidence is in /private/tmp/homelab-rehearsal-r1 on the Mac.
 The two runtime-policy deviations above were observed, not silently repaired on
 Proxmox. R1 establishes the boot requirement but is not final deployment readiness.
 
-## Later batches (not covered by batch A or R1 approval)
+## Later batches (historical scope of batch A and R1)
 
 After inspecting A's results, prepare exact commands with actual allocated volume
 IDs for CT991 creation, sentinel writes, stopped-container mp0/mp1 transfer,
@@ -290,4 +292,5 @@ checksum/ownership checks, and wrong/missing-volume boot tests. Never start both
 containers with the same writable state. After those pass, separately approve
 age-key generation/enrollment, representative GPU decode/encode, actual Immich
 layout, application-consistent backup and restoration. No production media is
-needed for the rehearsal, and destructive cleanup needs its own approval.
+needed for the rehearsal. The subsequently approved AGENTS.md test-resource rule
+permits autonomous iteration and cleanup only with verified disposable provenance.
