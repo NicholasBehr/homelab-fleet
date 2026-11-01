@@ -3,7 +3,8 @@
   "date": "2026-11-01",
   "creationEvidence": {
     "990": "docs/rehearsal.md batch A; original off-host record /private/tmp/homelab-rehearsal-a/result.json",
-    "991": "docs/rehearsal.md post-R1 batch B; off-host record /private/tmp/homelab-rehearsal-b/sentinels-and-create.txt"
+    "991": "docs/rehearsal.md post-R1 batch B; off-host record /private/tmp/homelab-rehearsal-b/sentinels-and-create.txt",
+    "992": "docs/rehearsal.md post-R1 batch C; off-host record /private/tmp/homelab-rehearsal-c/create.txt"
   },
   "containers": {
     "990": {
@@ -15,9 +16,15 @@
     "991": {
       "state": "stopped",
       "volumes": [
-        "local-zfs:subvol-991-disk-0",
-        "local-zfs:subvol-991-disk-1",
-        "local-zfs:subvol-991-disk-2"
+        "local-zfs:subvol-991-disk-0"
+      ]
+    },
+    "992": {
+      "state": "stopped",
+      "volumes": [
+        "local-zfs:subvol-992-disk-0",
+        "local-zfs:subvol-992-disk-1",
+        "local-zfs:subvol-992-disk-2"
       ]
     }
   },
@@ -33,16 +40,23 @@
       "role": "replacement rootfs"
     },
     {
-      "id": "local-zfs:subvol-991-disk-1",
+      "id": "local-zfs:subvol-992-disk-1",
       "guid": "1910626968990724815",
       "createdAs": "local-zfs:subvol-990-disk-1",
-      "role": "persist"
+      "role": "persist",
+      "transferredVia": "local-zfs:subvol-991-disk-1"
     },
     {
-      "id": "local-zfs:subvol-991-disk-2",
+      "id": "local-zfs:subvol-992-disk-2",
       "guid": "14164459399517632770",
       "createdAs": "local-zfs:subvol-990-disk-2",
-      "role": "data"
+      "role": "data",
+      "transferredVia": "local-zfs:subvol-991-disk-2"
+    },
+    {
+      "id": "local-zfs:subvol-992-disk-0",
+      "guid": "14508829118925052163",
+      "role": "second replacement rootfs"
     }
   ],
   "rule": "Historical creation/transfer record, not live authorization. Recheck exact IDs, GUIDs, all attachments and data classification before every storage mutation."

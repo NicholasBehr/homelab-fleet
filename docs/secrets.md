@@ -4,8 +4,11 @@ The bootstrap image contains no encrypted file and starts without secrets.
 Operational image builds also work without ciphertext, but operational-ready
 fails with an explicit diagnostic and prevents application/database startup.
 
-Every pct command that changes state needs approval. Inside the approved bootstrap
-console, generate a unique identity once (never overwrite an existing identity):
+Production identity enrollment requires approval. Disposable test identities must
+follow the test-resource provenance rules in AGENTS.md; do not introduce production
+credentials or retained recovery data into automatically disposable fixtures.
+Inside the approved bootstrap console, generate a unique identity once (never
+overwrite an existing identity):
 
 ```sh
 umask 077

@@ -11,10 +11,11 @@ The storage split is contract v2; local layout/hook tests pass.
 Linux checks passed for code commit `3ce2eb0` ([run](https://github.com/NicholasBehr/homelab-fleet/actions/runs/41348167681)).
 All three x86 templates built. Nesting resolved the initial Proxmox boot failure.
 Disposable rootfs replacement, missing/wrong-volume guards and synthetic VA-API
-H.264 encoding/decoding passed; CT990 and CT991 are stopped with storage retained.
+H.264 encoding/decoding passed; CT990/991/992 are stopped with storage retained.
 Actual Immich QSV jobs and enrolled Tailscale integration remain unverified.
-TUN mode and discovery-listener corrections are committed; new Linux CI and a
-fresh-image boot check are pending. See the rehearsal runbook and validation boundaries.
+The published discovery-listener correction passed a fresh-image boot. TUN still
+became0666; a revised vendor-rule correction and regression check are prepared,
+with a new release/boot check pending. See the rehearsal runbook and validation boundaries.
 Production backups are unconfigured until a Storage Box and secrets are enrolled.
 
 ## Read first

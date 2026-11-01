@@ -1,6 +1,6 @@
 # Disposable Proxmox rehearsal
 
-Status: **post-R1 batch B passed bootstrap replacement, missing/wrong-volume guards and synthetic VA-API encoding/decoding. CT990 and CT991 are stopped; all storage retained. Image-policy fixes await a new release and boot check.**
+Status: **post-R1 batch B passed bootstrap replacement, missing/wrong-volume guards and synthetic VA-API encoding/decoding. CT990/991/992 are stopped; all storage retained. Discovery-listener correction passed a fresh image boot; TUN needs the revised vendor-rule correction described below.**
 The underlying Debian/Proxmox host and production mutations require exact-command
 approval. Under AGENTS.md, designated test containers and verified disposable test
 volumes may now be managed autonomously. Historical batch approvals below describe
@@ -341,3 +341,66 @@ all-system evaluation passed. GitHub Linux checks are running at
 [run 41354418773](https://github.com/NicholasBehr/homelab-fleet/actions/runs/41354418773).
 No new release or in-place image repair has been performed; the runtime fixes
 still require a fresh verified image boot.
+
+
+### Independent IPv4 LAN probes
+
+The Mac used source 192.168.1.49 with direct en0 routes, independently of Tailscale.
+Proxmox 192.168.1.55 had an en0 ARP entry; TCP22/111/443/8006 were unreachable and
+ICMP did not reply. CT991 obtained 192.168.1.60; it answered ICMP over that same
+physical LAN, while TCP22/111/2283/5355 were unreachable. TCP5355 was a confirmed
+listening systemd-resolved socket during the probe, so this tests firewall blocking
+rather than merely absence of a listener. CT991 was then stopped again.
+
+Evidence: /private/tmp/homelab-rehearsal-b/host-lan.json and guest-lan.json.
+These are tested IPv4 TCP endpoints only; no claim is made for IPv6, UDP or every
+possible LAN source. Tailscale authorized/unauthorized policy testing is separate.
+
+
+## Post-R1 batch C result, 2026-11-01
+
+Approved release from d6aa0707cf842401a6e415872aace0617e4b4909 was published after
+[checks 41354418773](https://github.com/NicholasBehr/homelab-fleet/actions/runs/41354418773)
+and [release 41355554753](https://github.com/NicholasBehr/homelab-fleet/actions/runs/41355554753)
+passed. Exact [bootstrap release](https://github.com/NicholasBehr/homelab-fleet/releases/tag/immich-bootstrap-d6aa0707cf842401a6e415872aace0617e4b4909):
+699,240,968-byte archive, SHA256
+`98d3cde88dda350fc78b19d80fe36fa8e56237bb844cdae0c5e43a0868e1371d`.
+
+All three assets passed attestation verification restricted to the exact
+source/signer commit, release workflow, main source ref and GitHub-hosted runners.
+Manifest versions/contract matched reviewed local expectations; checksums and tag
+matched. Off-host receipt: /private/tmp/homelab-bootstrap-d6aa070/verification-receipt.json.
+
+Created designated unprivileged CT992 from that verified image, with nesting and
+the same test limits/devices as CT991. Only its new 16 GiB root was allocated.
+Before transfer, verified both source GUIDs and references across all cluster LXC
+and QEMU configurations. Both containers were stopped. Transferred mp0/mp1 from
+CT991 using supported move-volume; dataset GUIDs survived another ownership rename.
+All five allocated datasets are retained; current IDs are in test-resources.json.
+
+- The first probe ran before boot settled because a multi-unit `is-active` call
+  succeeds when any named unit is active. Corrected readiness to check each unit
+  individually and wait for tmpfiles completion before judging the image.
+- Settled boot had zero failed units and active storage/tailscaled/network/resolved.
+- LLMNR=false and MulticastDNS=false were present; wildcard discovery sockets were
+  gone on IPv4 and IPv6. Only loopback DNS, DHCP and Tailscale sockets remained.
+- Render stayed 0:303 mode0660, but TUN still became 0:0 mode0666. Therefore this
+  released image does NOT pass the requested TUN permission policy.
+- Debug tmpfiles replay showed both z rules execute, first0600 then vendor0666.
+  The previous assumption that an earlier z rule overrides the vendor entry was
+  incorrect. Tailscale itself did not cause the mode change.
+- In a runtime experiment confined to CT992, copied the vendor file to /run,
+  changed only its TUN mode and applied those rules only to /dev/net/tun. Mode0600
+  held across tailscaled restart; CLI reported NeedsLogin. Both sentinels passed
+  checksums. This is a diagnostic experiment, not a boot-validated image fix.
+- CT990, CT991 and CT992 ended stopped. No production identity or data was enrolled,
+  and no underlying host configuration, driver or source-device permission changed.
+
+The revised Nix module replaces only the vendor file's TUN mode, preserving other
+entries, and fails the build if the pinned vendor text changes unexpectedly.
+A Linux tmpfiles regression check applies the generated rule set to a disposable
+fixture and requires mode0600. Revised image publication and fresh boot remain
+pending; local lint, ten unit tests and all-system evaluation passed.
+
+Command evidence: /private/tmp/homelab-rehearsal-c on the Mac. The /run experiment
+is ephemeral and did not modify the released Nix store or install an in-place fix.

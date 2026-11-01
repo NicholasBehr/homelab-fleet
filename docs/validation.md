@@ -154,3 +154,21 @@ Bootstrap FFmpeg's QSV attempt failed because that binary lacks libvpl/libmfx;
 Immich uses its own Jellyfin FFmpeg and requires an operational-image test.
 Tailscale enrollment, SOPS identity continuity, application layout/backup/restore,
 physical-LAN isolation and a fresh boot of the TUN/discovery fixes remain pending.
+
+
+The Mac also performed independent physical-LAN IPv4 probes via en0: host
+TCP22/111/443/8006 and guest TCP22/111/2283/5355 were unreachable. The guest answered
+ping and had a listening TCP5355 socket, confirming effective blocking on the
+working LAN path. IPv6, UDP and Tailscale authorization remain untested.
+
+
+## Batch C: released discovery fix and remaining TUN defect
+
+Checks 41354418773 and release 41355554753 passed for d6aa0707. Independently
+verified all assets and booted that release in fresh CT992 with the retained test
+volumes. Discovery listeners were gone on both address families; zero failed units.
+TUN mode remained0666: matching tmpfiles z rules both execute, so the original
+00-nixos rule did not override the vendor rule. Do not treat that release as a
+successful TUN-policy fix. A test-only runtime experiment with the corrected vendor
+entry held0600 across Tailscale restart, with sentinels intact. The revised image
+and regression check still require Linux CI and a new release/boot check.
