@@ -10,7 +10,9 @@ no deployment script, runner, daemon, or CI route into the homelab.
 The storage split is contract v2; local layout/hook tests pass.
 Linux checks passed for code commit `3ce2eb0` ([run](https://github.com/NicholasBehr/homelab-fleet/actions/runs/41348167681)).
 All three x86 templates built; actual Proxmox boot and hardware validation remain pending.
-No containers or host changes have been made.
+The approved disposable host rehearsal created CT990, which is now stopped with its volumes retained.
+First boot exposed AppArmor namespace/mount restrictions; networking and GPU integration are not validated.
+A proposed nesting-feature retry awaits explicit approval; see the rehearsal runbook.
 Production backups are unconfigured until a Storage Box and secrets are enrolled.
 
 ## Read first

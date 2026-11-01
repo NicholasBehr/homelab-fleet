@@ -1,6 +1,6 @@
 # Disposable Proxmox rehearsal
 
-Status: **prepared, not executed; batch A awaits explicit approval**.
+Status: **batch A approved and executed on 2026-11-01; first boot failed integration checks; CT990 is stopped with all volumes retained. Retry R1 awaits approval.**
 Every host mutation requires approval under AGENTS.md. These are reviewed manual
 commands, not a deployment script. Run each block interactively, inspect results,
 and stop on unexpected output. Do not execute later batches implicitly.
@@ -165,6 +165,91 @@ If the guest never boots or shutdown cannot run, the explicitly approved fallbac
 for this disposable CT990 only is `pct stop 990`. If still mounted on the host,
 `pct unmount 990` is also allowed as recovery. Leave the archive, rootfs, persistent
 volumes and configuration intact; no cleanup/deletion command is authorized.
+
+## Batch A result, 2026-11-01
+
+- Verified download SHA256 matched the independently authenticated release.
+- Created unprivileged CT990 with native nixos setup, default confinement, no nesting.
+- Allocated and retained: rootfs local-zfs:subvol-990-disk-0 (16 GiB),
+  /persist local-zfs:subvol-990-disk-1 (1 GiB),
+  /data local-zfs:subvol-990-disk-2 (1 GiB). All reservation/refreservation
+  properties are none; limits are refquota. CT991 was not created.
+- Confirmed distinct ZFS mounts, marker initialization, and storage-contract success.
+- Render ownership in guest is 0:303 mode0660; TUN is 0:0 mode0600.
+- Native Proxmox setup generated the expected eth0.network with IPv4 DHCP.
+- Boot FAILED: 21 failed systemd units, including networkd (243/CREDENTIALS),
+  journald, tmpfiles and register-nix-paths. eth0 remained down; DNS/HTTPS failed.
+- tailscaled process started but the local CLI could not connect; Tailscale is NOT
+  validated. No enrollment, age-key generation or application startup occurred.
+- /run/current-system and /run/opengl-driver were absent. VA-API initialization
+  failed to locate runtime drivers; this does NOT establish a host Intel-driver
+  problem or prove hardware acceleration. No transcoding test has passed.
+- Kernel AppArmor audit entries for lxc-990 show denied move mounts at /nix/store,
+  /run and /run/credentials, plus denied userns_create for systemd-managed units.
+  Journald itself failed, so guest journal queries had no entries.
+- Read-only diagnostics used the immutable system profile/store binaries when
+  /run/current-system/sw/bin/bash was unavailable; no guest image edits were made.
+- Approved shutdown completed; pct status is stopped. No storage was deleted,
+  no driver/firewall/security setting changed, and no additional features enabled.
+
+Off-host records are in /private/tmp/homelab-rehearsal-a on the Mac. Host kernel
+logs and the installed PVE::LXC implementation provide direct evidence: nesting
+adds the supported allow_nesting configuration and user-namespace permission.
+The successful CI image builds did not prove these host integration requirements.
+
+## Proposed retry R1: supported nesting feature on CT990 only
+
+**Not approved and not executed.** The default-profile boot failed at ordinary
+NixOS/systemd namespace and mount operations. The next isolated test is the
+supported Proxmox nesting flag. It keeps CT990 unprivileged and under Proxmox's
+generated AppArmor confinement, but expands permitted namespace/mount operations
+and exposes additional host procfs/sysfs views. It is a security tradeoff, not a
+pure performance flag. No privileged mode, unconfined profile, extra devices,
+keyctl, FUSE, host driver change or host-wide policy change is proposed.
+
+The installed /usr/share/perl5/PVE/LXC.pm explicitly documents this behavior and
+adds lxc.apparmor.allow_nesting plus allow userns for this feature. See also the
+[Proxmox container manual](https://pve.proxmox.com/pve-docs/pct.1.html).
+Production resource declarations remain unchanged until this isolated test passes
+and the feature is approved for the service contract.
+
+Proposed approved effects: change only CT990's features, boot that same fixture,
+repeat the read-only checks from A3, then stop it and retain all storage. No new
+image, container or volume is needed.
+
+```sh
+set -euo pipefail
+pct status 990  # must be stopped
+pct config 990 # original config has no features line
+pct set 990 --features nesting=1
+pct config 990
+pct start 990
+```
+
+Repeat A3's service, mounts, device ownership, socket, Tailscale readiness,
+DNS/HTTPS and VA-API queries. Save relevant non-secret evidence on the Mac. Do not
+enroll Tailscale or generate secrets. Stop at unexpected results and collect
+read-only diagnostics; no further configuration changes are implicit.
+
+```sh
+pct shutdown 990 --timeout 30 --forceStop 1
+pct status 990
+pct config 990
+```
+
+Approved recovery for R1 would also cover `pct stop 990` if shutdown fails, and
+removing the newly added features option while stopped to restore the original
+feature settings. There was no original features line:
+
+```sh
+pct set 990 --delete features
+pct config 990
+```
+
+Keep stopped with all three volumes and the verified archive retained. Do not
+remove the feature while running or delete any volume. If nesting is unacceptable,
+leave CT990 stopped and investigate a separately reviewed image adaptation; do
+not broadly disable service sandboxing or host confinement to make it boot.
 
 ## Later batches (not covered by batch A approval)
 

@@ -108,3 +108,15 @@ verification; they are not isolated compressor benchmarks. No Proxmox boot,
 GPU/Tailscale integration or real Immich data restoration has yet been verified.
 No release was published and no Proxmox mutation was performed. Documentation-only
 updates recording these results do not require repeating the image builds.
+
+
+## First actual host result, 2026-11-01
+
+Approved batch A created CT990 from the verified bootstrap release and left it
+stopped with rootfs and both persistent volumes retained. Mount identities and
+device ownership checks passed; storage-contract succeeded. Actual boot integration
+FAILED: AppArmor denied move mounts and user namespace creation; networkd and
+journald/tmpfiles failed. /run/current-system and graphics driver links were absent.
+DNS, functional Tailscale and GPU acceleration are not validated. This does not
+supersede the successful Linux CI result; it demonstrates its hardware/LXC limits.
+See docs/rehearsal.md for the evidence, retained volumes, and unapproved R1 retry.
