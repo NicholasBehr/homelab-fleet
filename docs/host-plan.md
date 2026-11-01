@@ -19,7 +19,7 @@ Read-only discovery on 2026-11-01 found:
 
 ## Rehearsal first
 
-The initial disposable-host batch and its failed-boot result are in [rehearsal.md](rehearsal.md). CT990 now exists and is stopped; CT991 is free. Retry R1 proposes supported nesting on CT990 only and awaits explicit approval.
+The initial disposable-host batch and its failed-boot result are in [rehearsal.md](rehearsal.md). CT990 now exists and is stopped; CT991 is free. Approved retry R1 enabled nesting on CT990 only and resolved core boot/networking. CT990 remains stopped with all volumes retained. The TUN mode and resolved discovery-listener findings need image corrections; nesting is not yet approved for the production service contract.
 The pre-test read-only refresh confirmed CT990/991 were free and local-zfs had ~3.51 TiB free,
 and the render device still belongs to Intel PCI 0000:00:02.0. Installed Proxmox
 provides a native `nixos` setup plugin that writes networkd/DNS configuration;

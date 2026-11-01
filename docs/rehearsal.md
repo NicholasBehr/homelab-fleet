@@ -1,6 +1,6 @@
 # Disposable Proxmox rehearsal
 
-Status: **batch A approved and executed on 2026-11-01; first boot failed integration checks; CT990 is stopped with all volumes retained. Retry R1 awaits approval.**
+Status: **batch A approved and executed on 2026-11-01; first boot failed integration checks; R1 subsequently resolved core boot with supported nesting. CT990 is stopped with all volumes retained; remaining image-policy deviations are recorded below.**
 Every host mutation requires approval under AGENTS.md. These are reviewed manual
 commands, not a deployment script. Run each block interactively, inspect results,
 and stop on unexpected output. Do not execute later batches implicitly.
@@ -197,9 +197,9 @@ logs and the installed PVE::LXC implementation provide direct evidence: nesting
 adds the supported allow_nesting configuration and user-namespace permission.
 The successful CI image builds did not prove these host integration requirements.
 
-## Proposed retry R1: supported nesting feature on CT990 only
+## Retry R1: supported nesting feature on CT990 only
 
-**Not approved and not executed.** The default-profile boot failed at ordinary
+**Approved and executed on 2026-11-01.** The default-profile boot failed at ordinary
 NixOS/systemd namespace and mount operations. The next isolated test is the
 supported Proxmox nesting flag. It keeps CT990 unprivileged and under Proxmox's
 generated AppArmor confinement, but expands permitted namespace/mount operations
@@ -210,8 +210,8 @@ keyctl, FUSE, host driver change or host-wide policy change is proposed.
 The installed /usr/share/perl5/PVE/LXC.pm explicitly documents this behavior and
 adds lxc.apparmor.allow_nesting plus allow userns for this feature. See also the
 [Proxmox container manual](https://pve.proxmox.com/pve-docs/pct.1.html).
-Production resource declarations remain unchanged until this isolated test passes
-and the feature is approved for the service contract.
+The isolated test resolved core boot. Production resource declarations remain
+unchanged until nesting is explicitly approved for the service contract.
 
 Proposed approved effects: change only CT990's features, boot that same fixture,
 repeat the read-only checks from A3, then stop it and retain all storage. No new
@@ -251,7 +251,38 @@ remove the feature while running or delete any volume. If nesting is unacceptabl
 leave CT990 stopped and investigate a separately reviewed image adaptation; do
 not broadly disable service sandboxing or host confinement to make it boot.
 
-## Later batches (not covered by batch A approval)
+## R1 result, 2026-11-01
+
+- Core boot succeeded with nesting=1: zero failed units, active storage-contract,
+  tailscaled, networkd, journald, tmpfiles and container firewall. The normal
+  /run/current-system and /run/opengl-driver links exist.
+- Native setup obtained IPv4 DHCP; outbound DNS and a clean HEAD request to
+  https://github.com returned HTTP 200.
+- Tailscale CLI connected and reported NeedsLogin, as expected without enrollment.
+  No age key or Tailscale login was generated or enrolled.
+- Persistent mounts are the same two local-zfs subvolumes, with markers retained.
+- Render node remains root:render (0:303), mode0660. Intel iHD driver 26.1.6 loaded
+  with VA-API 1.23 and advertised H.264/HEVC decode/encode capabilities. This query
+  ran as container root; actual media transcoding and Immich-account access are
+  NOT validated by it.
+- Proxmox generated AppArmor confinement remained active, with its supported
+  allow_nesting/userns additions. UID/GID maps remain 0:100000:65536.
+- Runtime TUN permissions drifted from configured 0600 to 0666. The cause is the
+  guest's /etc/tmpfiles.d/static-nodes-permissions.conf rule. This needs a
+  declarative image correction before final deployment; no manual chmod was used.
+- systemd-resolved opened mDNS/LLMNR listeners (UDP5353/5355 and TCP5355) on wildcard
+  addresses. Effective IPv4/IPv6 INPUT rules accept loopback, established traffic
+  and tailscale0, then drop other unsolicited traffic; no ordinary SSH or application
+  listener was present. Discovery listeners should still be disabled in the image.
+  This inspection does not replace an independent physical-LAN reachability test.
+- CT990 shut down successfully and is stopped. All three volumes, the archive,
+  onboot=0 and the approved nesting feature are retained. CT991 is still absent.
+
+Off-host non-secret evidence is in /private/tmp/homelab-rehearsal-r1 on the Mac.
+The two runtime-policy deviations above were observed, not silently repaired on
+Proxmox. R1 establishes the boot requirement but is not final deployment readiness.
+
+## Later batches (not covered by batch A or R1 approval)
 
 After inspecting A's results, prepare exact commands with actual allocated volume
 IDs for CT991 creation, sentinel writes, stopped-container mp0/mp1 transfer,

@@ -11,8 +11,9 @@ The storage split is contract v2; local layout/hook tests pass.
 Linux checks passed for code commit `3ce2eb0` ([run](https://github.com/NicholasBehr/homelab-fleet/actions/runs/41348167681)).
 All three x86 templates built; actual Proxmox boot and hardware validation remain pending.
 The approved disposable host rehearsal created CT990, which is now stopped with its volumes retained.
-First boot exposed AppArmor namespace/mount restrictions; networking and GPU integration are not validated.
-A proposed nesting-feature retry awaits explicit approval; see the rehearsal runbook.
+An approved nesting retry resolved core boot and networking, and Intel VA-API capabilities were detected.
+Actual transcoding, application/Tailscale integration and rootfs replacement remain unverified.
+TUN mode and discovery-listener image corrections remain; see the rehearsal runbook.
 Production backups are unconfigured until a Storage Box and secrets are enrolled.
 
 ## Read first

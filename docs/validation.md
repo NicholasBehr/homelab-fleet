@@ -120,3 +120,18 @@ journald/tmpfiles failed. /run/current-system and graphics driver links were abs
 DNS, functional Tailscale and GPU acceleration are not validated. This does not
 supersede the successful Linux CI result; it demonstrates its hardware/LXC limits.
 See docs/rehearsal.md for the evidence, retained volumes, and unapproved R1 retry.
+
+
+## Approved R1 host result, 2026-11-01
+
+Enabling the supported nesting feature on unprivileged CT990 resolved the observed
+systemd failures. Zero failed units, DHCP, DNS, HTTPS200, the storage gate, normal
+runtime links and Intel iHD VA-API capabilities were verified. Generated AppArmor
+confinement and standard ID maps remain. Tailscale CLI reports NeedsLogin; enrollment
+was not performed. CT990 is stopped with every volume retained.
+
+TUN became0666 via guest static-node tmpfiles rules, despite configured0600;
+systemd-resolved also has wildcard discovery listeners, blocked by the active
+firewall. Both should be corrected declaratively in a future image and retested.
+Actual video decode/encode, app-account access, physical-LAN reachability,
+Tailscale SSH/Serve, replacement and real Immich restoration remain unverified.
