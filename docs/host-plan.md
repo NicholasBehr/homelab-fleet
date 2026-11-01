@@ -20,11 +20,11 @@ Read-only discovery on 2026-11-01 found:
 ## Rehearsal first
 
 The initial boot failure, successful nesting retry and subsequent replacement
-results are in [rehearsal.md](rehearsal.md). CT990/991/992 now exist and are stopped;
+results are in [rehearsal.md](rehearsal.md). CT990–994 now exist and are stopped;
 all test storage is retained. Bootstrap replacement and missing/wrong-volume guards
 passed, as did synthetic VA-API encoding/decoding with the planned Unix IDs.
-The released discovery fix passed a fresh boot; TUN needs the revised vendor-rule
-correction and another verified image boot. Nesting
+The corrected releases passed TUN0600 and discovery-listener checks; synthetic
+H.264/HEVC QSV passed under Immich account/hardening settings. Nesting
 is not yet approved for the production service contract.
 The pre-test read-only refresh confirmed CT990/991 were free and local-zfs had ~3.51 TiB free,
 and the render device still belongs to Intel PCI 0000:00:02.0. Installed Proxmox

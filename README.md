@@ -6,16 +6,16 @@ Intel Quick Sync transcoding and CPU machine learning are configured separately.
 GitHub builds images; an operator verifies and pulls explicit releases. There is
 no deployment script, runner, daemon, or CI route into the homelab.
 
-**Status:** repository implementation under validation, not a working deployment.
-The storage split is contract v2; local layout/hook tests pass.
-Linux checks passed for code commit `3ce2eb0` ([run](https://github.com/NicholasBehr/homelab-fleet/actions/runs/41348167681)).
-All three x86 templates built. Nesting resolved the initial Proxmox boot failure.
-Disposable rootfs replacement, missing/wrong-volume guards and synthetic VA-API
-H.264 encoding/decoding passed; CT990/991/992 are stopped with storage retained.
-Actual Immich QSV jobs and enrolled Tailscale integration remain unverified.
-The published discovery-listener correction passed a fresh-image boot. TUN still
-became0666; a revised vendor-rule correction and regression check are prepared,
-with a new release/boot check pending. See the rehearsal runbook and validation boundaries.
+**Status:** repository implementation under validation, not a production deployment.
+Linux checks passed for code commit `8f0f49a` ([run](https://github.com/NicholasBehr/homelab-fleet/actions/runs/41357621979)),
+including all three templates and the TUN permission regression check.
+Verified bootstrap and secret-free operational releases passed Proxmox device,
+listener and retained-volume checks. Missing/wrong-volume guards and disposable
+rootfs replacement passed. Synthetic H.264/HEVC QSV encode/decode passed using
+Immich's FFmpeg/account with its service-hardening settings.
+CT990–994 are stopped with test storage retained. Tailscale/age enrollment,
+actual Immich jobs and application backup/restore remain unverified.
+See the rehearsal runbook and validation boundaries.
 Production backups are unconfigured until a Storage Box and secrets are enrolled.
 
 ## Read first

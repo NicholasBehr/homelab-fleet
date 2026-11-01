@@ -1,6 +1,6 @@
 # Disposable Proxmox rehearsal
 
-Status: **post-R1 batch B passed bootstrap replacement, missing/wrong-volume guards and synthetic VA-API encoding/decoding. CT990/991/992 are stopped; all storage retained. Discovery-listener correction passed a fresh image boot; TUN needs the revised vendor-rule correction described below.**
+Status: **corrected bootstrap and secret-free operational releases 8f0f49a passed device/listener/storage checks. Synthetic H.264 and HEVC QSV encode/decode passed under the Immich account and hardening settings. CT990–994 are stopped; all test storage retained. Application enrollment and actual Immich/restore rehearsals remain.**
 The underlying Debian/Proxmox host and production mutations require exact-command
 approval. Under AGENTS.md, designated test containers and verified disposable test
 volumes may now be managed autonomously. Historical batch approvals below describe
@@ -404,3 +404,99 @@ pending; local lint, ten unit tests and all-system evaluation passed.
 
 Command evidence: /private/tmp/homelab-rehearsal-c on the Mac. The /run experiment
 is ephemeral and did not modify the released Nix store or install an in-place fix.
+
+
+## Batch D: corrected bootstrap verification
+
+The operator gave standing image build/publication/test approval for this session
+while there is no production data. This does not change the durable approval
+requirements for the underlying Debian/Proxmox host or production resources.
+
+[CI 41357621979](https://github.com/NicholasBehr/homelab-fleet/actions/runs/41357621979)
+passed for 8f0f49aebcb7fddf78d123fc13b623d80a7ce78f, including the new real tmpfiles
+permission regression check, all four system configurations and all three images.
+[Bootstrap release run 41357828208](https://github.com/NicholasBehr/homelab-fleet/actions/runs/41357828208)
+passed and published the exact
+[bootstrap release](https://github.com/NicholasBehr/homelab-fleet/releases/tag/immich-bootstrap-8f0f49aebcb7fddf78d123fc13b623d80a7ce78f).
+Its 699,140,544-byte archive has SHA256
+`abaa56d3d183b246a1a53a7846518ac1236abff986ebf0bd0aa1d7543b5c5297`.
+
+Independently verified all three assets with the same exact-commit/workflow/ref
+attestation policy as batch C, tag, checksums and reviewed manifest expectations.
+Receipt: /private/tmp/homelab-bootstrap-8f0f49a/verification-receipt.json.
+
+Created designated CT993 with a new 16 GiB root and the same unprivileged/nesting
+and device settings. Rechecked creation GUIDs and all cluster LXC/QEMU attachments
+before transferring the two test volumes from stopped CT992. Also checked that
+no production media, enrolled age identity, Immich/database state or staged backups
+had entered the test volumes. Transfer retained GUIDs and sentinels.
+
+Fresh boot passed:
+- TUN was 0:0 mode0600 before any diagnostic replay; render was 0:303 mode0660.
+- Reapplying the actual tmpfiles rules and restarting tailscaled retained0600.
+- Zero failed units; storage, Tailscale, networkd and resolved active.
+- No ordinary SSH, application or LLMNR/mDNS listeners on either address family.
+- Both sentinel hashes, owner1100:1100 and mode0600 retained on distinct ZFS mounts.
+- DHCP, DNS/HTTPS200 and Intel iHD VA-API initialization passed.
+- Tailscale stayed NeedsLogin. No age key or application data was enrolled.
+
+CT993 was stopped, all storage retained. Evidence: /private/tmp/homelab-rehearsal-d.
+The vendor-rule replacement is now boot-validated; this supersedes batch C's
+remaining TUN defect for the new release, without retroactively validating d6aa070.
+
+
+### Batch D: operational image and hardened QSV verification, 2026-11-01–02
+
+[Operational release run 41358067859](https://github.com/NicholasBehr/homelab-fleet/actions/runs/41358067859)
+passed and published the same source commit's secret-free
+[operational image](https://github.com/NicholasBehr/homelab-fleet/releases/tag/immich-8f0f49aebcb7fddf78d123fc13b623d80a7ce78f).
+Archive: 1,455,205,248 bytes, SHA256
+`dfeda3fe69a51ebb77750aa709bec4458b8937e35095af7ad8a6ae7f51488e36`.
+Independently verified all three asset attestations, checksums, exact tag and
+reviewed manifest; encryptedSecretsIncluded=false. Local receipt:
+/private/tmp/homelab-immich-8f0f49a/verification-receipt.json.
+
+Created designated unprivileged CT994 with a fresh 16 GiB root and the same
+nesting/device/test resource settings. Verified GUIDs, data classification and
+all cluster LXC/QEMU references before transferring the two disposable volumes
+from stopped CT993. Their GUIDs stayed unchanged. No volumes were deleted.
+
+The operational image behaved as intended without credentials: operational-ready
+failed with `Enroll container age identity first`; PostgreSQL, Redis, Immich and
+machine learning remained inactive, with no database PG_VERSION on either the
+persistent path or disposable root. TUN was0600, render0:303 mode0660; no SSH,
+application, database or discovery listener appeared. Tailscale remained NeedsLogin.
+
+Ran synthetic H.264 and HEVC QSV encode AND decode using the exact Jellyfin FFmpeg
+8.1.3-1 binary referenced by the Immich package, as the actual immich UID/GID1100.
+A transient test unit applied the evaluated service's CapabilityBoundingSet,
+NoNewPrivileges, PrivateUsers/Tmp/Devices/Mounts, DeviceAllow, ProtectClock,
+ProtectControlGroups/Home/Hostname/KernelLogs/KernelModules/KernelTunables,
+RestrictAddressFamilies/Namespaces/Realtime/SUIDSGID, SupplementaryGroups and UMask.
+No service-hardening flag was relaxed. The fixture excluded application startup,
+readiness dependencies, credentials and application state/runtime directories;
+its only command was the synthetic media test under /run/rehearsal-qsv.
+
+Both codecs encoded and hardware-decoded all 60 frames at 320x240/30fps, with
+zero decode errors. oneVPL2.16 initialized the Intel iHD26.1.6 driver. Forced QSV
+decoders and hardware frame output prevented CPU fallback; ffprobe and decoder
+progress checks confirmed frame counts. Unit exited0/SUCCESS. Its PrivateUsers
+namespace displayed supplementary groups as nogroup; render access still worked.
+This establishes the tested hardware path and sandbox compatibility, not an
+actual Immich transcode job, representative 4K/10-bit input or every codec.
+
+The first harness attempt failed before GPU execution because non-login PATH
+lacked cat. Corrected the harness to use absolute paths and reran without changing
+the image. Both sentinel hashes, ownership and modes passed afterward. Application
+and database stayed stopped throughout. No age key or SOPS credentials were created.
+
+Final check: CT990–994 stopped, all seven datasets retained, only CT994 references
+the two test-state volumes. Host render/TUN source-device permissions stayed
+unchanged. Underlying host packages, kernel, drivers, networking, firewall and
+storage configuration were not changed. Test provenance is in test-resources.json;
+full non-secret evidence is in /private/tmp/homelab-rehearsal-d on the Mac.
+
+Next: interactive Tailscale and age/recovery enrollment, then actual Immich upload,
+thumbnails/transcode placement, identity-preserving replacement and consistent
+backup/fresh-volume restoration. Remote Borg needs a real Storage Box and escrow.
+No production deployment or production nesting approval is implied by these tests.

@@ -172,3 +172,27 @@ TUN mode remained0666: matching tmpfiles z rules both execute, so the original
 successful TUN-policy fix. A test-only runtime experiment with the corrected vendor
 entry held0600 across Tailscale restart, with sentinels intact. The revised image
 and regression check still require Linux CI and a new release/boot check.
+
+
+## Corrected releases and QSV result, 2026-11-01–02
+
+CI41357621979 and bootstrap/operational release runs41357828208/41358067859 passed
+for 8f0f49a. Independently verified all six release assets against exact source,
+signer/workflow/ref, tag, checksums and reviewed contract/version expectations.
+Fresh CT993 proved boot-time TUN0600, repeated tmpfiles/Tailscale stability, zero
+failed units, listener removal, persistent sentinels, networking and VA-API.
+
+Secret-free operational CT994 correctly blocked PostgreSQL/Redis/Immich without
+an age identity. Using its exact Jellyfin FFmpeg and actual Immich account, a
+transient unit with all common service-hardening settings passed synthetic H.264
+and HEVC QSV encode/decode, 60 frames per codec at320x240. Hardware decoders were
+forced; output/progress frame counts and zero decode errors were checked. No
+confinement setting was relaxed. This supersedes the previous bootstrap diagnostic
+FFmpeg limitation but does not establish actual Immich jobs or representative media.
+
+All five fixtures are stopped and all seven datasets retained. Current provenance
+and attachment records are in test-resources.json. No credentials were enrolled
+and no underlying host configuration changed. Remaining work: Tailscale policy,
+age/recovery and SOPS continuity, actual Immich upload/layout/transcode behavior,
+consistent application backup and fresh-volume restoration, and remote Borg.
+See rehearsal.md batch D for exact releases, digests, evidence and test boundaries.
