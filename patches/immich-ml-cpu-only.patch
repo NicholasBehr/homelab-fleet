@@ -1,0 +1,12 @@
+--- a/immich_ml/models/constants.py
++++ b/immich_ml/models/constants.py
+@@ -94,9 +94,4 @@
+ SUPPORTED_PROVIDERS = [
+-    "nv_tensorrt_rtx",
+-    "CUDAExecutionProvider",
+-    "MIGraphXExecutionProvider",
+-    "OpenVINOExecutionProvider",
+-    "CoreMLExecutionProvider",
+     "CPUExecutionProvider",
+ ]
+ 

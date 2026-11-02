@@ -73,7 +73,10 @@ lib.mkIf (!bootstrap) {
     immich-server = gate // {
       environment.LIBVA_DRIVER_NAME = "iHD";
     };
-    immich-machine-learning = gate;
+    immich-machine-learning = gate // {
+      environment.GUNICORN_CMD_ARGS = "--no-control-socket";
+      serviceConfig.LimitCORE = 0;
+    };
     redis-immich = gate // {
       serviceConfig.ReadWritePaths = [ "/persist/redis" ];
     };

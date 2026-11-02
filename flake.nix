@@ -18,6 +18,11 @@
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
+      immichPkgs = import immich-nixpkgs { inherit system; };
+      cpuMachineLearning = immichPkgs.immich-machine-learning.overrideAttrs (old: {
+        pname = "immich-machine-learning-cpu";
+        patches = (old.patches or [ ]) ++ [ ./patches/immich-ml-cpu-only.patch ];
+      });
       mkHost =
         bootstrap:
         nixpkgs.lib.nixosSystem {
@@ -29,7 +34,9 @@
             ({ ... }: {
               disabledModules = [ "services/web-apps/immich.nix" ];
               imports = [ (immich-nixpkgs + "/nixos/modules/services/web-apps/immich.nix") ];
-              services.immich.package = (import immich-nixpkgs { inherit system; }).immich;
+              services.immich.package = immichPkgs.immich.override {
+                immich-machine-learning = cpuMachineLearning;
+              };
             })
           ];
         };
@@ -93,6 +100,21 @@
           ];
         };
       checks.${system} = {
+        ml-cpu = pkgs.runCommand "immich-ml-cpu-policy" { nativeBuildInputs = [ pkgs.python3 ]; } ''
+          policy=$(find ${operational.config.services.immich.package.machine-learning}/lib \
+            -path '*/immich_ml/models/constants.py' -type f)
+          python3 - "$policy" <<'PY'
+          import ast, pathlib, sys
+          tree = ast.parse(pathlib.Path(sys.argv[1]).read_text())
+          providers = [n.value for n in tree.body if isinstance(n, ast.Assign)
+                       and any(isinstance(t, ast.Name) and t.id == "SUPPORTED_PROVIDERS" for t in n.targets)]
+          assert len(providers) == 1
+          assert ast.literal_eval(providers[0]) == ["CPUExecutionProvider"]
+          PY
+          GUNICORN_CMD_ARGS='--no-control-socket --check-config' \
+            ${operational.config.services.immich.package.machine-learning}/bin/machine-learning
+          touch "$out"
+        '';
         secret-service =
           if builtins.pathExists ./secrets/immich.yaml then
             pkgs.runCommand "operational-secret-service-wiring" { } ''
