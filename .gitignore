@@ -7,3 +7,5 @@ result-*
 secrets/plaintext*
 __pycache__/
 dist/
+.ci-roots/
+.ci-plan.json

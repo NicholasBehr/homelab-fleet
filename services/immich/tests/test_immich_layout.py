@@ -5,7 +5,7 @@ import subprocess
 import tempfile
 import unittest
 
-SCRIPT = Path(__file__).resolve().parents[1]/'scripts/immich-layout'
+SCRIPT = Path(__file__).resolve().parents[1]/'layout'
 
 class ImmichLayout(unittest.TestCase):
     def layout(self, hot, bulk):

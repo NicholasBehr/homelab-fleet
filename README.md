@@ -1,53 +1,29 @@
 # homelab-fleet
 
-Disposable, unprivileged NixOS LXC images for Proxmox. Immich is the first service;
-Intel Quick Sync transcoding and CPU machine learning are configured separately.
-`/persist` stays on NVMe; `/data` holds bulk originals and can later move to HDD.
-GitHub builds images; an operator verifies and pulls explicit releases. There is
-no deployment script, runner, daemon, or CI route into the homelab.
+Unprivileged NixOS LXC images for Proxmox, with Immich as the first service.
+GitHub builds and attests images; operators pull explicit verified releases.
+CI has no homelab access. Root filesystems are replaced, while declared data and
+identities survive on external volumes. `/persist` stays on NVMe; `/data` is bulk
+originals suitable for later HDD migration.
 
-**Status:** repository implementation under validation, not a production deployment.
-Linux checks passed for code commit `8f0f49a` ([run](https://github.com/NicholasBehr/homelab-fleet/actions/runs/41357621979)),
-including all three templates and the TUN permission regression check.
-Verified bootstrap and secret-free operational releases passed Proxmox device,
-listener and retained-volume checks. Missing/wrong-volume guards and disposable
-rootfs replacement passed. Synthetic H.264/HEVC QSV encode/decode passed using
-Immich's FFmpeg/account with its service-hardening settings.
-CT990–994 are stopped with test storage retained. Tailscale/age enrollment,
-actual Immich jobs and application backup/restore remain unverified.
-See the rehearsal runbook and validation boundaries.
-Production backups are unconfigured until a Storage Box and secrets are enrolled.
-Current SOPS recipients/ciphertext are explicitly disposable rehearsal identities;
-replace them for production. The rehearsal node is enrolled and admin SSH passed.
+**Status:** rehearsal application, storage, root replacement, Tailscale, SOPS,
+QSV video and CPU inference passed. Production is not enrolled; remote backups
+and complete fresh-volume recovery remain outstanding. The revised direct Borg
+flow and refactored images require regression testing. See [validation](docs/validation.md).
+SOPS ciphertext currently belongs to disposable rehearsal identities, not production.
 
-## Read first
+- [Architecture, layout and adding services](docs/architecture.md)
+- [Enrollment, releases and replacement](docs/operations.md)
+- [Backup and disaster recovery](docs/recovery.md)
+- [Verification matrix](docs/validation.md)
+- [Release policy and current changes](docs/release-notes.md)
 
-1. [Architecture and persistence contract](docs/architecture.md)
-2. [Storage layout and later HDD migration](docs/storage.md)
-3. [Observed host and proposed approval batches](docs/host-plan.md)
-4. [Disposable host rehearsal](docs/rehearsal.md)
-5. [First provisioning](docs/provisioning.md)
-6. [Secrets enrollment](docs/secrets.md)
-7. [Replacement](docs/deployment.md)
-8. [Backups and restoration](docs/backup-restore.md)
-9. [Recovery](docs/recovery.md)
-10. [Validation boundaries](docs/validation.md)
+`deployments/immich-contract.nix` proposes resources; it does not inventory live
+containers or authorize allocations. Inspect with `nix eval --json .#deploymentContracts.immich`.
+Keep exact creation records and live volume GUIDs in a protected operator inventory.
 
-`provision/containers.nix` is the authoritative proposed resource contract. IDs,
-capacities and ownership assignments are proposals, not existing resources.
-Run `nix eval --json .#deploymentContract` to inspect it. After every approved
-replacement, update its current/next ID fields before another deployment.
-
-On this ARM Mac: `nix develop path:.` supplies formatting, age, SOPS and shell tools.
-`nix eval path:.#nixosConfigurations.immich.config.system.build.toplevel.drvPath`
-checks evaluation without building Linux software. GitHub runs `scripts/check`
-in `nix develop .#ci`; it explicitly builds both systems and template archives.
-
-NixOS 26.05 is pinned. Its Immich 2.7.5 is marked insecure in the pinned source;
-the Immich package and module therefore come from a separately pinned unstable
-input. PostgreSQL 17 and the base system remain stable. `system.stateVersion`
-remains 26.05 and is not an update switch. Review both pins and upstream Immich
-migration notes before releasing. GitHub Actions are pinned by commit too.
-
-No repository, release, push, or host mutation is authorized by the existence of
-these files. Configure main-branch review protections before publishing releases.
+On ARM macOS, `nix develop path:.` provides local tools. Run `scripts/check lint`
+and `nix flake check --no-build`; Linux builds run on GitHub. Open a PR from a short-lived
+branch. Checks always evaluate configurations and run runtime fixtures, then build
+only changed derivations. Releases use repository SemVer from `VERSION` and include
+catalog images, manifests, checksums and GitHub provenance. No automatic deployment.

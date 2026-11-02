@@ -1,8 +1,8 @@
 {
-  description = "Disposable unprivileged NixOS LXC images";
+  description = "Disposable unprivileged NixOS LXC service images";
   inputs = {
-    immich-nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+    immich-nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     sops-nix = {
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -18,66 +18,77 @@
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
-      immichPkgs = import immich-nixpkgs { inherit system; };
-      cpuMachineLearning = immichPkgs.immich-machine-learning.overrideAttrs (old: {
-        pname = "immich-machine-learning-cpu";
-        patches = (old.patches or [ ]) ++ [ ./patches/immich-ml-cpu-only.patch ];
-      });
-      mkHost =
-        bootstrap:
-        nixpkgs.lib.nixosSystem {
-          inherit system;
-          specialArgs = { inherit bootstrap; };
-          modules = [
-            sops-nix.nixosModules.sops
-            ./hosts/immich.nix
-            ({ ... }: {
-              disabledModules = [ "services/web-apps/immich.nix" ];
-              imports = [ (immich-nixpkgs + "/nixos/modules/services/web-apps/immich.nix") ];
-              services.immich.package = immichPkgs.immich.override {
-                immich-machine-learning = cpuMachineLearning;
-              };
-            })
-          ];
+      mkContainer = import ./lib/mk-container.nix { inherit nixpkgs sops-nix; };
+      mkImmich =
+        variant:
+        mkContainer {
+          deployment = ./deployments/immich.nix;
+          inherit variant;
+          specialArgs.immichNixpkgs = immich-nixpkgs;
         };
-      # Keep xz templates compatible with Proxmox, but bound compressor CPU/memory.
-      # The upstream pixz default is expensive when several images build together.
-      mkTemplate =
-        host:
-        host.config.system.build.tarball.override {
-          compressCommand = "pixz -t -1 -p 2";
-        };
-      operational = mkHost false;
-      bootstrap = mkHost true;
-      recovery = operational.extendModules {
-        modules = [
-          ({ lib, ... }: {
-            systemd.services.immich-server.wantedBy = lib.mkForce [ ];
-            systemd.services.immich-machine-learning.wantedBy = lib.mkForce [ ];
-            systemd.services.tailscale-policy.wantedBy = lib.mkForce [ ];
-            homelab.backup.enable = lib.mkForce false;
-          })
-        ];
-      };
-    in
-    {
-      deploymentContract = import ./provision/containers.nix;
-      nixosConfigurations = {
+      operational = mkImmich "operational";
+      bootstrap = mkImmich "bootstrap";
+      recovery = mkImmich "recovery";
+      configurations = {
         immich = operational;
         immich-bootstrap = bootstrap;
         immich-recovery = recovery;
       };
-      packages.${system} = {
-        immich = mkTemplate operational;
-        immich-bootstrap = mkTemplate bootstrap;
-        immich-recovery = mkTemplate recovery;
-        default = self.packages.${system}.immich-bootstrap;
+      mkTemplate =
+        host: host.config.system.build.tarball.override { compressCommand = "pixz -t -1 -p 2"; };
+      serviceChecks = import ./services/immich/tests/checks.nix {
+        inherit
+          pkgs
+          operational
+          bootstrap
+          recovery
+          ;
       };
+      fixture = mkContainer {
+        deployment = ./tests/fixtures/minimal.nix;
+        variant = "bootstrap";
+      };
+      checks =
+        (import ./tests/checks.nix {
+          inherit pkgs nixpkgs;
+          bootstrap = fixture;
+        })
+        // nixpkgs.lib.mapAttrs' (
+          name: value: nixpkgs.lib.nameValuePair ("immich-" + name) value
+        ) serviceChecks;
+    in
+    {
+      version = builtins.replaceStrings [ "\n" ] [ "" ] (builtins.readFile ./VERSION);
+      deploymentContracts.immich = import ./deployments/immich-contract.nix;
+      # Explicit catalog: adding a service means registering its outputs here.
+      imageCatalog = {
+        immich = {
+          service = "immich";
+          variant = "operational";
+        };
+        immich-bootstrap = {
+          service = "immich";
+          variant = "bootstrap";
+        };
+        immich-recovery = {
+          service = "immich";
+          variant = "recovery";
+        };
+      };
+      nixosConfigurations = configurations;
+      packages.${system} = nixpkgs.lib.mapAttrs (_: mkTemplate) configurations;
+      ciPlan = {
+        images = nixpkgs.lib.mapAttrs (_: p: p.drvPath) self.packages.${system};
+        checks = nixpkgs.lib.mapAttrs (_: c: c.drvPath) checks;
+      };
+      checks.${system} = checks;
       devShells.${system}.ci = pkgs.mkShell {
         packages = with pkgs; [
+          bash
           nixfmt
           shellcheck
           python3
+          jq
           borgbackup
           postgresql_17
           age
@@ -92,87 +103,14 @@
         in
         p.mkShell {
           packages = with p; [
+            bash
             age
             sops
             shellcheck
             nixfmt
             python3
+            jq
           ];
         };
-      checks.${system} = {
-        ml-cpu = pkgs.runCommand "immich-ml-cpu-policy" { } ''
-          mlCheckDir="$TMPDIR/ml-cpu-check"
-          mkdir -p "$mlCheckDir"
-          cat > "$mlCheckDir/config.py" <<'PY'
-          import onnxruntime as ort
-          from immich_ml.sessions.ort import _providers_default
-          original = ort.get_available_providers
-          assert "CPUExecutionProvider" in original()
-          for available in (["CPUExecutionProvider"], ["OpenVINOExecutionProvider", "CPUExecutionProvider"],
-                            ["CUDAExecutionProvider", "OpenVINOExecutionProvider", "CPUExecutionProvider"]):
-              ort.get_available_providers = lambda: available
-              assert _providers_default() == ["CPUExecutionProvider"]
-          ort.get_available_providers = original
-          PY
-          grep -q 'MACHINE_LEARNING_CPU_ONLY=1' \
-            ${
-              operational.config.systemd.units."immich-machine-learning.service".unit
-            }/immich-machine-learning.service
-          MACHINE_LEARNING_CPU_ONLY=1 \
-            GUNICORN_CMD_ARGS="--no-control-socket --check-config --config $mlCheckDir/config.py" \
-            ${operational.config.services.immich.package.machine-learning}/bin/machine-learning
-          touch "$out"
-        '';
-        secret-service =
-          if builtins.pathExists ./secrets/immich.yaml then
-            pkgs.runCommand "operational-secret-service-wiring" { } ''
-              test -s ${
-                operational.config.systemd.units."sops-install-secrets.service".unit
-              }/sops-install-secrets.service
-              grep -q 'Requires=.*sops-install-secrets.service' \
-                ${operational.config.systemd.units."operational-ready.service".unit}/operational-ready.service
-              grep -q 'After=.*sops-install-secrets.service' \
-                ${operational.config.systemd.units."operational-ready.service".unit}/operational-ready.service
-              test -s ${
-                recovery.config.systemd.units."sops-install-secrets.service".unit
-              }/sops-install-secrets.service
-              touch "$out"
-            ''
-          else
-            pkgs.runCommand "no-enrolled-secret-service" { } ''touch "$out"'';
-        # Exercise all matching tmpfiles z rules: they accumulate, rather than
-        # selecting only the first file's rule for a path.
-        tun-permissions =
-          pkgs.runCommand "container-tun-permissions" { nativeBuildInputs = [ pkgs.systemd ]; }
-            ''
-              mkdir -p root/etc/tmpfiles.d root/dev/net
-              printf 'root:x:%s:%s::/:/bin/sh\n' "$(id -u)" "$(id -g)" > root/etc/passwd
-              printf 'root:x:%s:\n' "$(id -g)" > root/etc/group
-              cp ${bootstrap.config.environment.etc."tmpfiles.d/static-nodes-permissions.conf".source} \
-                root/etc/tmpfiles.d/static-nodes-permissions.conf
-              cat > root/etc/tmpfiles.d/00-nixos.conf <<'RULES'
-              ${nixpkgs.lib.concatStringsSep "\n" bootstrap.config.systemd.tmpfiles.rules}
-              RULES
-              touch root/dev/net/tun
-              chmod 0666 root/dev/net/tun
-              systemd-tmpfiles --root="$PWD/root" --create --prefix=/dev/net/tun
-              test "$(stat -c '%a' root/dev/net/tun)" = 600
-              touch "$out"
-            '';
-        bootstrap = bootstrap.config.system.build.toplevel;
-        operational = operational.config.system.build.toplevel;
-        recovery = recovery.config.system.build.toplevel;
-        backup-config =
-          (operational.extendModules {
-            modules = [
-              {
-                homelab.backup = {
-                  enable = true;
-                  repository = "/tmp/disposable-test-repository";
-                };
-              }
-            ];
-          }).config.system.build.toplevel;
-      };
     };
 }

@@ -1,36 +1,72 @@
-{ pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
-  c = import ../provision/containers.nix;
+  cfg = config.homelab.storage;
 in
 {
-  # Proxmox mounts volumes before init. No in-container mount privileges required.
-  systemd.services.storage-contract = {
-    description = "Verify persistent storage identities before stateful services";
-    wantedBy = [ "multi-user.target" ];
-    before = [
-      "tailscaled.service"
-      "postgresql.service"
-      "postgresql-setup.service"
-      "immich-server.service"
-    ];
-    path = [
-      pkgs.util-linux
-      pkgs.coreutils
-    ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
+  options.homelab.storage = {
+    volumes = lib.mkOption {
+      type = lib.types.listOf (
+        lib.types.submodule {
+          options = {
+            path = lib.mkOption { type = lib.types.strMatching "/.+"; };
+            marker = lib.mkOption { type = lib.types.str; };
+          };
+        }
+      );
+      default = [ ];
     };
-    script = ''
-      ${pkgs.bash}/bin/bash ${../scripts/verify-storage} /persist /data ${c.persist.marker} ${c.media.marker}
-      install -d -m 0700 /persist/secrets /persist/tailscale /persist/backup /persist/borg/config /persist/borg/cache /data/.backup-stage
-    '';
+    directories = lib.mkOption {
+      type = lib.types.listOf (lib.types.strMatching "/persist(/.*)?");
+      default = [ ];
+    };
   };
-  # Machine-id and SSH host keys are intentionally absent from the persistence
-  # contract: no ordinary sshd; Tailscale owns the stable network/SSH identity.
-  # Root account is declarative and locked; no mutable account database retained.
-  systemd.services.tailscaled = {
-    requires = [ "storage-contract.service" ];
-    after = [ "storage-contract.service" ];
+  config = {
+    assertions = [
+      {
+        assertion =
+          builtins.length (lib.unique (map (v: v.path) cfg.volumes)) == builtins.length cfg.volumes;
+        message = "Persistent mount paths must be unique";
+      }
+      {
+        assertion =
+          builtins.length (lib.unique (map (v: v.marker) cfg.volumes)) == builtins.length cfg.volumes;
+        message = "Persistent mount markers must be unique";
+      }
+      {
+        assertion = builtins.length cfg.volumes >= 1;
+        message = "Declare persistent mount identities";
+      }
+    ];
+    environment.etc."homelab-storage.json".text = builtins.toJSON cfg.volumes;
+    systemd.services.storage-contract = {
+      description = "Verify declared persistent mounts before stateful services";
+      wantedBy = [ "multi-user.target" ];
+      path = [
+        pkgs.util-linux
+        pkgs.coreutils
+      ];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+      };
+      script =
+        lib.concatMapStringsSep "\n" (
+          v:
+          "${pkgs.bash}/bin/bash ${../scripts/verify-storage} ${lib.escapeShellArg v.path} ${lib.escapeShellArg v.marker}"
+        ) cfg.volumes
+        + "\n"
+        + lib.optionalString (cfg.directories != [ ]) (
+          "install -d -m 0700 " + lib.escapeShellArgs cfg.directories
+        );
+    };
+    systemd.services.tailscaled = {
+      requires = [ "storage-contract.service" ];
+      after = [ "storage-contract.service" ];
+    };
   };
 }

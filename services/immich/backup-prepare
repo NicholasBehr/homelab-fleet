@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Keep writers stopped until Borg completes. No duplicate media staging tree.
+set -euo pipefail
+install -d -m 0700 /persist/backup /run/homelab-backup
+# Record intent before stopping; cleanup also handles partially failed stops.
+: > /run/homelab-backup/restart
+systemctl stop immich-server.service immich-machine-learning.service
+# The dump is the only database input to Borg; live PG files are excluded.
+runuser -u postgres -- pg_dump --format=custom immich > /persist/backup/immich.dump.tmp
+mv /persist/backup/immich.dump.tmp /persist/backup/immich.dump
+cp /etc/homelab-versions.json /persist/backup/versions.json
+systemctl stop redis-immich.service tailscaled.service

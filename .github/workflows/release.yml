@@ -1,14 +1,11 @@
 name: Release reviewed main commit
 on:
   workflow_dispatch:
-    inputs:
-      variant:
-        description: Image variant
-        required: true
-        type: choice
-        options: [immich-bootstrap, immich, immich-recovery]
 permissions:
   contents: read
+concurrency:
+  group: release
+  cancel-in-progress: false
 jobs:
   release:
     if: github.ref == 'refs/heads/main'
@@ -16,6 +13,7 @@ jobs:
     timeout-minutes: 60
     permissions:
       contents: write
+      actions: read
       id-token: write
       attestations: write
     steps:
@@ -25,37 +23,26 @@ jobs:
       - uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31
         with:
           install_url: https://releases.nixos.org/nix/nix-2.31.2/install
-      - name: Formatting, scripts and unit tests
-        timeout-minutes: 15
-        run: nix develop .#ci --command scripts/check lint
-      - name: Evaluate configurations
-        timeout-minutes: 15
-        run: nix develop .#ci --command scripts/check eval
-      - name: Secret, Borg/PostgreSQL and mount tests
-        timeout-minutes: 15
-        run: nix develop .#ci --command scripts/check tests
-      - name: Build NixOS systems
-        timeout-minutes: 15
-        run: nix develop .#ci --command scripts/check systems
-      - name: Build bootstrap LXC template
-        timeout-minutes: 15
-        run: nix develop .#ci --command scripts/check image immich-bootstrap
-      - name: Build operational LXC template
-        timeout-minutes: 15
-        run: nix develop .#ci --command scripts/check image immich
-      - name: Build recovery LXC template
-        timeout-minutes: 15
-        run: nix develop .#ci --command scripts/check image immich-recovery
-      - name: Package the exact dispatched commit
+      - uses: nix-community/cache-nix-action@b16f249a0248efec86dd9d4224cb75f1ffa48bcc
+        with:
+          primary-key: nix-v1-linux-${{ hashFiles('flake.lock') }}-${{ github.sha }}
+          restore-prefixes-first-match: nix-v1-linux-${{ hashFiles('flake.lock') }}-
+          gc-max-store-size-linux: 6G
+      - name: Require successful checks for the exact main commit and unused version
         env:
-          VARIANT: ${{ inputs.variant }}
-        run: nix develop .#ci --command scripts/release-assets "$VARIANT"
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 scripts/release-ready
+      - name: Package catalog images (Nix reuses exact cached outputs)
+        run: nix develop .#ci --command scripts/release-assets
+      - name: Preserve available outputs for cache reuse (no builds)
+        run: python3 scripts/cache-roots
       - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
         with:
           subject-path: dist/*
-      - name: Publish immutable commit release
+      - name: Publish versioned release
         env:
           GH_TOKEN: ${{ github.token }}
-          VARIANT: ${{ inputs.variant }}
         run: |
-          gh release create "$VARIANT-$GITHUB_SHA" dist/* --target "$GITHUB_SHA" --title "$VARIANT $GITHUB_SHA" --notes "Exact commit build; verify artifact attestations and manifest before deployment."
+          version=$(cat VERSION)
+          gh release create "v$version" dist/* --target "$GITHUB_SHA" --title "homelab-fleet v$version" --notes-file docs/release-notes.md
