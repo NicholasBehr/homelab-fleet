@@ -93,6 +93,23 @@
           ];
         };
       checks.${system} = {
+        secret-service =
+          if builtins.pathExists ./secrets/immich.yaml then
+            pkgs.runCommand "operational-secret-service-wiring" { } ''
+              test -s ${
+                operational.config.systemd.units."sops-install-secrets.service".unit
+              }/sops-install-secrets.service
+              grep -q 'Requires=.*sops-install-secrets.service' \
+                ${operational.config.systemd.units."operational-ready.service".unit}/operational-ready.service
+              grep -q 'After=.*sops-install-secrets.service' \
+                ${operational.config.systemd.units."operational-ready.service".unit}/operational-ready.service
+              test -s ${
+                recovery.config.systemd.units."sops-install-secrets.service".unit
+              }/sops-install-secrets.service
+              touch "$out"
+            ''
+          else
+            pkgs.runCommand "no-enrolled-secret-service" { } ''touch "$out"'';
         # Exercise all matching tmpfiles z rules: they accumulate, rather than
         # selecting only the first file's rule for a path.
         tun-permissions =

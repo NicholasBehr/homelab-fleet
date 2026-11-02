@@ -4,6 +4,8 @@ let
   present = builtins.pathExists encrypted;
 in
 {
+  # The readiness gate orders against the pinned module's actual systemd unit.
+  sops.useSystemdActivation = true;
   sops.age = {
     keyFile = "/persist/secrets/age-key.txt";
     generateKey = false;
@@ -17,8 +19,8 @@ in
     };
   };
   systemd.services.operational-ready = lib.mkIf (!bootstrap) {
-    requires = [ "storage-contract.service" ] ++ lib.optional present "sops-nix.service";
-    after = [ "storage-contract.service" ] ++ lib.optional present "sops-nix.service";
+    requires = [ "storage-contract.service" ] ++ lib.optional present "sops-install-secrets.service";
+    after = [ "storage-contract.service" ] ++ lib.optional present "sops-install-secrets.service";
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;

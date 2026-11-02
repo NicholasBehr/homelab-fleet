@@ -23,6 +23,7 @@ case "$stage" in
       .#nixosConfigurations.immich.config.system.build.toplevel \
       .#nixosConfigurations.immich-recovery.config.system.build.toplevel \
       .#checks.x86_64-linux.tun-permissions \
+      .#checks.x86_64-linux.secret-service \
       .#checks.x86_64-linux.backup-config
     ;;
   image)

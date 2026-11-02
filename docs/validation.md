@@ -196,3 +196,16 @@ and no underlying host configuration changed. Remaining work: Tailscale policy,
 age/recovery and SOPS continuity, actual Immich upload/layout/transcode behavior,
 consistent application backup and fresh-volume restoration, and remote Borg.
 See rehearsal.md batch D for exact releases, digests, evidence and test boundaries.
+
+
+## Encrypted-image service dependency regression
+
+The first encrypted-image boot revealed a readiness dependency on a service name
+not provided by the pinned SOPS module. Its default activation-script mode could
+install runtime secrets while the application gate remained blocked. The correction
+explicitly selects systemd activation and orders readiness after the actual
+sops-install-secrets.service. CI now builds a check that renders that provider,
+checks the readiness Requires/After wiring and covers the recovery variant too.
+Private enrollment and inventory audit records stay outside the repository and
+flake source; public historical resource records must never replace live provenance
+and attachment checks. Local validation passed; corrected-image boot is pending.
