@@ -1,15 +1,23 @@
-{ pkgs, ... }:
-let
-  c = import ../provision/containers.nix;
-in
 {
-  hardware.graphics = {
-    enable = true;
-    extraPackages = [
-      pkgs.intel-media-driver
-      pkgs.vpl-gpu-rt
-    ];
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+{
+  options.homelab.intelMedia.renderGid = lib.mkOption {
+    type = lib.types.int;
+    default = 303;
   };
-  users.groups.render.gid = c.renderGid;
-  environment.variables.LIBVA_DRIVER_NAME = "iHD";
+  config = {
+    hardware.graphics = {
+      enable = true;
+      extraPackages = [
+        pkgs.intel-media-driver
+        pkgs.vpl-gpu-rt
+      ];
+    };
+    users.groups.render.gid = config.homelab.intelMedia.renderGid;
+    environment.variables.LIBVA_DRIVER_NAME = "iHD";
+  };
 }

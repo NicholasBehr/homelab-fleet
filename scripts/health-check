@@ -1,19 +1,23 @@
 #!/usr/bin/env bash
-# Run inside the operational container; no host connection.
+# Inside the operational container; require every declared service and a recent backup.
 set -euo pipefail
-contract=/etc/homelab-contract.json
-verify-storage "$(jq -r .persist.path "$contract")" "$(jq -r .media.path "$contract")" \
-  "$(jq -r .persist.marker "$contract")" "$(jq -r .media.marker "$contract")"
-df -h /persist /data
-systemctl is-active storage-contract operational-ready tailscaled postgresql immich-server immich-machine-learning
-curl --fail --silent http://127.0.0.1:2283/api/server/ping | jq -e '.res == "pong"'
+while IFS= read -r volume; do
+  verify-storage "$(jq -r .path <<< "$volume")" "$(jq -r .marker <<< "$volume")"
+done < <(jq -c '.[]' /etc/homelab-storage.json)
+while IFS= read -r path; do df -h "$path"; done < <(jq -r '.[].path' /etc/homelab-storage.json)
+health=/etc/homelab-health.json
+while IFS= read -r unit; do systemctl is-active --quiet "$unit"; done < <(jq -r '.units[]' "$health")
+curl --fail --silent "$(jq -r .url "$health")" >/dev/null
 tailscale status --json | jq -e '.BackendState == "Running"'
 tailscale serve status
-test "$(runuser -u postgres -- psql -d immich -Atc 'select 1')" = 1
-test -c "$(jq -r .renderDevice "$contract")"
-if systemctl list-unit-files borgbackup-job-immich.service --no-legend | grep -q borgbackup; then
-  systemctl show borgbackup-job-immich -p Result -p ExecMainStatus -p ActiveEnterTimestamp
-else
-  echo 'Production backups UNCONFIGURED' >&2
-  exit 1
+if ! jq -e '.backupEnabled' "$health" >/dev/null; then
+  echo 'Backups UNCONFIGURED' >&2; exit 1
 fi
+name=$(jq -r .backupName "$health")
+test "$(systemctl show "borgbackup-job-$name" -p Result --value)" = success
+test "$(systemctl show "borgbackup-job-$name" -p ExecMainStatus --value)" = 0
+archive_time=$("borg-job-$name" list --last 1 --json | jq -er '.archives[-1].time')
+archive_epoch=$(date -d "$archive_time" +%s)
+age=$(( $(date +%s) - archive_epoch ))
+max_age=$(jq -r .backupMaxAgeSeconds "$health")
+(( age >= 0 && age <= max_age )) || { echo 'Backup exceeds configured freshness limit' >&2; exit 1; }

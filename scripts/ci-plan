@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+"""Compare evaluated Nix derivations, falling back to all current outputs."""
+import argparse
+import io
+import json
+from pathlib import Path
+import subprocess
+import tarfile
+import tempfile
+
+
+def changed(current, previous):
+    return {kind: sorted(name for name, drv in outputs.items()
+                         if previous.get(kind, {}).get(name) != drv)
+            for kind in ['images', 'checks'] for outputs in [current[kind]]}
+
+
+def evaluate(root):
+    result = subprocess.check_output(['nix', 'eval', '--json', '--no-write-lock-file',
+                                      'path:'+str(root.resolve())+'#ciPlan'], text=True)
+    plan = json.loads(result)
+    if set(plan) != {'images', 'checks', 'paths'} or any(not isinstance(v, dict) for v in plan.values()):
+        raise ValueError('Invalid CI plan')
+    return plan
+
+
+def snapshot(revision, root):
+    archive = subprocess.check_output(['git', 'archive', '--format=tar', revision])
+    root.mkdir()
+    with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
+        tar.extractall(root, filter='data')
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--base', default='')
+    parser.add_argument('--output', default='.ci-plan.json')
+    args = parser.parse_args()
+    # A current evaluation failure must fail CI, never silently skip builds.
+    current = evaluate(Path.cwd())
+    previous = {}
+    reason = 'No usable base; build all outputs'
+    if args.base and set(args.base) != {'0'}:
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)/'source'
+                snapshot(args.base, root)
+                previous = evaluate(root)
+            reason = 'Compared evaluated derivations with '+args.base
+        except (subprocess.CalledProcessError, ValueError, OSError, tarfile.TarError) as error:
+            print('Base comparison unavailable; build all outputs:', error)
+    plan = changed(current, previous)
+    plan['reason'] = reason
+    plan['paths'] = current['paths']
+    Path(args.output).write_text(json.dumps(plan, indent=2)+'\n')
+    print(json.dumps(plan, indent=2))
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,24 @@
+#!/usr/bin/env python3
+"""Fail closed unless this exact commit passed Checks and the version is unused."""
+import json
+import os
+from pathlib import Path
+import re
+import subprocess
+
+version = Path('VERSION').read_text().strip()
+if not re.fullmatch(r'(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?', version):
+    raise SystemExit('Invalid VERSION')
+repository, commit = os.environ['GITHUB_REPOSITORY'], os.environ['GITHUB_SHA']
+runs = json.loads(subprocess.check_output(['gh', 'api',
+    f'repos/{repository}/actions/workflows/checks.yml/runs?head_sha={commit}&event=push&per_page=100']))
+matching = [r for r in runs['workflow_runs'] if r['head_sha'] == commit and r['head_branch'] == 'main']
+if not matching or max(matching, key=lambda r: r['run_number'])['conclusion'] != 'success':
+    raise SystemExit('Latest Checks run for this exact main commit must succeed first')
+# Do not interpret arbitrary API errors as "release absent".
+for endpoint in [f'repos/{repository}/releases?per_page=100', f'repos/{repository}/git/matching-refs/tags/v{version}']:
+    data = json.loads(subprocess.check_output(['gh', 'api', '--paginate', '--slurp', endpoint]))
+    entries = [item for page in data for item in page]
+    if any(item.get('tag_name') == 'v'+version or item.get('ref') == 'refs/tags/v'+version for item in entries):
+        raise SystemExit('Version already exists; increment VERSION')
+print('Exact main commit checks passed; version is unused')

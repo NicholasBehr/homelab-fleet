@@ -1,24 +1,46 @@
 #!/usr/bin/env bash
-# Local/CI artifact packaging only. Never contacts Proxmox or publishes a release.
+# Package evaluated image outputs from the exact reviewed commit. No host access.
 set -euo pipefail
-variant=${1:?immich, immich-bootstrap, or immich-recovery}
-[[ "$variant" = immich || "$variant" = immich-bootstrap || "$variant" = immich-recovery ]]
 test -z "$(git status --porcelain)" || { echo 'Release requires a clean reviewed commit' >&2; exit 1; }
+version=$(cat VERSION)
+[[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]] || { echo 'Invalid release version' >&2; exit 1; }
 commit=$(git rev-parse HEAD)
-mkdir -p dist
-output=$(nix build ".#$variant" --no-link --print-out-paths)
-archive=$(find "$output/tarball" -name '*.tar.xz' -type f)
-test "$(printf '%s\n' "$archive" | wc -l)" -eq 1
-asset="$variant-$commit-x86_64-linux.tar.xz"
-python3 tests/image-layout.py "$archive"
-cp "$archive" "dist/$asset"
-python3 - "$variant" "$commit" "$output" "$asset" <<'PY'
+test ! -e dist || { echo 'Use a fresh dist directory' >&2; exit 1; }
+mkdir dist
+catalog=$(nix eval --json .#imageCatalog)
+if (( $# )); then
+  variants=("$@")
+else
+  mapfile -t variants < <(jq -r 'keys[]' <<< "$catalog")
+fi
+for variant in "${variants[@]}"; do
+  [[ "$variant" =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]]
+  jq -e --arg name "$variant" 'has($name)' <<< "$catalog" >/dev/null
+  scripts/check image "$variant"
+  output=$(nix build ".#$variant" --no-link --print-out-paths)
+  archive=$(find "$output/tarball" -name '*.tar.xz' -type f)
+  test "$(printf '%s\n' "$archive" | wc -l)" -eq 1
+  asset="$variant-v$version-x86_64-linux.tar.xz"
+  cp "$archive" "dist/$asset"
+  python3 - "$variant" "$version" "$commit" "$output" "$asset" <<'PYTHON'
 import json, subprocess, sys
-variant, commit, output, archive = sys.argv[1:]
+variant, version, commit, output, archive = sys.argv[1:]
 def evaluate(expr):
     return json.loads(subprocess.check_output(['nix', 'eval', '--json', '.#'+expr]))
-contract = json.loads(evaluate('nixosConfigurations.immich.config.environment.etc."homelab-versions.json".text'))
-manifest = dict(service='immich', variant=variant, commit=commit, architecture='x86_64-linux', buildOutput=output, archive=archive, versions=contract, contract=evaluate('deploymentContract'), encryptedSecretsIncluded=__import__('pathlib').Path('secrets/immich.yaml').exists() and variant!='immich-bootstrap')
-with open('dist/'+variant+'-manifest.json','w') as f: json.dump(manifest,f,indent=2); f.write('\n')
-PY
-(cd dist && sha256sum "$asset" "$variant-manifest.json" > "$variant-SHA256SUMS")
+entry = evaluate('imageCatalog.'+variant)
+service = entry['service']
+versions = json.loads(evaluate('nixosConfigurations.'+variant+'.config.environment.etc."homelab-versions.json".text'))
+secrets = evaluate('nixosConfigurations.'+variant+'.config.sops.secrets')
+manifest = dict(service=service, variant=entry['variant'], outputName=variant,
+                repositoryVersion=version, commit=commit, architecture='x86_64-linux',
+                buildOutput=output, archive=archive, versions=versions,
+                contract=evaluate('deploymentContracts.'+service),
+                encryptedSecretsIncluded=bool(secrets))
+with open('dist/'+variant+'-manifest.json','w') as f:
+    json.dump(manifest,f,indent=2); f.write('\n')
+PYTHON
+  (cd dist && sha256sum "$asset" "$variant-manifest.json" > "$variant-SHA256SUMS")
+done
+if (( $# == 0 )); then
+  python3 scripts/assemble-release --catalog-json "$catalog" --commit "$commit" --version "$version"
+fi

@@ -1,0 +1,51 @@
+name: Build one image
+on:
+  workflow_call:
+    inputs:
+      image:
+        required: true
+        type: string
+      package:
+        default: false
+        type: boolean
+permissions:
+  contents: read
+jobs:
+  build:
+    name: Build image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31
+        with:
+          install_url: https://releases.nixos.org/nix/nix-2.31.2/install
+      - uses: nix-community/cache-nix-action@b16f249a0248efec86dd9d4224cb75f1ffa48bcc
+        with:
+          primary-key: nix-v2-linux-image-${{ inputs.image }}-${{ hashFiles('flake.lock') }}-${{ github.sha }}
+          restore-prefixes-first-match: |
+            nix-v2-linux-image-${{ inputs.image }}-${{ hashFiles('flake.lock') }}-
+            nix-v2-linux-checks-${{ hashFiles('flake.lock') }}-${{ github.sha }}
+            nix-v2-linux-checks-${{ hashFiles('flake.lock') }}-
+          save: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
+          gc-max-store-size-linux: 6G
+      - name: Build and validate or package the selected image
+        env:
+          IMAGE: ${{ inputs.image }}
+          PACKAGE: ${{ inputs.package }}
+        run: |
+          if test "$PACKAGE" = true; then
+            nix develop .#ci --command scripts/release-assets "$IMAGE"
+          else
+            nix develop .#ci --command scripts/check image "$IMAGE"
+          fi
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ inputs.package }}
+        with:
+          name: image-${{ inputs.image }}
+          path: dist/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1

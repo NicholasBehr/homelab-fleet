@@ -1,61 +1,81 @@
 name: Release reviewed main commit
 on:
   workflow_dispatch:
-    inputs:
-      variant:
-        description: Image variant
-        required: true
-        type: choice
-        options: [immich-bootstrap, immich, immich-recovery]
 permissions:
   contents: read
+concurrency:
+  group: release
+  cancel-in-progress: false
 jobs:
-  release:
+  preflight:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 10
     permissions:
-      contents: write
-      id-token: write
-      attestations: write
+      contents: read
+      actions: read
+    outputs:
+      images: ${{ steps.catalog.outputs.images }}
+      catalog: ${{ steps.catalog.outputs.catalog }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31
         with:
           install_url: https://releases.nixos.org/nix/nix-2.31.2/install
-      - name: Formatting, scripts and unit tests
-        timeout-minutes: 15
-        run: nix develop .#ci --command scripts/check lint
-      - name: Evaluate configurations
-        timeout-minutes: 15
-        run: nix develop .#ci --command scripts/check eval
-      - name: Secret, Borg/PostgreSQL and mount tests
-        timeout-minutes: 15
-        run: nix develop .#ci --command scripts/check tests
-      - name: Build NixOS systems
-        timeout-minutes: 15
-        run: nix develop .#ci --command scripts/check systems
-      - name: Build bootstrap LXC template
-        timeout-minutes: 15
-        run: nix develop .#ci --command scripts/check image immich-bootstrap
-      - name: Build operational LXC template
-        timeout-minutes: 15
-        run: nix develop .#ci --command scripts/check image immich
-      - name: Build recovery LXC template
-        timeout-minutes: 15
-        run: nix develop .#ci --command scripts/check image immich-recovery
-      - name: Package the exact dispatched commit
-        env:
-          VARIANT: ${{ inputs.variant }}
-        run: nix develop .#ci --command scripts/release-assets "$VARIANT"
-      - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
-        with:
-          subject-path: dist/*
-      - name: Publish immutable commit release
+      - name: Require exact main checks and unused version
         env:
           GH_TOKEN: ${{ github.token }}
-          VARIANT: ${{ inputs.variant }}
+        run: python3 scripts/release-ready
+      - name: Select release catalog
+        id: catalog
         run: |
-          gh release create "$VARIANT-$GITHUB_SHA" dist/* --target "$GITHUB_SHA" --title "$VARIANT $GITHUB_SHA" --notes "Exact commit build; verify artifact attestations and manifest before deployment."
+          catalog=$(nix eval --json .#imageCatalog)
+          echo "catalog=$(jq -c . <<< "$catalog")" >> "$GITHUB_OUTPUT"
+          echo "images=$(jq -c 'keys' <<< "$catalog")" >> "$GITHUB_OUTPUT"
+
+  images:
+    needs: preflight
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        image: ${{ fromJSON(needs.preflight.outputs.images) }}
+    uses: ./.github/workflows/image.yml
+    with:
+      image: ${{ matrix.image }}
+      package: true
+
+  publish:
+    needs: [preflight, images]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: image-*
+          path: dist
+          merge-multiple: true
+      - name: Validate and assemble exact-commit artifacts
+        env:
+          CATALOG: ${{ needs.preflight.outputs.catalog }}
+        run: |
+          python3 scripts/assemble-release --catalog-json "$CATALOG" --commit "$GITHUB_SHA" --version "$(cat VERSION)"
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/*
+      - name: Publish versioned release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(cat VERSION)
+          gh release create "v$version" dist/* --target "$GITHUB_SHA" --title "homelab-fleet v$version" --notes-file docs/release-notes.md

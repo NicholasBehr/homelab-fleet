@@ -6,7 +6,17 @@
 }:
 let
   cfg = config.homelab.backup;
-  cleanupScript = pkgs.writeShellScript "backup-cleanup" ("set -euo pipefail\n" + cfg.cleanup);
+  cleanupScript = pkgs.writeShellScript "backup-cleanup" ''
+    set -euo pipefail
+    owner=/run/homelab-backup/owner
+    # A failed lock acquisition must not recover a different operation's services.
+    test -s "$owner" || exit 0
+    test "$(cat "$owner")" = "''${INVOCATION_ID:?systemd invocation required}" || exit 0
+    exec 9>/persist/operation.lock
+    ${pkgs.util-linux}/bin/flock -n 9
+    ${cfg.cleanup}
+    rm "$owner"
+  '';
 in
 {
   options.homelab.backup = {
@@ -98,9 +108,12 @@ in
       preHook = ''
         exec 9>/persist/operation.lock
         ${pkgs.util-linux}/bin/flock -n 9
+        test ! -e /run/homelab-backup/owner || { echo 'Unresolved backup recovery intent' >&2; exit 1; }
+        printf '%s' "''${INVOCATION_ID:?systemd invocation required}" > /run/homelab-backup/owner
         ${cfg.prepare}
       '';
       postHook = ''
+        exec 9>&-
         ${cleanupScript} || exitStatus=1
       '';
     };
@@ -114,11 +127,11 @@ in
         "operational-ready.service"
       ];
       serviceConfig.RuntimeDirectory = "homelab-backup";
+      serviceConfig.RuntimeDirectoryPreserve = "yes";
       path = [
         pkgs.systemd
         pkgs.util-linux
         pkgs.coreutils
-        pkgs.rsync
       ];
       # Cleanup also runs after systemd terminates the job, including prepare failure.
       serviceConfig.ExecStopPost = cleanupScript;

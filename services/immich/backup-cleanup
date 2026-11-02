@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+if test -f /run/homelab-backup/restart; then
+  failed=0
+  # Try every service even when one fails. Retain intent if recovery is incomplete.
+  for unit in tailscaled redis-immich immich-machine-learning immich-server; do
+    systemctl start "$unit.service" || failed=1
+  done
+  if (( failed )); then exit 1; fi
+  rm /run/homelab-backup/restart
+fi
