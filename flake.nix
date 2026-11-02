@@ -80,6 +80,10 @@
       ciPlan = {
         images = nixpkgs.lib.mapAttrs (_: p: p.drvPath) self.packages.${system};
         checks = nixpkgs.lib.mapAttrs (_: c: c.drvPath) checks;
+        paths = {
+          images = nixpkgs.lib.mapAttrs (_: p: p.outPath) self.packages.${system};
+          checks = nixpkgs.lib.mapAttrs (_: c: c.outPath) checks;
+        };
       };
       checks.${system} = checks;
       devShells.${system}.ci = pkgs.mkShell {

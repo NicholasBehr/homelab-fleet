@@ -12,14 +12,14 @@ import tempfile
 def changed(current, previous):
     return {kind: sorted(name for name, drv in outputs.items()
                          if previous.get(kind, {}).get(name) != drv)
-            for kind, outputs in current.items()}
+            for kind in ['images', 'checks'] for outputs in [current[kind]]}
 
 
 def evaluate(root):
     result = subprocess.check_output(['nix', 'eval', '--json', '--no-write-lock-file',
                                       'path:'+str(root.resolve())+'#ciPlan'], text=True)
     plan = json.loads(result)
-    if set(plan) != {'images', 'checks'} or any(not isinstance(v, dict) for v in plan.values()):
+    if set(plan) != {'images', 'checks', 'paths'} or any(not isinstance(v, dict) for v in plan.values()):
         raise ValueError('Invalid CI plan')
     return plan
 
@@ -51,6 +51,7 @@ def main():
             print('Base comparison unavailable; build all outputs:', error)
     plan = changed(current, previous)
     plan['reason'] = reason
+    plan['paths'] = current['paths']
     Path(args.output).write_text(json.dumps(plan, indent=2)+'\n')
     print(json.dumps(plan, indent=2))
 

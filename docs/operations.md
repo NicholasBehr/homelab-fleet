@@ -9,8 +9,9 @@ commit. Changed/new outputs build; unavailable base builds all. Current evaluati
 errors fail. Docs and repository version are not embedded in image derivations.
 
 Nix's ordinary public substitutes plus a pinned GitHub Nix-store cache reuse build
-results. Only trusted main checks and release jobs write caches; PRs can restore.
-Image/check outputs have GC roots while the job runs. Caches are disposable: misses
+results. Only trusted main checks write caches; PRs and releases can restore.
+Image/check outputs have GC roots while the job runs. Cache preparation reuses
+output paths from the planner rather than repeating Nix evaluation. Caches are disposable: misses
 rebuild; cache availability is not proof of validation. Size limits and eviction may
 reduce the speedup. Initial custom builds and changed root assembly/compression
 still cost time. Unchanged images need not be rebuilt for every service change.

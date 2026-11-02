@@ -27,7 +27,7 @@ jobs:
         with:
           primary-key: nix-v1-linux-${{ hashFiles('flake.lock') }}-${{ github.sha }}
           restore-prefixes-first-match: nix-v1-linux-${{ hashFiles('flake.lock') }}-
-          gc-max-store-size-linux: 6G
+          save: false
       - name: Require successful checks for the exact main commit and unused version
         env:
           GH_TOKEN: ${{ github.token }}
@@ -35,8 +35,6 @@ jobs:
           python3 scripts/release-ready
       - name: Package catalog images (Nix reuses exact cached outputs)
         run: nix develop .#ci --command scripts/release-assets
-      - name: Preserve available outputs for cache reuse (no builds)
-        run: python3 scripts/cache-roots
       - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
         with:
           subject-path: dist/*
