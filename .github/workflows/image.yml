@@ -26,8 +26,8 @@ jobs:
         with:
           primary-key: nix-v2-linux-image-${{ inputs.image }}-${{ hashFiles('flake.lock') }}-${{ github.sha }}
           restore-prefixes-first-match: |
-            nix-v2-linux-checks-${{ hashFiles('flake.lock') }}-${{ github.sha }}
             nix-v2-linux-image-${{ inputs.image }}-${{ hashFiles('flake.lock') }}-
+            nix-v2-linux-checks-${{ hashFiles('flake.lock') }}-${{ github.sha }}
             nix-v2-linux-checks-${{ hashFiles('flake.lock') }}-
           save: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
           gc-max-store-size-linux: 6G

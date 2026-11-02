@@ -14,6 +14,8 @@ errors fail. Docs and repository version are not embedded in image derivations.
 Nix's ordinary public substitutes plus a pinned GitHub Nix-store cache reuse build
 results. Only trusted main validation/image jobs write caches; PRs and releases can restore.
 Validation and individual images use separate keys, avoiding concurrent cache writers.
+Image jobs prefer their own previous cache (including the archive), then fall back
+to shared validation outputs; Nix rebuilds any changed or missing derivations.
 Image/check outputs have GC roots while the job runs. Cache preparation reuses
 output paths from the planner rather than repeating Nix evaluation. Caches are disposable: misses
 rebuild; cache availability is not proof of validation. Size limits and eviction may
