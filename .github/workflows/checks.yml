@@ -16,7 +16,7 @@ jobs:
     outputs:
       images: ${{ steps.plan.outputs.images }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
@@ -27,7 +27,7 @@ jobs:
         with:
           primary-key: nix-v2-linux-checks-${{ hashFiles('flake.lock') }}-${{ github.sha }}
           restore-prefixes-first-match: nix-v2-linux-checks-${{ hashFiles('flake.lock') }}-
-          save: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          save: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
           gc-max-store-size-linux: 6G
       - name: Formatting, scripts and unit tests
         timeout-minutes: 10
@@ -71,7 +71,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Require validation and every selected image

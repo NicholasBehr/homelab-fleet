@@ -12,7 +12,10 @@ image fails/cancels; an empty image selection deliberately skips the matrix. Cur
 errors fail. Docs and repository version are not embedded in image derivations.
 
 Nix's ordinary public substitutes plus a pinned GitHub Nix-store cache reuse build
-results. Only trusted main validation/image jobs write caches; PRs and releases can restore.
+results. Main validation/image jobs write default-branch caches. Same-repository PRs also
+write their isolated merge-ref caches, allowing image jobs to reuse validation
+outputs. Fork PRs and releases only restore. GitHub prevents main/other PRs from
+restoring these PR-scoped caches: https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching .
 Validation and individual images use separate keys, avoiding concurrent cache writers.
 Image jobs prefer their own previous cache (including the archive), then fall back
 to shared validation outputs; Nix rebuilds any changed or missing derivations.

@@ -22,3 +22,4 @@
 - CI compares evaluated image/check derivations with the base commit; unavailable base means build all. Current evaluation failures fail CI. Cache misses rebuild normally. Keep docs and Git revision metadata out of runtime image inputs unless required.
 - Validate formatting, shell, application hook failure recovery, storage guards, secret handling and affected Linux systems/images. ARM macOS evaluates/lints; GitHub builds Linux. Rehearse full restoration before production.
 - Keep docs current and compact. `docs/validation.md` is the verification matrix; history is in Git. Live GUID inventories, node/account identities, credentials and recovery receipts stay outside this public repository. Never treat historical test records as live storage authorization.
+- Pin supported GitHub action releases by immutable commit; audit JavaScript runtimes and composite children when upgrading actions. PR caches must remain isolated from main/release trust.
