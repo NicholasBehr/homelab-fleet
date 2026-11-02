@@ -7,6 +7,7 @@ import fcntl
 import os
 from pathlib import Path
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -48,7 +49,7 @@ fi
 '''
         for command in ['borg', 'systemctl', 'runuser']:
             target = root/'bin'/command
-            target.write_text(wrapper); target.chmod(0o755)
+            target.write_text(wrapper.replace("#!/usr/bin/env bash", "#!"+shutil.which("bash"), 1)); target.chmod(0o755)
         env = dict(os.environ, PATH=str(root/'bin')+':'+os.environ['PATH'],
                    SCENARIO=scenario, EVENTS=str(root/'events'), FIXTURE=str(root),
                    INVOCATION_ID='this-invocation')
