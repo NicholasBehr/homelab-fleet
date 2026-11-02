@@ -51,9 +51,11 @@ in
         prepare = "${pkgs.bash}/bin/bash ${./backup-prepare}";
         cleanup = "${pkgs.bash}/bin/bash ${./backup-cleanup}";
       };
-      systemd.services.borgbackup-job-immich.path = lib.mkIf config.homelab.backup.enable [
-        config.services.postgresql.package
-      ];
+      systemd.services."borgbackup-job-${config.homelab.backup.name}".path =
+        lib.mkIf config.homelab.backup.enable
+          [
+            config.services.postgresql.package
+          ];
       environment.systemPackages = [
         pkgs.ffmpeg
         pkgs.libva-utils

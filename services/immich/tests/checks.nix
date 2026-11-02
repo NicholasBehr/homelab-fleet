@@ -75,7 +75,10 @@ in
       ''
     else
       pkgs.runCommand "no-enrolled-secret-service" { } ''touch "$out"'';
-  bootstrap = bootstrap.config.system.build.toplevel;
+  bootstrap =
+    assert !(bootstrap.config.systemd.services ? immich-server);
+    assert !(bootstrap.config.systemd.services ? postgresql);
+    bootstrap.config.system.build.toplevel;
   operational = operational.config.system.build.toplevel;
   recovery = recovery.config.system.build.toplevel;
   backup-config = backupFixture.system.build.toplevel;

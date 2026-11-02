@@ -53,11 +53,4 @@ in
       url = "http://127.0.0.1:2283/api/server/ping";
     };
   };
-  systemd.services =
-    lib.genAttrs
-      [ "postgresql" "postgresql-setup" "redis-immich" "immich-server" "immich-machine-learning" ]
-      (_: {
-        requires = [ "storage-contract.service" ];
-        after = [ "storage-contract.service" ];
-      });
 }
