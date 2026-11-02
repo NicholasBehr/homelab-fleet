@@ -1,12 +1,20 @@
---- a/immich_ml/models/constants.py
-+++ b/immich_ml/models/constants.py
-@@ -94,9 +94,4 @@
- SUPPORTED_PROVIDERS = [
--    "nv_tensorrt_rtx",
--    "CUDAExecutionProvider",
--    "MIGraphXExecutionProvider",
--    "OpenVINOExecutionProvider",
--    "CoreMLExecutionProvider",
-     "CPUExecutionProvider",
- ]
+--- a/immich_ml/sessions/ort.py
++++ b/immich_ml/sessions/ort.py
+@@ -1,6 +1,7 @@
+ from __future__ import annotations
  
+ import ctypes
++import os
+ import pickle
+ import platform
+ import subprocess
+@@ -442,6 +443,9 @@
+ def _providers_default() -> list[str]:
++    if os.environ.get("MACHINE_LEARNING_CPU_ONLY") == "1":
++        return ["CPUExecutionProvider"]
++
+     from immich_ml.models.constants import SUPPORTED_PROVIDERS  # here, as the preparing child has no use for the models
+ 
+     available_providers = set(ort.get_available_providers())
+     log.debug(f"Available ORT providers: {available_providers}")
+     providers = [provider for provider in SUPPORTED_PROVIDERS if provider in available_providers]

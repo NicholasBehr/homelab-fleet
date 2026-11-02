@@ -75,6 +75,7 @@ lib.mkIf (!bootstrap) {
     };
     immich-machine-learning = gate // {
       environment.GUNICORN_CMD_ARGS = "--no-control-socket";
+      environment.MACHINE_LEARNING_CPU_ONLY = "1";
       serviceConfig.LimitCORE = 0;
     };
     redis-immich = gate // {

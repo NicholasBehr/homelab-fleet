@@ -100,18 +100,26 @@
           ];
         };
       checks.${system} = {
-        ml-cpu = pkgs.runCommand "immich-ml-cpu-policy" { nativeBuildInputs = [ pkgs.python3 ]; } ''
-          policy=$(find ${operational.config.services.immich.package.machine-learning}/lib \
-            -path '*/immich_ml/models/constants.py' -type f)
-          python3 - "$policy" <<'PY'
-          import ast, pathlib, sys
-          tree = ast.parse(pathlib.Path(sys.argv[1]).read_text())
-          providers = [n.value for n in tree.body if isinstance(n, ast.Assign)
-                       and any(isinstance(t, ast.Name) and t.id == "SUPPORTED_PROVIDERS" for t in n.targets)]
-          assert len(providers) == 1
-          assert ast.literal_eval(providers[0]) == ["CPUExecutionProvider"]
+        ml-cpu = pkgs.runCommand "immich-ml-cpu-policy" { } ''
+          mlCheckDir="$TMPDIR/ml-cpu-check"
+          mkdir -p "$mlCheckDir"
+          cat > "$mlCheckDir/config.py" <<'PY'
+          import onnxruntime as ort
+          from immich_ml.sessions.ort import _providers_default
+          original = ort.get_available_providers
+          assert "CPUExecutionProvider" in original()
+          for available in (["CPUExecutionProvider"], ["OpenVINOExecutionProvider", "CPUExecutionProvider"],
+                            ["CUDAExecutionProvider", "OpenVINOExecutionProvider", "CPUExecutionProvider"]):
+              ort.get_available_providers = lambda: available
+              assert _providers_default() == ["CPUExecutionProvider"]
+          ort.get_available_providers = original
           PY
-          GUNICORN_CMD_ARGS='--no-control-socket --check-config' \
+          grep -q 'MACHINE_LEARNING_CPU_ONLY=1' \
+            ${
+              operational.config.systemd.units."immich-machine-learning.service".unit
+            }/immich-machine-learning.service
+          MACHINE_LEARNING_CPU_ONLY=1 \
+            GUNICORN_CMD_ARGS="--no-control-socket --check-config --config $mlCheckDir/config.py" \
             ${operational.config.services.immich.package.machine-learning}/bin/machine-learning
           touch "$out"
         '';
