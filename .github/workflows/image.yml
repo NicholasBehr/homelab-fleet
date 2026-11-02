@@ -1,0 +1,51 @@
+name: Build one image
+on:
+  workflow_call:
+    inputs:
+      image:
+        required: true
+        type: string
+      package:
+        default: false
+        type: boolean
+permissions:
+  contents: read
+jobs:
+  build:
+    name: Build image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31
+        with:
+          install_url: https://releases.nixos.org/nix/nix-2.31.2/install
+      - uses: nix-community/cache-nix-action@b16f249a0248efec86dd9d4224cb75f1ffa48bcc
+        with:
+          primary-key: nix-v2-linux-image-${{ inputs.image }}-${{ hashFiles('flake.lock') }}-${{ github.sha }}
+          restore-prefixes-first-match: |
+            nix-v2-linux-checks-${{ hashFiles('flake.lock') }}-${{ github.sha }}
+            nix-v2-linux-image-${{ inputs.image }}-${{ hashFiles('flake.lock') }}-
+            nix-v2-linux-checks-${{ hashFiles('flake.lock') }}-
+          save: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          gc-max-store-size-linux: 6G
+      - name: Build and validate or package the selected image
+        env:
+          IMAGE: ${{ inputs.image }}
+          PACKAGE: ${{ inputs.package }}
+        run: |
+          if test "$PACKAGE" = true; then
+            nix develop .#ci --command scripts/release-assets "$IMAGE"
+          else
+            nix develop .#ci --command scripts/check image "$IMAGE"
+          fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ inputs.package }}
+        with:
+          name: image-${{ inputs.image }}
+          path: dist/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1

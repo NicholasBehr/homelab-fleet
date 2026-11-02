@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+"""One fail-closed required check, including an intentionally empty image matrix."""
+import json
+import os
+
+
+def require_success(validation, images, selected):
+    if validation != 'success':
+        raise ValueError('Shared validation did not succeed: '+validation)
+    if not isinstance(selected, list) or any(not isinstance(name, str) or not name for name in selected):
+        raise ValueError('Missing or invalid selected-image list')
+    expected = 'success' if selected else 'skipped'
+    if images != expected:
+        raise ValueError('Image jobs must be '+expected+', got '+images)
+
+
+if __name__ == '__main__':
+    try:
+        require_success(os.environ['VALIDATION_RESULT'], os.environ['IMAGE_RESULT'],
+                        json.loads(os.environ['SELECTED_IMAGES']))
+    except (KeyError, ValueError) as error:
+        raise SystemExit(str(error))
+    print('Shared validation and every selected image passed')

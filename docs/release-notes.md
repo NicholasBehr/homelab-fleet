@@ -12,6 +12,10 @@ the direct source paths. Historical staged archives require their historical res
 layout, not the new direct-archive instructions. There are no production archives yet.
 
 Checks select changed evaluated derivations and reuse GitHub Nix-store caches.
+Images run on separate runners, capped at three parallel jobs, after shared
+validation. The stable required gate handles failures and empty selections. Releases
+use the same parallel image job and validate the complete artifact handoff before
+publication.
 Unavailable comparison builds all. Repository releases include catalog images under
 one SemVer tag, separate from upstream application versions. Manifests retain commit,
 contract, build output and upstream versions; every asset is attested.

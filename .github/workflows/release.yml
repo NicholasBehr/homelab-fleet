@@ -7,10 +7,50 @@ concurrency:
   group: release
   cancel-in-progress: false
 jobs:
-  release:
+  preflight:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      images: ${{ steps.catalog.outputs.images }}
+      catalog: ${{ steps.catalog.outputs.catalog }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31
+        with:
+          install_url: https://releases.nixos.org/nix/nix-2.31.2/install
+      - name: Require exact main checks and unused version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/release-ready
+      - name: Select release catalog
+        id: catalog
+        run: |
+          catalog=$(nix eval --json .#imageCatalog)
+          echo "catalog=$(jq -c . <<< "$catalog")" >> "$GITHUB_OUTPUT"
+          echo "images=$(jq -c 'keys' <<< "$catalog")" >> "$GITHUB_OUTPUT"
+
+  images:
+    needs: preflight
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        image: ${{ fromJSON(needs.preflight.outputs.images) }}
+    uses: ./.github/workflows/image.yml
+    with:
+      image: ${{ matrix.image }}
+      package: true
+
+  publish:
+    needs: [preflight, images]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     permissions:
       contents: write
       actions: read
@@ -20,21 +60,16 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          install_url: https://releases.nixos.org/nix/nix-2.31.2/install
-      - uses: nix-community/cache-nix-action@b16f249a0248efec86dd9d4224cb75f1ffa48bcc
-        with:
-          primary-key: nix-v1-linux-${{ hashFiles('flake.lock') }}-${{ github.sha }}
-          restore-prefixes-first-match: nix-v1-linux-${{ hashFiles('flake.lock') }}-
-          save: false
-      - name: Require successful checks for the exact main commit and unused version
+          pattern: image-*
+          path: dist
+          merge-multiple: true
+      - name: Validate and assemble exact-commit artifacts
         env:
-          GH_TOKEN: ${{ github.token }}
+          CATALOG: ${{ needs.preflight.outputs.catalog }}
         run: |
-          python3 scripts/release-ready
-      - name: Package catalog images (Nix reuses exact cached outputs)
-        run: nix develop .#ci --command scripts/release-assets
+          python3 scripts/assemble-release --catalog-json "$CATALOG" --commit "$GITHUB_SHA" --version "$(cat VERSION)"
       - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
         with:
           subject-path: dist/*

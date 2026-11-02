@@ -5,11 +5,15 @@
 Use a short-lived branch and PR; require `Required checks` before merging. GitHub
 always runs lint, evaluation and shared/application fixtures. `scripts/ci-plan`
 compares current image/check derivation paths with the PR base or previous main
-commit. Changed/new outputs build; unavailable base builds all. Current evaluation
+commit. Changed/new outputs build; unavailable base builds all. Shared validation/checks run
+once, then changed images build on separate runners with at most three concurrent
+jobs. One always-running `Required checks` gate fails if validation or any selected
+image fails/cancels; an empty image selection deliberately skips the matrix. Current evaluation
 errors fail. Docs and repository version are not embedded in image derivations.
 
 Nix's ordinary public substitutes plus a pinned GitHub Nix-store cache reuse build
-results. Only trusted main checks write caches; PRs and releases can restore.
+results. Only trusted main validation/image jobs write caches; PRs and releases can restore.
+Validation and individual images use separate keys, avoiding concurrent cache writers.
 Image/check outputs have GC roots while the job runs. Cache preparation reuses
 output paths from the planner rather than repeating Nix evaluation. Caches are disposable: misses
 rebuild; cache availability is not proof of validation. Size limits and eviction may
@@ -19,7 +23,10 @@ still cost time. Unchanged images need not be rebuilt for every service change.
 Update `VERSION` and release notes on the PR. After exact-main Checks succeed,
 manually dispatch Release. It rejects an already used tag/version, requests all
 catalog images (using exact cached outputs when available), validates layout,
-packages manifests/checksums and attests every asset. A repository release may
+packages images in parallel using the same per-image job/cache as CI, then validates
+the exact commit, complete catalog and per-image checksums before consolidating the
+release and attesting every asset. Publication waits for every image; partial releases
+are refused. A repository release may
 contain multiple independently deployable service images. Never overwrite assets
 or use `latest` for deployment. Application versions remain independent of repo SemVer.
 

@@ -8,7 +8,14 @@ commit=$(git rev-parse HEAD)
 test ! -e dist || { echo 'Use a fresh dist directory' >&2; exit 1; }
 mkdir dist
 catalog=$(nix eval --json .#imageCatalog)
-while IFS= read -r variant; do
+if (( $# )); then
+  variants=("$@")
+else
+  mapfile -t variants < <(jq -r 'keys[]' <<< "$catalog")
+fi
+for variant in "${variants[@]}"; do
+  [[ "$variant" =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]]
+  jq -e --arg name "$variant" 'has($name)' <<< "$catalog" >/dev/null
   scripts/check image "$variant"
   output=$(nix build ".#$variant" --no-link --print-out-paths)
   archive=$(find "$output/tarball" -name '*.tar.xz' -type f)
@@ -32,5 +39,8 @@ manifest = dict(service=service, variant=entry['variant'], outputName=variant,
 with open('dist/'+variant+'-manifest.json','w') as f:
     json.dump(manifest,f,indent=2); f.write('\n')
 PYTHON
-done < <(jq -r 'keys[]' <<< "$catalog")
-(cd dist && sha256sum ./*.tar.xz ./*-manifest.json > SHA256SUMS)
+  (cd dist && sha256sum "$asset" "$variant-manifest.json" > "$variant-SHA256SUMS")
+done
+if (( $# == 0 )); then
+  python3 scripts/assemble-release --catalog-json "$catalog" --commit "$commit" --version "$version"
+fi

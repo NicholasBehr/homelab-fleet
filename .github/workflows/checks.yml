@@ -9,10 +9,12 @@ concurrency:
   group: checks-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  linux:
-    name: Required checks
+  validate:
+    name: Validate and select
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 40
+    outputs:
+      images: ${{ steps.plan.outputs.images }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -23,8 +25,8 @@ jobs:
           install_url: https://releases.nixos.org/nix/nix-2.31.2/install
       - uses: nix-community/cache-nix-action@b16f249a0248efec86dd9d4224cb75f1ffa48bcc
         with:
-          primary-key: nix-v1-linux-${{ hashFiles('flake.lock') }}-${{ github.sha }}
-          restore-prefixes-first-match: nix-v1-linux-${{ hashFiles('flake.lock') }}-
+          primary-key: nix-v2-linux-checks-${{ hashFiles('flake.lock') }}-${{ github.sha }}
+          restore-prefixes-first-match: nix-v2-linux-checks-${{ hashFiles('flake.lock') }}-
           save: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
           gc-max-store-size-linux: 6G
       - name: Formatting, scripts and unit tests
@@ -37,11 +39,44 @@ jobs:
         timeout-minutes: 10
         run: nix develop .#ci --command scripts/check tests
       - name: Select changed derivations (fallback is all)
+        id: plan
         env:
           BASE_COMMIT: ${{ github.event.pull_request.base.sha || github.event.before }}
-        run: python3 scripts/ci-plan --base "$BASE_COMMIT"
-      - name: Build and validate changed systems, checks and images
-        timeout-minutes: 40
-        run: nix develop .#ci --command scripts/check selected .ci-plan.json
+        run: |
+          python3 scripts/ci-plan --base "$BASE_COMMIT"
+          echo "images=$(jq -c .images .ci-plan.json)" >> "$GITHUB_OUTPUT"
+      - name: Build changed systems and checks
+        timeout-minutes: 25
+        run: nix develop .#ci --command scripts/check selected-checks .ci-plan.json
       - name: Preserve available outputs for cache reuse (no builds)
         run: python3 scripts/cache-roots
+
+  images:
+    name: Image (${{ matrix.image }})
+    needs: validate
+    if: ${{ needs.validate.outputs.images != '' && needs.validate.outputs.images != '[]' }}
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        image: ${{ fromJSON(needs.validate.outputs.images) }}
+    uses: ./.github/workflows/image.yml
+    with:
+      image: ${{ matrix.image }}
+
+  required:
+    name: Required checks
+    needs: [validate, images]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Require validation and every selected image
+        env:
+          VALIDATION_RESULT: ${{ needs.validate.result }}
+          IMAGE_RESULT: ${{ needs.images.result }}
+          SELECTED_IMAGES: ${{ needs.validate.outputs.images }}
+        run: python3 scripts/ci-result

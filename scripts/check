@@ -34,17 +34,19 @@ case "$stage" in
       du -h "$archive"
     done
     ;;
-  selected)
+  selected|selected-checks)
     plan=${2:-.ci-plan.json}
     mkdir -p .ci-roots
     while IFS= read -r check; do
       nix build --print-build-logs --max-jobs 2 --cores 2 --out-link ".ci-roots/check-$check" ".#checks.x86_64-linux.$check"
     done < <(jq -r '.checks[]' "$plan")
-    while IFS= read -r variant; do "$0" image "$variant"; done < <(jq -r '.images[]' "$plan")
+    if test "$stage" = selected; then
+      while IFS= read -r variant; do "$0" image "$variant"; done < <(jq -r '.images[]' "$plan")
+    fi
     ;;
   all)
     "$0" lint; "$0" eval; "$0" tests; "$0" systems
     while IFS= read -r variant; do "$0" image "$variant"; done < <(nix eval --json .#imageCatalog | jq -r 'keys[]')
     ;;
-  *) echo 'Usage: scripts/check [all|lint|eval|tests|systems|selected PLAN|image OUTPUT]' >&2; exit 2 ;;
+  *) echo 'Usage: scripts/check [all|lint|eval|tests|systems|selected PLAN|selected-checks PLAN|image OUTPUT]' >&2; exit 2 ;;
 esac
