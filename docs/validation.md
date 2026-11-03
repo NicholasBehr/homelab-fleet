@@ -20,7 +20,8 @@ not this public repository. Historical evidence never authorizes a new mutation.
 | Encrypted off-guest backup and isolated restore | Passed media hashes, recovered age-key match, PG17 DB/extension restore and asset/user counts |
 | Revised direct backup flow | Generated native job passed on a designated LXC: success, repository failure (exit2), dump failure (exit17), automatic service recovery and Borg data verification; local test repository, no remote endpoint |
 | Complete fresh-volume/container disaster restore | Passed with independent 1Password retrieval, off-guest encrypted repository and fresh volumes; original hashes, two assets/one user/two search embeddings, identities, permissions and normal v0.1.0 startup matched; operator confirmed thumbnails/playback; new backup and API recovery passed |
-| Remote Borg / retention / escrow | Unconfigured; production enrollment and actual backup/restore outstanding |
+| Remote Borg / retention | Passed on a dedicated test Storage Box subaccount: independently verified SSH host key, Borg1.4.4 on both ends, encrypted native-job backup/data check, synthetic retention deletion and isolated media/PG17 restore; live services recovered |
+| Remote recovery escrow | Passed: 1Password save/download matched; retrieved credentials with fresh Borg client state opened the remote repository and recovered the exact DB dump; escrowed encrypted key matched the working repository key |
 | Production identities/resources | Not enrolled or allocated; rehearsal ciphertext must be replaced |
 | Secure Boot | Operator temporarily disabled; enable after boot/signature inspection, then reboot/ZFS/network/QSV checks |
 | Representative phone/4K/10-bit/mobile uploads | Conditional on intended workload; synthetic test success is narrower |
@@ -46,12 +47,15 @@ and [v0.1.0 release](https://github.com/NicholasBehr/homelab-fleet/actions/runs/
 passed at `f30f578959ea26b562125a89ffe86d519c9b29d9`. Full rehearsal receipts
 remain private. The native-job test copied the evaluated job/sandbox/helpers into
 runtime files on backup-disabled images; it supplied required Borg runtime
-directories explicitly. Production's enabled job, timer and remote transport still
-need enrollment and verification. The recovery image does not clear saved Serve
+directories explicitly. Remote testing used the privately evaluated native job
+with the test endpoint; no production timer was enabled. Production's identity,
+repository, enabled job and timer still need enrollment and verification.
+The recovery image does not clear saved Serve
 state automatically; the operator reset it before restoring PostgreSQL.
 
-Before production: enroll and verify actual remote backup/retention/escrow and
-restoration, enable/verify Secure Boot, and enroll production identity/resources.
+Before production: enable/verify Secure Boot, then enroll production
+identities/resources and verify their scheduled backup
+and recovery configuration. Test credentials/repositories must not become production.
 Synthetic rehearsal does not establish capacity or representative-media coverage.
 Host cleanup follows successful recovery checks
 and exact provenance/attachment verification; retained recovery copies stay protected.

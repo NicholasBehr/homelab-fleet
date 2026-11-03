@@ -104,7 +104,10 @@ are stopped: https://docs.immich.app/administration/backup-and-restore/ . Native
 NixOS paths replace Docker paths. The v0.1.0 rehearsal passed this fresh-volume
 procedure using independent escrow and an off-guest encrypted repository, including
 normal operational startup, original checksums, login/playback and a new backup.
-Actual remote endpoint recovery remains a production gate; see [validation](validation.md).
+A separate test Storage Box rehearsal also passed remote integrity/retention,
+isolated media/database restoration and independent 1Password escrow retrieval.
+Production identities, repository and scheduled operation still require enrollment
+and verification; see [validation](validation.md).
 
 ## Other failures
 
