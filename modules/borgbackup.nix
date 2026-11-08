@@ -12,7 +12,9 @@ let
   '';
   passCommand = "${pkgs.coreutils}/bin/cat ${lib.escapeShellArg cfg.passphraseFile}";
   borgEnvironment = {
-    BORG_RSH = "${pkgs.openssh}/bin/ssh -i ${cfg.sshKeyFile} -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${cfg.knownHostsFile}";
+    # This deployment has no routed IPv6. Avoid an IPv6-first connection failure
+    # while retaining the DNS name and strict host-key verification.
+    BORG_RSH = "${pkgs.openssh}/bin/ssh -o AddressFamily=inet -i ${cfg.sshKeyFile} -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${cfg.knownHostsFile}";
     BORG_CONFIG_DIR = "/persist/borg/config";
     BORG_CACHE_DIR = "/persist/borg/cache";
   };
