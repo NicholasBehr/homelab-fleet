@@ -22,7 +22,7 @@ not this public repository. Historical evidence never authorizes a new mutation.
 | Complete fresh-volume/container disaster restore | Passed with independent 1Password retrieval, off-guest encrypted repository and fresh volumes; original hashes, two assets/one user/two search embeddings, identities, permissions and normal v0.1.0 startup matched; operator confirmed thumbnails/playback; new backup and API recovery passed |
 | Remote Borg / retention | Passed on a dedicated test Storage Box subaccount: independently verified SSH host key, Borg1.4.4 on both ends, encrypted native-job backup/data check, synthetic retention deletion and isolated media/PG17 restore; live services recovered |
 | Remote recovery escrow | Passed: 1Password save/download matched; retrieved credentials with fresh Borg client state opened the remote repository and recovered the exact DB dump; escrowed encrypted key matched the working repository key |
-| Production identities/resources | Not enrolled or allocated; rehearsal ciphertext must be replaced |
+| Production enrollment | Bootstrap allocated with approved resources; production Tailscale/age identity and dedicated remote SSH key verified; independent 1Password credential retrieval/decryption passed. Production ciphertext prepared; operational image, Borg repository initialization, scheduled backup and recovery validation remain pending |
 | Secure Boot | Passed: enabled, signed Proxmox shim selected, kernel integrity lockdown active; pools healthy, Tailscale reachable, restored rehearsal services/HTTPS healthy. Postboot QSV encode passed as the application user with bundled Jellyfin FFmpeg; full Immich job/playback evidence above predates this reboot |
 | Representative phone/4K/10-bit/mobile uploads | Conditional on intended workload; synthetic test success is narrower |
 | Storage templates and later HDD migration | Not enabled/tested; separate validation and identified-volume migration required |
@@ -48,14 +48,13 @@ passed at `f30f578959ea26b562125a89ffe86d519c9b29d9`. Full rehearsal receipts
 remain private. The native-job test copied the evaluated job/sandbox/helpers into
 runtime files on backup-disabled images; it supplied required Borg runtime
 directories explicitly. Remote testing used the privately evaluated native job
-with the test endpoint; no production timer was enabled. Production's identity,
-repository, enabled job and timer still need enrollment and verification.
+with the test endpoint; no production timer was enabled. Production's repository, enabled job and timer still need enrollment and
+verification; bootstrap identity and credential escrow are verified.
 The recovery image does not clear saved Serve
 state automatically; the operator reset it before restoring PostgreSQL.
 
-Before production: enroll production
-identities/resources and verify their scheduled backup
-and recovery configuration. Test credentials/repositories must not become production.
+Before importing production data: deploy the operational image and verify the
+production repository, scheduled backup and recovery configuration. Test credentials/repositories must not become production.
 Synthetic rehearsal does not establish capacity or representative-media coverage.
 Host cleanup follows successful recovery checks
 and exact provenance/attachment verification; retained recovery copies stay protected.
