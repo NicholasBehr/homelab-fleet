@@ -6,11 +6,12 @@ CI has no homelab access. Root filesystems are replaced, while declared data and
 identities survive on external volumes. `/persist` stays on NVMe; `/data` is bulk
 originals suitable for later HDD migration.
 
-**Status:** rehearsal application, storage, root replacement, Tailscale, SOPS,
-QSV video and CPU inference passed. Production is not enrolled; remote backups
-and complete fresh-volume recovery remain outstanding. The revised direct Borg
-flow and refactored images require regression testing. See [validation](docs/validation.md).
-SOPS ciphertext currently belongs to disposable rehearsal identities, not production.
+**Status:** Immich production is running from the verified v0.2.1 operational
+image. Tailscale-only access, SOPS enrollment, QSV, direct remote Borg backup,
+independent recovery escrow, full fresh-volume restoration and managed root
+replacement are verified. The scheduled backup runs daily at 02:15
+Europe/Zurich. See [validation](docs/validation.md) for boundaries and remaining
+workload-specific checks.
 
 - [Architecture, layout and adding services](docs/architecture.md)
 - [Enrollment, releases and replacement](docs/operations.md)
