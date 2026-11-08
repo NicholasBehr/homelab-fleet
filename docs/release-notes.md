@@ -1,3 +1,26 @@
+# v0.2.0 — production enrollment and scheduled backup
+
+Production ciphertext replaces disposable rehearsal credentials. Resource defaults
+are 2 cores, 6GiB RAM, 32GiB root, 128GiB persist and 512GiB data, with no swap.
+The operational image enables the native Borg job at 02:15 Europe/Zurich; bootstrap
+and recovery images keep it disabled. Application versions and storage markers/UIDs
+are unchanged.
+
+Migration: before operational use, enroll the new production age identity and
+verified secrets, install root-owned mode0600 `/persist/borg/repository` containing
+one remote SSH URI, and install verified `/persist/borg/known_hosts`. Initialize
+only an explicitly approved new repository, export/escrow its key, and prove a
+manual backup and restoration before enabling unattended operation. Keep the timer
+stopped during enrollment. Missing/invalid endpoint files fail before quiescing
+services; there is no automatic repository initialization. Existing rehearsal
+identities cannot decrypt the new production payload. Retain matching images and
+recovery material for rehearsal restoration; do not replace their roots with this
+production release.
+
+The new runtime file is an operator-managed enrollment input backed up under
+`/persist`. Account identifiers remain outside public Git and image inputs. Release
+publication and deployment are separate reviewed operations.
+
 # v0.1.0 — initial repository interface
 
 Refactors shared NixOS/LXC, storage, secret, network and Borg infrastructure away

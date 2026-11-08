@@ -40,6 +40,11 @@ in
     tailscale.serveTarget =
       if config.homelab.image.variant == "bootstrap" then null else "http://127.0.0.1:2283";
     intelMedia.renderGid = c.renderGid;
+    backup = {
+      enable = config.homelab.image.variant == "operational";
+      repositoryFile = "/persist/borg/repository";
+      schedule = "*-*-* 02:15:00 Europe/Zurich";
+    };
     health = {
       units = [
         "storage-contract"

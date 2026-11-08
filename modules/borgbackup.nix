@@ -6,6 +6,16 @@
 }:
 let
   cfg = config.homelab.backup;
+  runtimeRepository = cfg.repositoryFile != null;
+  loadRepository = lib.optionalString runtimeRepository ''
+    source ${./borg-repository} ${lib.escapeShellArg cfg.repositoryFile}
+  '';
+  passCommand = "${pkgs.coreutils}/bin/cat ${lib.escapeShellArg cfg.passphraseFile}";
+  borgEnvironment = {
+    BORG_RSH = "${pkgs.openssh}/bin/ssh -i ${cfg.sshKeyFile} -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${cfg.knownHostsFile}";
+    BORG_CONFIG_DIR = "/persist/borg/config";
+    BORG_CACHE_DIR = "/persist/borg/cache";
+  };
   cleanupScript = pkgs.writeShellScript "backup-cleanup" ''
     set -euo pipefail
     owner=/run/homelab-backup/owner
@@ -28,6 +38,11 @@ in
     repository = lib.mkOption {
       type = lib.types.str;
       default = "";
+    };
+    repositoryFile = lib.mkOption {
+      type = lib.types.nullOr (lib.types.strMatching "/.+");
+      default = null;
+      description = "Private runtime file containing one remote ssh:// repository URI; mutually exclusive with repository.";
     };
     remotePath = lib.mkOption {
       type = lib.types.str;
@@ -81,31 +96,28 @@ in
   config = lib.mkIf cfg.enable {
     assertions = [
       {
-        assertion = cfg.repository != "";
-        message = "Set an enrolled Borg repository";
+        assertion = (cfg.repository != "") != runtimeRepository;
+        message = "Set exactly one of repository or repositoryFile";
       }
     ];
     services.borgbackup.jobs.${cfg.name} = {
       repo = cfg.repository;
-      wrapper = "borg-job-${cfg.name}";
+      wrapper = if runtimeRepository then null else "borg-job-${cfg.name}";
       paths = cfg.paths;
       exclude = cfg.excludes;
       doInit = false;
       failOnWarnings = true;
       encryption = {
         mode = "repokey-blake2";
-        passCommand = "${pkgs.coreutils}/bin/cat ${lib.escapeShellArg cfg.passphraseFile}";
+        inherit passCommand;
       };
-      environment = {
-        BORG_RSH = "${pkgs.openssh}/bin/ssh -i ${cfg.sshKeyFile} -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${cfg.knownHostsFile}";
-        BORG_CONFIG_DIR = "/persist/borg/config";
-        BORG_CACHE_DIR = "/persist/borg/cache";
-      };
+      environment = borgEnvironment;
       extraArgs = [ "--remote-path=${cfg.remotePath}" ];
       startAt = cfg.schedule;
       prune.keep = cfg.retention;
       readWritePaths = cfg.writablePaths ++ [ "/run/homelab-backup" ];
       preHook = ''
+        ${loadRepository}
         exec 9>/persist/operation.lock
         ${pkgs.util-linux}/bin/flock -n 9
         test ! -e /run/homelab-backup/owner || { echo 'Unresolved backup recovery intent' >&2; exit 1; }
@@ -117,6 +129,19 @@ in
         ${cleanupScript} || exitStatus=1
       '';
     };
+    # The upstream wrapper embeds repo. For runtime endpoints use the same loader
+    # as the native job, without sourcing operator-controlled shell code.
+    environment.systemPackages = lib.optional runtimeRepository (
+      pkgs.writeShellScriptBin "borg-job-${cfg.name}" ''
+        set -euo pipefail
+        ${loadRepository}
+        ${lib.concatStringsSep "\n" (
+          lib.mapAttrsToList (name: value: "export ${name}=${lib.escapeShellArg value}") borgEnvironment
+        )}
+        export BORG_PASSCOMMAND=${lib.escapeShellArg passCommand}
+        exec ${pkgs.borgbackup}/bin/borg ${lib.escapeShellArgs [ "--remote-path=${cfg.remotePath}" ]} "$@"
+      ''
+    );
     systemd.services."borgbackup-job-${cfg.name}" = {
       requires = [
         "storage-contract.service"

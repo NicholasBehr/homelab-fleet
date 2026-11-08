@@ -2,17 +2,26 @@
 
 ## Direct, quiesced Borg backups
 
-Production backups are disabled until a real repository is enrolled. Each service
+The operational image enables scheduled backups; bootstrap and recovery images
+do not. Enroll the repository before relying on the schedule. Each service
 gets its own restricted Storage Box subaccount, repository, SSH key and passphrase.
 Obtain and independently authenticate the endpoint host key; ssh-keyscan alone is
 not verification. Store the verified `[HOST]:23` entry in `/persist/borg/known_hosts`.
 Hetzner's Borg endpoint uses SSH23 and remote `borg-1.4`; confirm local/remote
 compatibility with `borg --version` and `borg-job-immich version` before use.
 
-Configure the deployment with `homelab.backup.enable = true`, an actual repository
-such as `ssh://SUBACCOUNT@HOST:23/./immich`, and a staggered schedule. Values shown
-are placeholders. No endpoint or master credentials are invented. Initialize only
-the intended new repository with `borg-job-immich init --encryption=repokey-blake2`;
+The Immich deployment reads its remote repository URI from
+`/persist/borg/repository`, a root-owned mode0600 file containing exactly one line,
+for example `ssh://SUBACCOUNT@HOST:23/./immich`. Keep the actual endpoint in the
+private operator inventory, not public Nix configuration. The job and
+`borg-job-immich` wrapper read the same file as data; missing/invalid files fail
+before application quiescing. This runtime option accepts only remote SSH URIs;
+other deployments may instead set the static `homelab.backup.repository` option.
+
+The schedule is 02:15 Europe/Zurich. During initial enrollment, keep the timer
+stopped until repository initialization, escrow and a manual backup/restore check
+pass. Initialize only the intended new repository with
+`borg-job-immich init --encryption=repokey-blake2`;
 normal jobs have `doInit=false`. Export its Borg key and escrow the export,
 passphrase, SSH key, endpoint and trust information independently in 1Password.
 Retrieve/verify escrow. Keep multiple recovery copies; a backup repository alone
