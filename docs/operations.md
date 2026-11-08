@@ -48,7 +48,12 @@ classification and expected archive. Preserve a private verification receipt.
 ## Initial enrollment
 
 Production allocations, host mutations and shared infrastructure changes require
-explicit approval. Read-only discovery is permitted. Designated test mutations
+explicit approval of a detailed execution plan under `AGENTS.md`, rather than
+individual commands. The plan identifies exact resources, ordered changes,
+data/credential effects, downtime, risks, recovery protection and verification.
+Command-level adjustments and equivalent fixes within those approved boundaries
+do not need another approval; expanded scope or uncertain provenance does.
+Read-only discovery is permitted. Designated test mutations
 require exact creation provenance and current GUID/attachment checks; IDs/names
 alone are insufficient. Record a new allocation plan and absence checks before
 creation, then immediately record its actual GUID. Never use stale public inventories.
@@ -58,10 +63,11 @@ The contract proposes CT200/201, 2 cores, 6GiB RAM, 32GiB root, 128GiB persist a
 originals volume for generated media, plus database, dumps, Borg cache and headroom;
 it is an estimate, not a limit on application growth. Verify actual allocations in
 the private operator inventory. Production provisioning, including `nesting=1`,
-requires approval of the exact commands. Standard native provisioning is `pct create` with verified local template,
+must be included in the approved plan. Standard native provisioning is `pct create`
+with a verified local template,
 `--ostype nixos --unprivileged 1`, reviewed resource/network/device options and
 `--onboot 0` until validation. Downloading to the host template cache is a host write
-and needs approval of its exact commands.
+and must be included in the approved plan.
 
 Create only new, explicitly identified state volumes. Record GUIDs and initialize
 `.homelab-volume` markers from the reviewed contract on those fresh volumes only.
@@ -104,6 +110,6 @@ describes before trusting production data.
    restore the matching backup into fresh volumes instead.
 
 Host cleanup is a separate provenance-checked batch. Never delete production,
-retained recovery copies or sole backups. Underlying host changes need exact-command
-approval. Enable Secure Boot with local console access after read-only boot/signing
+retained recovery copies or sole backups. Underlying host changes need an explicitly approved, bounded execution
+plan. Enable Secure Boot with local console access after read-only boot/signing
 inspection; then verify ZFS, network, guest startup and QSV following reboot.
