@@ -55,8 +55,9 @@ For a migration recovery point, stop the backup timer and wait for its active jo
 take the operation lock, run the same prepare hook and archive the same declared
 paths/exclusions while leaving the application stopped. Verify success, then stop
 the container immediately; do not run normal cleanup/restart before replacement.
-If backup fails, abort replacement and recover services. Present exact commands
-for the identified instance before this operation.
+If backup fails, abort replacement and recover services. Obtain approval of a detailed plan for the identified instance, including
+quiescing, archive verification, replacement, failure recovery and downtime.
+Equivalent command-level fixes within that approved scope need no new approval.
 
 ## Complete disaster restoration
 
