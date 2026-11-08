@@ -53,9 +53,12 @@ require exact creation provenance and current GUID/attachment checks; IDs/names
 alone are insufficient. Record a new allocation plan and absence checks before
 creation, then immediately record its actual GUID. Never use stale public inventories.
 
-The contract proposes CT200/201, 32GiB root, 256GiB persist and 512GiB data on
-local-zfs. Those are not existing allocations. Production `nesting=1` still needs
-approval. Standard native provisioning is `pct create` with verified local template,
+The contract proposes CT200/201, 2 cores, 6GiB RAM, 32GiB root, 128GiB persist and
+512GiB data on local-zfs. The persist allowance budgets roughly 20% of a full
+originals volume for generated media, plus database, dumps, Borg cache and headroom;
+it is an estimate, not a limit on application growth. Verify actual allocations in
+the private operator inventory. Production provisioning, including `nesting=1`,
+requires approval of the exact commands. Standard native provisioning is `pct create` with verified local template,
 `--ostype nixos --unprivileged 1`, reviewed resource/network/device options and
 `--onboot 0` until validation. Downloading to the host template cache is a host write
 and needs approval of its exact commands.
@@ -69,7 +72,8 @@ ownership, TUN0600 and all guard failures before enrolling.
 Boot bootstrap; generate age identity at `/persist/secrets/age-key.txt` mode0600
 through the authenticated Proxmox console. Independently generate a recovery age
 identity. Configure SOPS with both public recipients and uniquely generated Borg
-credentials; the existing ciphertext is rehearsal-only and must not become production.
+credentials; use credentials dedicated to the intended deployment; never promote rehearsal
+credentials into production.
 Keep plaintext out of Git, command arguments, logs and the Nix store. Use
 `services/immich/secrets-init` only for first enrollment with public recipients;
 use SOPS updatekeys for existing ciphertext.

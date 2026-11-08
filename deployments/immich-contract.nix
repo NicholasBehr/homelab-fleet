@@ -5,8 +5,8 @@
   hostname = "immich";
   initialId = 200;
   replacementId = 201;
-  cores = 6;
-  memoryMiB = 12288;
+  cores = 2;
+  memoryMiB = 6144;
   swapMiB = 0;
   bridge = "vmbr0";
   network = "name=eth0,bridge=vmbr0,ip=dhcp,ip6=manual,firewall=1";
@@ -17,7 +17,7 @@
   persist = {
     slot = "mp0";
     storage = "local-zfs";
-    sizeGiB = 256;
+    sizeGiB = 128;
     path = "/persist";
     marker = "homelab-immich-persist-v1";
   };

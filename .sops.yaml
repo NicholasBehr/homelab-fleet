@@ -1,4 +1,3 @@
-# Disposable rehearsal recipients only; replace for production enrollment.
 creation_rules:
   - path_regex: secrets/immich\.yaml$
-    age: "age1wzv8cqqcn7yvk6xu0s06zkuejkqz94mwnd0xgjlq4ta383h9kvqq2m2ryj,age15ecjyy83za7t9cjdsf2h5syfzhsp6qz5sjlfacpzfdnlhcxfve7s2vxn6v"
+    age: "age1m076s0ww52gaz0w7utl5zutz5gx90t9mqwsl3xx3atx392ns4pjq4rg6va,age1lsuqt6lktv0vsnuj4sx2rdl2y6u5w4eyntg9jaxspkuxwqsrus8qcsaue0"
