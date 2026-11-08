@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Sourced by the job and operator wrapper; endpoint data is never evaluated as shell.
+repository_file=${1:?repository file required}
+if [[ ! -f "$repository_file" || ! -r "$repository_file" ]]; then
+  echo 'Borg repository file is missing or unreadable' >&2
+  exit 1
+fi
+mapfile -t repository_lines < "$repository_file"
+if (( ${#repository_lines[@]} != 1 )) ||
+   [[ ! "${repository_lines[0]}" =~ ^ssh://[^[:space:]@/]+@[^[:space:]/]+:[0-9]+/[^[:space:]]+$ ]]; then
+  echo 'Borg repository file must contain exactly one remote SSH repository URI' >&2
+  exit 1
+fi
+export BORG_REPO="${repository_lines[0]}"
+unset repository_lines repository_file

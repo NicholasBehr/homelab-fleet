@@ -6,7 +6,7 @@ case "$stage" in
   lint)
     mapfile -t nix_files < <(git ls-files '*.nix')
     nixfmt --check "${nix_files[@]}"
-    shellcheck scripts/check scripts/release-assets scripts/verify-storage scripts/health-check services/immich/secrets-init tests/*.sh services/*/tests/*.sh services/*/backup-* services/*/layout
+    shellcheck modules/borg-repository scripts/check scripts/release-assets scripts/verify-storage scripts/health-check services/immich/secrets-init tests/*.sh services/*/tests/*.sh services/*/backup-* services/*/layout
     python3 -m unittest discover -s tests -p 'test_*.py'
     for directory in services/*/tests; do python3 -m unittest discover -s "$directory" -p 'test_*.py'; done
     python3 tests/secret-scan.py

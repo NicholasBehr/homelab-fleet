@@ -1,6 +1,6 @@
 # Verification matrix
 
-Status as of 2026-11-05. Historical commands/results remain in Git history; exact
+Status as of 2026-11-08. Historical commands/results remain in Git history; exact
 live GUIDs, identities and recovery receipts are in the protected operator inventory,
 not this public repository. Historical evidence never authorizes a new mutation.
 
