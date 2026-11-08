@@ -6,14 +6,14 @@ not this public repository. Historical evidence never authorizes a new mutation.
 
 | Check | Evidence / boundary |
 |---|---|
-| Linux builds, secret/mount guards, Borg/PG fixture restore | Passed on revised source; v0.1.0 images built and released from the checked main commit |
-| Release verification | All seven v0.1.0 assets passed operator attestation/hash checks; manifests, versions and contracts matched reviewed source |
+| Linux builds, secret/mount guards, Borg/PG fixture restore | Passed for v0.2.1 at the checked main commit |
+| Release verification | All seven v0.2.1 assets passed provenance, attestation and checksum verification; manifests, versions and contracts matched reviewed source |
 | Unprivileged native NixOS LXC boot | Passed with nesting=1; generated AppArmor/default ID mapping retained |
 | TUN/render permissions and discovery listeners | Passed after declarative fixes; no host device mode changes |
 | Missing/swapped mount identity guards | Passed on designated disposable volumes; no empty fallback state |
 | Managed root replacement | Passed repeatedly; volume GUIDs, sentinels, account/assets and identities survived |
-| Tailscale checked admin SSH/HTTPS, isolation | Passed; rehearsal identities only; physical-LAN scoped negative probes passed |
-| SOPS enrollment and independent recovery | Passed; 1Password Document save/retrieval and decryption verified |
+| Tailscale checked admin SSH/HTTPS, isolation | Passed for the production tag and identity; no LAN service exposure. One transient simultaneous control/DERP outage affected both Linux nodes and recovered without configuration changes; monitor for recurrence |
+| SOPS enrollment and independent recovery | Passed with production identities; 1Password Document save/retrieval and independent decryption verified |
 | Upload and generated-file placement | Passed: two synthetic originals on data; thumbnails/previews/encoded on persist |
 | Actual QSV Immich job | Passed HEVC input to H.264 output, hardware decode/encode and playback |
 | CPU inference fix | Actual Smart Search, face and OCR jobs processed both synthetic assets without worker crash |
@@ -22,8 +22,10 @@ not this public repository. Historical evidence never authorizes a new mutation.
 | Complete fresh-volume/container disaster restore | Passed with independent 1Password retrieval, off-guest encrypted repository and fresh volumes; original hashes, two assets/one user/two search embeddings, identities, permissions and normal v0.1.0 startup matched; operator confirmed thumbnails/playback; new backup and API recovery passed |
 | Remote Borg / retention | Passed on a dedicated test Storage Box subaccount: independently verified SSH host key, Borg1.4.4 on both ends, encrypted native-job backup/data check, synthetic retention deletion and isolated media/PG17 restore; live services recovered |
 | Remote recovery escrow | Passed: 1Password save/download matched; retrieved credentials with fresh Borg client state opened the remote repository and recovered the exact DB dump; escrowed encrypted key matched the working repository key |
-| Production enrollment | Bootstrap allocated with approved resources; production Tailscale/age identity and dedicated remote SSH key verified; independent 1Password credential retrieval/decryption passed. Production ciphertext prepared; operational image, Borg repository initialization, scheduled backup and recovery validation remain pending |
-| Secure Boot | Passed: enabled, signed Proxmox shim selected, kernel integrity lockdown active; pools healthy, Tailscale reachable, restored rehearsal services/HTTPS healthy. Postboot QSV encode passed as the application user with bundled Jellyfin FFmpeg; full Immich job/playback evidence above predates this reboot |
+| Production enrollment | Passed on v0.2.1: unprivileged operational LXC, declared production volumes, stable age/Tailscale identities, dedicated Storage Box repository and mode-restricted runtime secrets verified |
+| Production backup and recovery | Native IPv4 Borg backup, `--verify-data`, independent escrow access and isolated media/PG restore passed. The separate full-volume rehearsal above covers container reconstruction. Daily 02:15 Europe/Zurich timer is active; application remains offline for the full backup |
+| Production replacement and cleanup | v0.2.1 root replacement preserved exact production volume/identity GUIDs and service health. Rehearsal CTs, disposable datasets and obsolete image caches were removed after creation-record, GUID and sole-attachment checks; the prior production root remains stopped as rollback material |
+| Secure Boot | Passed: enabled, signed Proxmox shim selected, kernel integrity lockdown active and pools healthy. Production services, HTTPS and bundled Jellyfin FFmpeg QSV passed afterward |
 | Representative phone/4K/10-bit/mobile uploads | Conditional on intended workload; synthetic test success is narrower |
 | Storage templates and later HDD migration | Not enabled/tested; separate validation and identified-volume migration required |
 
@@ -42,19 +44,17 @@ unchanged, and a shared base change selected all images plus the shared fixture.
 The first refactor CI run built every output successfully. Cache handoff between
 validation and image jobs was observed; eviction never changes correctness.
 
-Evidence: [main checks](https://github.com/NicholasBehr/homelab-fleet/actions/runs/41540226308)
-and [v0.1.0 release](https://github.com/NicholasBehr/homelab-fleet/actions/runs/41542334793)
-passed at `f30f578959ea26b562125a89ffe86d519c9b29d9`. Full rehearsal receipts
+Evidence: [v0.2.1 main checks](https://github.com/NicholasBehr/homelab-fleet/actions/runs/42487039074)
+and [v0.2.1 release](https://github.com/NicholasBehr/homelab-fleet/actions/runs/42487982978)
+passed at `370df06b4e729ae1afa88dd53b27b0848fd88d28`. Full operator receipts
 remain private. The native-job test copied the evaluated job/sandbox/helpers into
 runtime files on backup-disabled images; it supplied required Borg runtime
 directories explicitly. Remote testing used the privately evaluated native job
-with the test endpoint; no production timer was enabled. Production's repository, enabled job and timer still need enrollment and
-verification; bootstrap identity and credential escrow are verified.
+with a disposable test endpoint before production enrollment.
 The recovery image does not clear saved Serve
 state automatically; the operator reset it before restoring PostgreSQL.
 
-Before importing production data: deploy the operational image and verify the
-production repository, scheduled backup and recovery configuration. Test credentials/repositories must not become production.
+Production is ready for imports, subject to the workload-specific capacity and
+representative-media checks above. Test credentials/repositories must never become production.
 Synthetic rehearsal does not establish capacity or representative-media coverage.
-Host cleanup follows successful recovery checks
-and exact provenance/attachment verification; retained recovery copies stay protected.
+Retained production recovery copies stay protected.

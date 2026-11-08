@@ -116,8 +116,9 @@ procedure using independent escrow and an off-guest encrypted repository, includ
 normal operational startup, original checksums, login/playback and a new backup.
 A separate test Storage Box rehearsal also passed remote integrity/retention,
 isolated media/database restoration and independent 1Password escrow retrieval.
-Production identities, repository and scheduled operation still require enrollment
-and verification; see [validation](validation.md).
+Production subsequently passed the same remote backup, integrity, independent
+escrow and isolated restoration gates; its daily timer is active. See
+[validation](validation.md).
 
 ## Other failures
 
