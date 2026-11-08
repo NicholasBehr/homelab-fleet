@@ -49,30 +49,43 @@ the container immediately; do not run normal cleanup/restart before replacement.
 If backup fails, abort replacement and recover services. Present exact commands
 for the identified instance before this operation.
 
-## Complete disaster restoration — still requires rehearsal
+## Complete disaster restoration
 
 Restore to fresh, explicitly recorded test volumes first. Retain the source backup
 and original volumes. Never extract over running state. Select an explicit archive
 and the exact compatible image, PostgreSQL and extensions from its version record.
 
-1. Provision bootstrap with new empty declared mounts and their markers. Establish
-   a new age identity; use independently escrowed recovery credentials to decrypt
-   and re-encrypt SOPS for the new identity. Retrieve compatible Borg credentials
-   and verified host trust into protected runtime files; never put values in shell
-   arguments or Nix. Publish/verify matching ciphertext-bearing recovery image.
-2. Restore Borg into protected scratch space with enough capacity. Inspect paths
-   before extraction, then put `persist/immich` on NVMe and `data/immich` on the bulk
-   volume, preserving metadata. Preserve all six `.immich` markers. Validate the
-   upload/library links against the chosen layout. Do not restore the old outer
-   volume identity markers over newly recorded mounts.
-3. Restore fixed ownership for Immich1100, PostgreSQL71 and Redis1101 as required
-   by the reviewed contract. Restore Redis from the quiesced copy. Restore Borg
-   config/trust separately; cache is reproducible. Keep the newly enrolled age key.
-4. Restore Tailscale identity only when the original is definitively stopped or
-   revoked; otherwise enroll a new node. Never duplicate a live identity.
-5. Replace bootstrap root with the matching recovery image. It starts PostgreSQL
-   and required extensions, with application/ML/Serve automatic startup disabled
-   and backup disabled. Check they are actually inactive before DB restoration.
+1. Provision bootstrap with new empty declared mounts and their markers. Keep
+   Tailscale stopped and prevent its automatic restart while restoring identity.
+   Verify its MainPID is zero. Retrieve Borg credentials and authenticated endpoint
+   trust from independent escrow into protected runtime files; never put secret
+   values in command arguments or Nix. Verify the repository and explicit archive
+   with `borg check --verify-data` before extraction.
+2. Decide whether this is loss recovery or a compromise. For loss recovery, the
+   archived age key can decrypt the matching image's SOPS payload. Recover Tailscale
+   identity only with the original definitively stopped; revoke it and enroll a new
+   node if exclusivity cannot be assured. Never run duplicate live identities.
+   For suspected compromise, rotate identities/credentials instead; establish a new
+   age key, re-encrypt SOPS with independently escrowed recovery credentials, and
+   publish/verify the matching ciphertext-bearing image before proceeding.
+3. Inspect archive paths and capacity, then selectively extract directly into the
+   empty, quiesced mounts with numeric ownership preserved. Restore `persist/immich`,
+   `data/immich`, Redis, the logical dump/version record under `persist/backup`,
+   Borg config/trust and the chosen identities. Do not extract the entire archive
+   indiscriminately: preserve the new outer volume markers and omit live PostgreSQL,
+   reproducible caches and legacy staging. Duplicate scratch media is unnecessary.
+   Keep the source archive and original volumes retained.
+4. Verify Immich1100, PostgreSQL71 and Redis1101 ownership against the reviewed
+   contract, all six `.immich` markers (which may be empty), and upload/library links
+   into `/data/immich`. Keep thumbnails, previews and encoded video on `/persist`.
+   Check the restored age key is root-owned mode0600.
+5. Replace bootstrap root with the matching recovery image using stopped transfers
+   and GUID/attachment checks. Wait for systemd initialization to complete and verify
+   storage/readiness gates, PostgreSQL and Redis individually. Automatic app/ML and
+   `tailscale-policy` startup and backups are disabled in this image. Restored
+   Tailscale state can still contain a saved Serve proxy: run `tailscale serve reset`
+   and verify no Serve configuration and app/ML MainPID zero before DB restoration.
+   Verify decrypted SOPS secrets are root-owned mode0400.
 6. With a fresh database and app never started, inspect `pg_restore --list` on the
    custom dump. Exclude extension and public-schema creation entries already owned
    by NixOS setup. Review the resulting list for these exact extension versions.
@@ -80,14 +93,21 @@ and the exact compatible image, PostgreSQL and extensions from its version recor
    --no-privileges --role=immich --use-list=REVIEWED_LIST --dbname=immich DUMP`
    as postgres. Stop on every error; never initialize an empty replacement library.
 7. Verify database rows/extensions, original checksums, layout, identity and secret
-   permissions. Explicitly start ML/server/Serve and test real login, thumbnails,
-   playback, search and QSV. Take a new successful backup before normal operation.
+   permissions. Replace the recovery root with the matching operational image via
+   another stopped, provenance-checked transfer. Verify normal startup, HTTPS, real
+   login, thumbnails, playback and jobs; check search/QSV for the intended workload.
+   Take a new successful backup and verify service/API recovery before normal use.
 
 This custom-format dump uses pg_restore, not Immich's `.sql.gz` UI import. The design
 follows upstream's requirement to preserve database and media together while writes
 are stopped: https://docs.immich.app/administration/backup-and-restore/ . Native
-NixOS paths replace Docker paths. A logical-DB scratch restore is not proof of this
-entire fresh-volume procedure. Record its successful rehearsal before production.
+NixOS paths replace Docker paths. The v0.1.0 rehearsal passed this fresh-volume
+procedure using independent escrow and an off-guest encrypted repository, including
+normal operational startup, original checksums, login/playback and a new backup.
+A separate test Storage Box rehearsal also passed remote integrity/retention,
+isolated media/database restoration and independent 1Password escrow retrieval.
+Production identities, repository and scheduled operation still require enrollment
+and verification; see [validation](validation.md).
 
 ## Other failures
 
