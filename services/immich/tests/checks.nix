@@ -48,6 +48,7 @@ in
     grep -q 'repository file is missing' err
     if grep -q UNEXPECTED_QUIESCE err; then exit 1; fi
     printf '%s\n' 'ssh://fixture@example.invalid:23/./archive' > "$endpoint"
+    grep -q 'AddressFamily=inet' ${runtimeWrapper}/bin/borg-job-immich
     ${runtimeWrapper}/bin/borg-job-immich --version | grep -q '^borg '
     printf '%s\n' '/tmp/not-a-remote-repository' > "$endpoint"
     if ${runtimeWrapper}/bin/borg-job-immich --version >out 2>err; then

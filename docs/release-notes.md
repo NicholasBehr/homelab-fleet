@@ -1,3 +1,10 @@
+# v0.2.1 — reliable IPv4 Storage Box transport
+
+Force the Borg SSH transport to IPv4. The production LXC has IPv4 egress but no
+routed IPv6; retaining the Storage Box DNS name while selecting IPv4 avoids an
+IPv6-first connection failure. Strict host-key verification and all v0.2.0 backup
+and storage contracts remain unchanged.
+
 # v0.2.0 — production enrollment and scheduled backup
 
 Production ciphertext replaces disposable rehearsal credentials. Resource defaults
