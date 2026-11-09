@@ -1,0 +1,15 @@
+version: 2
+updates:
+  - package-ecosystem: nix
+    directory: /
+    schedule:
+      interval: monthly
+      timezone: Europe/Zurich
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+      timezone: Europe/Zurich
+    open-pull-requests-limit: 3
