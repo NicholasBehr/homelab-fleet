@@ -16,10 +16,10 @@ fi
 for variant in "${variants[@]}"; do
   [[ "$variant" =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]]
   jq -e --arg name "$variant" 'has($name)' <<< "$catalog" >/dev/null
-  scripts/check image "$variant"
   output=$(nix build ".#$variant" --no-link --print-out-paths)
   archive=$(find "$output/tarball" -name '*.tar.xz' -type f)
   test "$(printf '%s\n' "$archive" | wc -l)" -eq 1
+  python3 tests/image-layout.py "$archive"
   asset="$variant-v$version-x86_64-linux.tar.xz"
   cp "$archive" "dist/$asset"
   python3 - "$variant" "$version" "$commit" "$output" "$asset" <<'PYTHON'

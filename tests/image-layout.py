@@ -2,7 +2,7 @@
 import sys
 import tarfile
 from pathlib import PurePosixPath
-with tarfile.open(sys.argv[1], mode='r|xz') as archive:
+with tarfile.open(sys.argv[1], mode='r|*') as archive:
     init = False
     for member in archive:
         path = PurePosixPath(member.name)

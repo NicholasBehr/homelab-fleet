@@ -17,18 +17,18 @@ write their isolated merge-ref caches, allowing image jobs to reuse validation
 outputs. Fork PRs and releases only restore. GitHub prevents main/other PRs from
 restoring these PR-scoped caches: https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching .
 Validation and individual images use separate keys, avoiding concurrent cache writers.
-Image jobs prefer their own previous cache (including the archive), then fall back
+Image jobs prefer their own previous cache (including the uncompressed CI archive), then fall back
 to shared validation outputs; Nix rebuilds any changed or missing derivations.
 Image/check outputs have GC roots while the job runs. Cache preparation reuses
 output paths from the planner rather than repeating Nix evaluation. Caches are disposable: misses
 rebuild; cache availability is not proof of validation. Size limits and eviction may
-reduce the speedup. Initial custom builds and changed root assembly/compression
-still cost time. Unchanged images need not be rebuilt for every service change.
+reduce the speedup. Initial custom builds and changed root assembly still cost
+time. Unchanged images need not be rebuilt for every service change.
 
 Update `VERSION` and release notes on the PR. After exact-main Checks succeed,
 manually dispatch Release. It rejects an already used tag/version, requests all
-catalog images (using exact cached outputs when available), validates layout,
-packages images in parallel using the same per-image job/cache as CI, then validates
+catalog images (reusing cached closures when available), compresses and validates
+them in parallel using the same per-image job/cache pattern as CI, then validates
 the exact commit, complete catalog and per-image checksums before consolidating the
 release and attesting every asset. Publication waits for every image; partial releases
 are refused. A repository release may
