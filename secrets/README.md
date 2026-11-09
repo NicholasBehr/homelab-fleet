@@ -6,3 +6,8 @@ identity. Private age/SSH keys and passphrases are never committed, embedded in
 images, placed in the Nix store or passed to CI. The repository endpoint, verified
 SSH host keys, recovery document and live account identifiers remain in protected
 operator storage outside this public repository.
+
+Home Assistant uses a separate SOPS payload and Borg repository when enrolled.
+Do not copy Immich credentials or reuse its repository. Keep its age recipient,
+backup credentials, endpoint and authenticated host key in the private operator
+inventory; only reviewed ciphertext may be added here.

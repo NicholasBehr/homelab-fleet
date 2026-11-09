@@ -1,3 +1,20 @@
+# v0.3.0 — Home Assistant Zigbee service
+
+Add native Home Assistant Core image variants with ZHA and SMLIGHT integrations.
+The service has a single guarded `/persist` volume, loopback HTTP behind Tailscale
+Serve, and a quiesced Borg backup plan. Its contract proposes 2 cores, 4 GiB RAM,
+32 GiB root and 32 GiB persist; allocations remain operator reviewed. The MR4U's
+CC2674P10 radio on port 7638 is the planned ZHA coordinator. The EFR32MG26 radio
+remains uncommissioned for possible future Thread use.
+
+Migration: this is a new service with no existing Home Assistant state. Before
+operational enrollment, prepare a separate SOPS payload, Tailscale identity,
+remote Borg repository and authenticated host key. Create and verify a fresh
+`/persist` volume with marker `homelab-home-assistant-persist-v1`. Keep firmware
+updates manual, create a ZHA network backup before radio changes, and rehearse
+complete HA and coordinator restoration before relying on this service. Repository
+SemVer does not imply database or Zigbee-network rollback safety.
+
 # v0.2.2 — dependency refresh
 
 Update the pinned NixOS package set and sops-nix, and advance the separate Immich

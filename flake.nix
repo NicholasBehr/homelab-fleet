@@ -26,13 +26,25 @@
           inherit variant;
           specialArgs.immichNixpkgs = immich-nixpkgs;
         };
+      mkHomeAssistant =
+        variant:
+        mkContainer {
+          deployment = ./deployments/home-assistant.nix;
+          inherit variant;
+        };
       operational = mkImmich "operational";
       bootstrap = mkImmich "bootstrap";
       recovery = mkImmich "recovery";
+      homeAssistantOperational = mkHomeAssistant "operational";
+      homeAssistantBootstrap = mkHomeAssistant "bootstrap";
+      homeAssistantRecovery = mkHomeAssistant "recovery";
       configurations = {
         immich = operational;
         immich-bootstrap = bootstrap;
         immich-recovery = recovery;
+        home-assistant = homeAssistantOperational;
+        home-assistant-bootstrap = homeAssistantBootstrap;
+        home-assistant-recovery = homeAssistantRecovery;
       };
       mkTemplate =
         host: host.config.system.build.tarball.override { compressCommand = "pixz -t -1 -p 2"; };
@@ -67,6 +79,7 @@
     {
       version = builtins.replaceStrings [ "\n" ] [ "" ] (builtins.readFile ./VERSION);
       deploymentContracts.immich = import ./deployments/immich-contract.nix;
+      deploymentContracts.home-assistant = import ./deployments/home-assistant-contract.nix;
       # Explicit catalog: adding a service means registering its outputs here.
       imageCatalog = {
         immich = {
@@ -79,6 +92,18 @@
         };
         immich-recovery = {
           service = "immich";
+          variant = "recovery";
+        };
+        home-assistant = {
+          service = "home-assistant";
+          variant = "operational";
+        };
+        home-assistant-bootstrap = {
+          service = "home-assistant";
+          variant = "bootstrap";
+        };
+        home-assistant-recovery = {
+          service = "home-assistant";
           variant = "recovery";
         };
       };
