@@ -1,3 +1,16 @@
+# v0.2.2 — dependency refresh
+
+Update the pinned NixOS package set and sops-nix, and advance the separate Immich
+package input. The operational image contains Immich 3.3.6, Tailscale 1.104.5
+and PostgreSQL 17.11. Immich 3.3.6 disables ONNX Runtime telemetry; Tailscale
+1.104.5 fixes SSH and Serve connectivity stalls. CI validates uncompressed LXC
+tarballs; release assets remain compressed and are validated after packaging.
+
+The image names, storage contract v2, persistent paths, ownership and secret
+requirements are unchanged. Replace the root only after a consistent backup and
+verify Tailscale Serve, Immich, media playback and the next Borg backup. Do not
+assume an older image can safely use a database after an application migration.
+
 # v0.2.1 — reliable IPv4 Storage Box transport
 
 Force the Borg SSH transport to IPv4. The production LXC has IPv4 egress but no
