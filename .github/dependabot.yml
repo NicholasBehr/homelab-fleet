@@ -6,6 +6,10 @@ updates:
       interval: monthly
       timezone: Europe/Zurich
     open-pull-requests-limit: 3
+    groups:
+      monthly-nix:
+        patterns:
+          - "*"
 
   - package-ecosystem: github-actions
     directory: /
