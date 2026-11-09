@@ -1,10 +1,11 @@
 # homelab-fleet
 
-Unprivileged NixOS LXC images for Proxmox, with Immich as the first service.
+Unprivileged NixOS LXC images for Proxmox, including Immich and Home Assistant.
 GitHub builds and attests images; operators pull explicit verified releases.
 CI has no homelab access. Root filesystems are replaced, while declared data and
 identities survive on external volumes. `/persist` stays on NVMe; `/data` is bulk
-originals suitable for later HDD migration.
+originals suitable for later HDD migration. Home Assistant uses a single `/persist`
+volume and a LAN connected SMLIGHT Zigbee coordinator.
 
 **Status:** Immich production is running from the verified v0.2.1 operational
 image. Tailscale-only access, SOPS enrollment, QSV, direct remote Borg backup,
@@ -22,6 +23,8 @@ workload-specific checks.
 `deployments/immich-contract.nix` proposes resources; it does not inventory live
 containers or authorize allocations. Inspect with `nix eval --json .#deploymentContracts.immich`.
 Keep exact creation records and live volume GUIDs in a protected operator inventory.
+Home Assistant's proposed resources are in
+`deployments/home-assistant-contract.nix`; its IDs are not live allocation records.
 
 On ARM macOS, `nix develop path:.` provides local tools. Run `scripts/check lint`
 and `nix flake check --no-build`; Linux builds run on GitHub. Open a PR from a short-lived

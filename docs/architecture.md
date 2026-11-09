@@ -33,6 +33,37 @@ Native `ostype=nixos` and `manageNetwork=false` let Proxmox supply networking.
 Tailscale provides checked SSH and HTTPS Serve; ordinary sshd is disabled. App and
 ML bind loopback. The firewall exposes no application ports to the physical LAN.
 
+## Home Assistant files
+
+Home Assistant Core runs as the upstream NixOS service in its own unprivileged
+LXC. It binds HTTP to `127.0.0.1:8123` and is exposed only through Tailscale Serve.
+ZHA owns the Zigbee network and connects to the SLZB-MR4U over wired LAN TCP. The
+SMLIGHT integration separately provides coordinator monitoring and management.
+This deployment has no USB, render device, Thread, OTBR, MQTT broker or `/data`.
+
+| Path | Purpose |
+|---|---|
+| `/persist/home-assistant` | SQLite database, `.storage`, ZHA configuration/network backups, automations and dashboards |
+| `/persist/home-assistant/backups` | Home Assistant backup artifacts |
+| `/persist/tailscale` | Tailnet identity and Serve state |
+| `/persist/secrets/age-key.txt` | Root-only age identity |
+| `/persist/borg/{config,cache,known_hosts}` | Borg configuration, disposable cache and authenticated SSH trust |
+| `/persist/borg/repository` | Private runtime repository URI |
+
+The single `/persist` volume is guarded by its exact marker before HA or Tailscale
+starts. A gated oneshot creates the HA state directory, preventing initialization
+on the disposable root. Borg quiesces HA and Tailscale while archiving `/persist`
+so SQLite and node identity remain consistent. ZHA's coordinator backups are
+stored with HA state and encrypted in the Borg repository.
+
+The initial MR4U setup uses the CC2674P10 radio on TCP 7638 for ZHA
+(`socket://SLZB_ADDRESS:7638`, ZNP, 115200 baud, no flow control). EFR32MG26 on
+port 6638 remains unused for future Thread planning. The SMLIGHT integration uses
+the MR4U management API and event stream on ports 80/81. Its credentials are
+entered in HA and stored in encrypted persistent state, never in Nix. Record
+radio identity, firmware, socket mappings and access credentials in the private
+operator inventory, not the public deployment contract.
+
 ## Immich files
 
 | Path | Purpose |
