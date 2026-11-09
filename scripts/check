@@ -28,8 +28,8 @@ case "$stage" in
     variant=${2:?image output required}
     nix eval --json .#imageCatalog | jq -e --arg name "$variant" 'has($name)' >/dev/null
     mkdir -p .ci-roots
-    output=$(nix build --print-build-logs --max-jobs 1 --cores 2 --out-link ".ci-roots/image-$variant" --print-out-paths ".#$variant")
-    for archive in "$output"/tarball/*.tar.xz; do
+    output=$(nix build --print-build-logs --max-jobs 1 --cores 2 --out-link ".ci-roots/image-$variant" --print-out-paths ".#ciImages.x86_64-linux.$variant")
+    for archive in "$output"/tarball/*.tar; do
       python3 tests/image-layout.py "$archive"
       du -h "$archive"
     done

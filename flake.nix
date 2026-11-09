@@ -36,6 +36,13 @@
       };
       mkTemplate =
         host: host.config.system.build.tarball.override { compressCommand = "pixz -t -1 -p 2"; };
+      mkCiTemplate =
+        host:
+        host.config.system.build.tarball.override {
+          compressCommand = "cat";
+          compressionExtension = "";
+          extraInputs = [ ];
+        };
       serviceChecks = import ./services/immich/tests/checks.nix {
         inherit
           pkgs
@@ -77,11 +84,12 @@
       };
       nixosConfigurations = configurations;
       packages.${system} = nixpkgs.lib.mapAttrs (_: mkTemplate) configurations;
+      ciImages.${system} = nixpkgs.lib.mapAttrs (_: mkCiTemplate) configurations;
       ciPlan = {
-        images = nixpkgs.lib.mapAttrs (_: p: p.drvPath) self.packages.${system};
+        images = nixpkgs.lib.mapAttrs (_: p: p.drvPath) self.ciImages.${system};
         checks = nixpkgs.lib.mapAttrs (_: c: c.drvPath) checks;
         paths = {
-          images = nixpkgs.lib.mapAttrs (_: p: p.outPath) self.packages.${system};
+          images = nixpkgs.lib.mapAttrs (_: p: p.outPath) self.ciImages.${system};
           checks = nixpkgs.lib.mapAttrs (_: c: c.outPath) checks;
         };
       };

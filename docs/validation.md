@@ -33,7 +33,8 @@ not this public repository. Historical evidence never authorizes a new mutation.
 
 ARM macOS formats, lints and evaluates Linux derivations; it does not build/run
 Linux. GitHub tests real disposable mounts, encrypted Borg with PostgreSQL, secret
-round-trips, hook failures and image layout. These are not a Proxmox boot test or
+round-trips, hook failures and image layout in uncompressed tar archives. Release
+jobs build the compressed operator artifacts. These are not a Proxmox boot test or
 proof of production restoration. Pattern scanning is heuristic, not proof of no
 secret leakage. CI has no homelab credentials or network access.
 
