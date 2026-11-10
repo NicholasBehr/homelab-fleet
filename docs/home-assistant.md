@@ -12,16 +12,20 @@ plaintext credentials out of Git, Nix, image inputs and command-line arguments.
 Enroll the service's age identity, dedicated Borg repository, SSH key/passphrase,
 and independently authenticated SSH host key as described in
 [backup and recovery](recovery.md). Do not reuse Immich's backup identity or
-repository. The operational readiness gate intentionally refuses to start HA
-until enrollment is complete. The bootstrap image is for initial enrollment and
-does not start Home Assistant or scheduled backups.
+repository. Store the completed recovery set in one `Home Assistant production
+recovery` 1Password Document using the same JSON schema, independent-download
+verification and enrollment gates as Immich. The operational readiness gate
+intentionally refuses to start HA until enrollment is complete. The bootstrap
+image is for initial enrollment and does not start Home Assistant or scheduled
+backups.
 
 The contract proposes CT IDs 210/211, 2 cores, 4 GiB RAM, 32 GiB root, and one
 32 GiB `/persist` volume. These are proposals, not allocations. Check the private
 operator inventory and obtain the bounded deployment plan approval required by
-`AGENTS.md` before production provisioning. The LXC needs a stable LAN address for
-the MR4U's socket whitelist. Record the actual address privately; do not add it to
-this repository.
+`AGENTS.md` before production provisioning. The LXC may use DHCP on the trusted
+LAN: its Tailscale identity provides stable operator access, while ZHA initiates
+the LAN connection to the MR4U. Record live addressing privately; do not add it
+to this repository.
 
 The code registers `home-assistant`, `home-assistant-bootstrap`, and
 `home-assistant-recovery` images in the flake. Build and release them through the
@@ -47,8 +51,10 @@ Before joining Zigbee devices:
    server when socket is connected** off so the SMLIGHT integration can monitor
    the device while ZHA uses the radio socket.
 3. Enable **fallback Wi-Fi AP password** and set a distinct strong password.
-4. Leave **Enable IP whitelist for socket** off until the HA LXC has its final
-   reserved LAN address. Then enable it with only that address and save.
+4. Leave **Enable IP whitelist for socket** off. The coordinator socket is kept
+   on the trusted LAN with no router forwarding; this avoids coupling replacement
+   containers to a reserved address or MAC. Use a dedicated IoT VLAN/firewall if
+   stronger LAN isolation is required later.
 5. Optionally disable non-sensitive analytics in **General settings**.
 6. Leave radio 1 on its current firmware and ensure no Zigbee client is pointed at
    port 6638. Do not enable Zigbee Hub, Wi-Fi bridge, VPN, or automatic update.

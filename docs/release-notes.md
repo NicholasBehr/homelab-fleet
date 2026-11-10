@@ -1,3 +1,25 @@
+# v0.3.1 — Home Assistant production enrollment
+
+Add the dedicated Home Assistant SOPS ciphertext encrypted to the production
+container identity and an independent recovery identity. Standardize one complete
+JSON 1Password Document per production service, independently re-downloaded and
+verified against SOPS, SSH, authenticated endpoint trust, Borg repository ID and
+encrypted key export before enrollment is accepted. No live account, endpoint,
+repository or 1Password identifiers enter this repository.
+
+The Home Assistant LXC may use DHCP on the trusted LAN. Operator access remains
+stable through its tagged Tailscale identity; ZHA initiates its connection to the
+MR4U. Keep the coordinator socket whitelist off and do not forward the MR4U's
+management or coordinator ports. This removes MAC/IP reservation coupling from
+container replacement without exposing Home Assistant on the physical LAN.
+
+Migration: keep the v0.3.0 bootstrap root and backup timer stopped while installing
+the private runtime repository URI and independently authenticated host key. Create
+only the dedicated approved repository, export its encrypted key, complete the
+recovery Document and prove independent retrieval plus fresh-volume restoration.
+Publish and verify the exact v0.3.1 operational image before replacing the root.
+Repository SemVer does not promise SQLite or Zigbee-network rollback safety.
+
 # v0.3.0 — Home Assistant Zigbee service
 
 Add native Home Assistant Core image variants with ZHA and SMLIGHT integrations.

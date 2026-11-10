@@ -8,7 +8,114 @@ gets its own restricted Storage Box subaccount, repository, SSH key and passphra
 Obtain and independently authenticate the endpoint host key; ssh-keyscan alone is
 not verification. Store the verified `[HOST]:23` entry in `/persist/borg/known_hosts`.
 Hetzner's Borg endpoint uses SSH23 and remote `borg-1.4`; confirm local/remote
-compatibility with `borg --version` and `borg-job-immich version` before use.
+compatibility with `borg --version` and the service's `borg-job-<service>
+--version` wrapper before use.
+
+Use the subaccount domain (`<subaccount>.your-storagebox.de`), not the main account
+domain. During enrollment, force a supported host-key algorithm and compare the
+presented fingerprint with Hetzner's independently published Storage Box host keys
+before accepting it. Install the public key with Hetzner's `install-ssh-key`
+command so existing keys are appended in both supported formats; do not use an SCP
+method that overwrites `authorized_keys`. Each service subaccount has its own
+`authorized_keys`. See Hetzner's official
+[Storage Box overview](https://docs.hetzner.com/storage/storage-box/general/) and
+[SSH-key procedure](https://docs.hetzner.com/storage/storage-box/ssh-keys/add-ssh-keys/).
+
+For the one-time password-authenticated key installation, disable SSH-agent and
+public-key attempts (`IdentitiesOnly=yes`, `PubkeyAuthentication=no`,
+`PreferredAuthentications=password`). This prevents unrelated agent keys from
+exhausting the server's authentication-attempt limit. Pin the independently
+verified host key in a protected temporary `known_hosts` file, then reuse that
+exact entry for runtime enrollment.
+
+The production default for Immich and Home Assistant is a normal prune-capable
+Borg repository, a dedicated service subaccount and **ten daily automatic Storage
+Box snapshots**. The client credentials are not append-only because their native
+Borg jobs apply retention pruning. Verify the snapshot schedule and usable restore
+points in the private operator record; do not infer protection from the configured
+slot count alone. Service subaccounts cannot manage provider snapshots, so this
+gives a ten-day deletion-recovery window after a service-container compromise and
+prevents one service credential from reaching the other service's repository.
+
+This is an explicit simplicity/security tradeoff, not immutability or a complete
+3-2-1 design. A Hetzner administrator-account compromise, whole-Storage-Box loss
+or cancellation, and corruption discovered after ten days remain outside that
+window. Keep the administrator account strongly authenticated, alert on stale
+backups within 36 hours, rehearse snapshot recovery, and add a separately
+controlled third copy if those residual risks are unacceptable.
+
+Do not add Borg's append-only restriction to the existing client key without also
+changing the job and recovery procedure. An append-only design must remove client
+`prune`/`compact`, keep an unrestricted maintenance identity outside every service
+container, review deletion markers before maintenance writes, bound repository
+growth, and rehearse recovery of archives marked deleted. Treat that as a separate
+reviewed storage-contract migration. Hetzner documents the important caveat that a
+restricted client can still mark archives deleted and a later unrestricted write
+can finalize those deletions.
+
+## Recovery escrow document standard
+
+Use the same escrow flow for every production service. Create one 1Password
+**Document** in the approved operator vault, named `<Service> production recovery`,
+whose file is `<Service-slug>-production-recovery-enrolled.json` (for example,
+`Immich-production-recovery-enrolled.json` or
+`Home-Assistant-production-recovery-enrolled.json`). Do not split the material
+across Login, Secure Note or attachment items. Do not put the 1Password item/vault
+IDs, live account names or endpoint values in this repository.
+
+The JSON document has this service-independent shape; strings shown below describe
+the value and are not literals to copy:
+
+```json
+{
+  "purpose": "service and environment",
+  "containerAgeRecipient": "public age recipient",
+  "recoveryAgeRecipient": "independent public age recipient",
+  "recoveryAgeIdentity": "independent private age identity",
+  "borgPassphrase": "repository passphrase",
+  "borgSshPrivateKey": "dedicated private SSH key",
+  "borgSshPublicKey": "matching public SSH key",
+  "storageBox": {
+    "hostname": "authenticated endpoint",
+    "username": "restricted service subaccount",
+    "port": 23,
+    "knownHosts": "independently authenticated [host]:23 entry",
+    "repositoryInitialized": true,
+    "repository": "complete private ssh repository URI",
+    "repositoryID": "Borg repository ID",
+    "remotePath": "borg-1.4",
+    "encryptedBorgKeyExport": "borg key export --paper output",
+    "schedule": "documented local schedule"
+  },
+  "status": "enrolled"
+}
+```
+
+Generate each service's age identity, Borg SSH key and Borg passphrase separately;
+never reuse Immich material. Keep working plaintext only in a mode0700 temporary
+directory with private files mode0600. The Storage Box account password is an
+enrollment credential, not recovery material: use it interactively to install the
+dedicated public key, then rely on the escrowed SSH key. It may be reset through
+the provider and is intentionally absent from the recovery document.
+
+Write the final document only after the intended repository is initialized and its
+ID and encrypted key export are available. Download the saved Document again into
+a fresh protected directory and verify, without trusting the working copy, that:
+
+1. the recovery identity derives `recoveryAgeRecipient` and decrypts the service's
+   committed SOPS payload;
+2. the SSH public key derives from `borgSshPrivateKey` and authenticates only the
+   restricted service subaccount;
+3. `knownHosts` matches the independently authenticated endpoint key;
+4. the repository opens with `borgPassphrase`, its ID matches `repositoryID`, and
+   the encrypted key export is usable with the documented passphrase; and
+5. repository, remote path and schedule match the deployed runtime files and job.
+
+Set `status` to `enrolled` and enable scheduled backups only after these checks and
+a fresh-volume restore rehearsal pass. Then remove the protected working plaintext
+and retain the independently retrieved Document. Rotation replaces all affected
+SOPS recipients/runtime credentials and the escrow document as one reviewed
+operation; never assume an old document remains compatible.
 
 The Immich deployment reads its remote repository URI from
 `/persist/borg/repository`, a root-owned mode0600 file containing exactly one line,
@@ -18,14 +125,14 @@ private operator inventory, not public Nix configuration. The job and
 before application quiescing. This runtime option accepts only remote SSH URIs;
 other deployments may instead set the static `homelab.backup.repository` option.
 
-The schedule is 02:15 Europe/Zurich. During initial enrollment, keep the timer
+Immich's schedule is 02:15 Europe/Zurich. During initial enrollment, keep the timer
 stopped until repository initialization, escrow and a manual backup/restore check
 pass. Initialize only the intended new repository with
 `borg-job-immich init --encryption=repokey-blake2`;
 normal jobs have `doInit=false`. Export its Borg key and escrow the export,
-passphrase, SSH key, endpoint and trust information independently in 1Password.
-Retrieve/verify escrow. Keep multiple recovery copies; a backup repository alone
-is not a complete 3-2-1 strategy.
+passphrase, SSH key, endpoint and trust information in the standard 1Password
+Document above. Retrieve and verify that document independently. Keep multiple
+recovery copies; a backup repository alone is not a complete 3-2-1 strategy.
 
 Scheduled operation acquires `/persist/operation.lock`, records restart intent,
 stops Immich server/ML, atomically writes a custom-format PostgreSQL dump and
