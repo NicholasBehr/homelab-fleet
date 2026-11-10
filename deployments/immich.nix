@@ -8,6 +8,7 @@ in
     ../modules/proxmox-lxc.nix
     ../modules/persistence.nix
     ../modules/secrets.nix
+    ../modules/lifecycle.nix
     ../modules/tailscale.nix
     ../modules/intel-media.nix
     ../modules/borgbackup.nix
@@ -35,18 +36,31 @@ in
         "/persist/borg/cache"
       ];
     };
-    secrets.encryptedFile =
-      if builtins.pathExists ../secrets/immich.yaml then ../secrets/immich.yaml else null;
-    tailscale.serveTarget =
-      if config.homelab.image.variant == "bootstrap" then null else "http://127.0.0.1:2283";
+    secrets.requiredFiles = [
+      config.homelab.backup.passphraseFile
+      config.homelab.backup.sshKeyFile
+    ];
+    tailscale.serveTarget = "http://127.0.0.1:2283";
+    lifecycle.units = [
+      "tailscaled"
+      "tailscale-policy"
+      "immich-server"
+      "immich-machine-learning"
+      "postgresql"
+      "postgresql-setup"
+      "redis-immich"
+      "immich-directories"
+    ];
+    lifecycle.backupJob = "borgbackup-job-${config.homelab.backup.name}";
     intelMedia.renderGid = c.renderGid;
     backup = {
-      enable = config.homelab.image.variant == "operational";
+      enable = true;
       repositoryFile = "/persist/borg/repository";
       schedule = "*-*-* 02:15:00 Europe/Zurich";
     };
     health = {
       units = [
+        "homelab-operational.target"
         "storage-contract"
         "operational-ready"
         "tailscaled"

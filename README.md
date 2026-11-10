@@ -7,12 +7,19 @@ identities survive on external volumes. `/persist` stays on NVMe; `/data` is bul
 originals suitable for later HDD migration. Home Assistant uses a single `/persist`
 volume and a LAN connected SMLIGHT Zigbee coordinator.
 
+One image per service supports enrollment, restoration and operation. New roots
+keep applications, Tailscale and backup timers inactive until explicit systemd
+activation; see [lifecycle](docs/lifecycle.md).
+
 **Status:** Immich production is running from the verified v0.2.1 operational
-image. Tailscale-only access, SOPS enrollment, QSV, direct remote Borg backup,
+image. Tailscale-only access, legacy SOPS enrollment, QSV, direct remote Borg backup,
 independent recovery escrow, full fresh-volume restoration and managed root
 replacement are verified. The scheduled backup runs daily at 02:15
 Europe/Zurich. See [validation](docs/validation.md) for boundaries and remaining
 workload-specific checks.
+
+The v0.4.0 single-image/runtime-credential transition is under validation; it has
+not replaced the running production deployment.
 
 - [Architecture, layout and adding services](docs/architecture.md)
 - [Enrollment, releases and replacement](docs/operations.md)

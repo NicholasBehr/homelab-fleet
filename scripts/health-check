@@ -7,7 +7,8 @@ done < <(jq -c '.[]' /etc/homelab-storage.json)
 while IFS= read -r path; do df -h "$path"; done < <(jq -r '.[].path' /etc/homelab-storage.json)
 health=/etc/homelab-health.json
 while IFS= read -r unit; do systemctl is-active --quiet "$unit"; done < <(jq -r '.units[]' "$health")
-curl --fail --silent "$(jq -r .url "$health")" >/dev/null
+status=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' "$(jq -r .url "$health")")
+test "$status" = "$(jq -r .httpStatus "$health")" || { echo 'Unexpected local HTTP readiness status' >&2; exit 1; }
 tailscale status --json | jq -e '.BackendState == "Running"'
 tailscale serve status
 if ! jq -e '.backupEnabled' "$health" >/dev/null; then

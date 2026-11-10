@@ -6,14 +6,6 @@
 }:
 {
   options.homelab = {
-    image.variant = lib.mkOption {
-      type = lib.types.enum [
-        "bootstrap"
-        "operational"
-        "recovery"
-      ];
-      default = "operational";
-    };
     deployment = lib.mkOption {
       type = lib.types.attrs;
       description = "Operator deployment contract, exported in the release manifest.";
@@ -30,11 +22,21 @@
       type = lib.types.str;
       default = "";
     };
+    health.httpStatus = lib.mkOption {
+      type = lib.types.ints.between 100 599;
+      default = 200;
+      description = "Expected status from the unauthenticated local HTTP readiness probe.";
+    };
   };
   config = {
     environment.etc."homelab-contract.json".text = builtins.toJSON config.homelab.deployment;
     environment.etc."homelab-health.json".text = builtins.toJSON {
-      inherit (config.homelab.health) units url backupMaxAgeSeconds;
+      inherit (config.homelab.health)
+        units
+        url
+        httpStatus
+        backupMaxAgeSeconds
+        ;
       backupEnabled = config.homelab.backup.enable;
       backupName = config.homelab.backup.name;
     };
@@ -57,7 +59,6 @@
       checkReversePath = "loose";
     };
     environment.systemPackages = with pkgs; [
-      age
       curl
       jq
       util-linux

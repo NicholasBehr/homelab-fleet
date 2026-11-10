@@ -1,7 +1,6 @@
 { config, lib, ... }:
 let
   c = config.homelab.deployment.homeAssistant;
-  operational = config.homelab.image.variant == "operational";
   gate = {
     requires = [
       "storage-contract.service"
@@ -17,11 +16,11 @@ in
   config = lib.mkMerge [
     {
       environment.etc."homelab-versions.json".text = builtins.toJSON {
-        homeAssistant = if operational then config.services.home-assistant.finalPackage.version else null;
+        homeAssistant = config.services.home-assistant.finalPackage.version;
         contractVersion = config.homelab.deployment.contractVersion;
       };
     }
-    (lib.mkIf operational {
+    {
       homelab.backup = {
         paths = [ "/persist" ];
         writablePaths = [ "/persist" ];
@@ -88,11 +87,6 @@ in
           after = [ "network-online.target" ] ++ gate.after;
         };
       };
-    })
-    (lib.mkIf (config.homelab.image.variant == "recovery") {
-      systemd.services.home-assistant.wantedBy = lib.mkForce [ ];
-      systemd.services.tailscale-policy.wantedBy = lib.mkForce [ ];
-      homelab.backup.enable = lib.mkForce false;
-    })
+    }
   ];
 }

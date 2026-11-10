@@ -30,12 +30,15 @@ def evaluate(expr):
 entry = evaluate('imageCatalog.'+variant)
 service = entry['service']
 versions = json.loads(evaluate('nixosConfigurations.'+variant+'.config.environment.etc."homelab-versions.json".text'))
-secrets = evaluate('nixosConfigurations.'+variant+'.config.sops.secrets')
 manifest = dict(service=service, variant=entry['variant'], outputName=variant,
                 repositoryVersion=version, commit=commit, architecture='x86_64-linux',
                 buildOutput=output, archive=archive, versions=versions,
                 contract=evaluate('deploymentContracts.'+service),
-                encryptedSecretsIncluded=bool(secrets))
+                encryptedSecretsIncluded=False,
+                runtimeCredentialFiles=evaluate('nixosConfigurations.'+variant+'.config.homelab.secrets.requiredFiles'),
+                activationTarget='homelab-operational.target',
+                activationCommand='homelab-activate',
+                deactivationCommand='homelab-deactivate', defaultActivated=False)
 with open('dist/'+variant+'-manifest.json','w') as f:
     json.dump(manifest,f,indent=2); f.write('\n')
 PYTHON

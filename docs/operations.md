@@ -43,7 +43,9 @@ Use `gh attestation verify ASSET --repo NicholasBehr/homelab-fleet
 --signer-digest COMMIT --source-digest COMMIT --source-ref refs/heads/main
 --deny-self-hosted-runners`. Run `sha256sum -c SHA256SUMS` (or `shasum -a 256 -c`
 on macOS). Compare service/variant, upstream versions, contract, encrypted-secret
-classification and expected archive. Preserve a private verification receipt.
+classification, runtime credential paths, disabled activation default and expected
+archive. Preserve a private verification receipt. Each service publishes one image;
+see [explicit activation](lifecycle.md) for all lifecycle phases.
 
 ## Initial enrollment
 
@@ -75,23 +77,25 @@ Attach persist as mp0 and data as mp1; never write a marker to unidentified stor
 Proxmox mountpoints precede guest init. Verify generated AppArmor, ID maps, render
 ownership, TUN0600 and all guard failures before enrolling.
 
-Boot bootstrap; generate age identity at `/persist/secrets/age-key.txt` mode0600
-through the authenticated Proxmox console. Independently generate a recovery age
-identity. Configure SOPS with both public recipients and uniquely generated Borg
-credentials; use credentials dedicated to the intended deployment; never promote rehearsal
-credentials into production.
-Keep plaintext out of Git, command arguments, logs and the Nix store. Use
-`services/immich/secrets-init` only for first enrollment with public recipients;
-use SOPS updatekeys for existing ciphertext.
+Boot the service image without its root-local operational activation record and enroll unique Borg credentials through authenticated operator
+access. Install `/persist/secrets/borg-passphrase` and `borg-ssh-key` as root:root
+mode0600 under a root:root mode0700 directory. The image only declares paths and
+validation rules. Keep all credential contents out of Git, command arguments,
+logs, images and the Nix store; never promote rehearsal credentials to production.
 
-Escrow recovery identity and backup credentials as a private 1Password Document;
-retrieve it and prove recovery decryption before removing temporary local copies.
-Never put recovery secrets on automatically disposable test volumes. Publish only
-explicitly authorized ciphertext/public recipients. Enroll Tailscale interactively
+Escrow the complete Borg recovery set as one private 1Password Document;
+retrieve it and prove repository access and restoration before removing temporary
+local copies. Never put recovery secrets on automatically disposable test volumes.
+Treat the resettable Storage Box password as enrollment-only and omit it from
+escrow. Enroll Tailscale interactively
 with the intended service tag, approve the device, and verify checked admin SSH,
 HTTPS and denied cross-service/LAN access. Policies belong to the operator; CI has
 no tailnet or Proxmox credentials. Configure remote Borg as [recovery](recovery.md)
 describes before trusting production data.
+
+After enrollment, independently verified escrow and restoration checks, activate
+with `homelab-activate` from the console. A fresh
+root always requires this explicit step; see [lifecycle](lifecycle.md).
 
 ## Replace a root
 
@@ -103,7 +107,9 @@ describes before trusting production data.
 4. Create a fresh root on a new approved CT ID; record its GUID. Stop the old
    container gracefully. Ensure both old/new are stopped before moving mp0/mp1
    using `pct move-volume OLD mp0 --target-vmid NEW --target-volume mp0` and mp1.
-5. Recheck transferred GUIDs, start NEW, and check each required unit, secret
+5. Recheck transferred GUIDs and start NEW with its activation record absent.
+   Complete offline validation, confirm the original identity is stopped, then
+   explicitly enable/start the target. Check each required unit, secret
    permissions, identity continuity, DB/assets, placement, HTTPS, playback and jobs.
 6. Retain old root and backup until verified. Never run two copies of one identity.
    Do not transfer migrated data back to older software without proven compatibility;

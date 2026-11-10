@@ -8,6 +8,7 @@ in
     ../modules/proxmox-lxc.nix
     ../modules/persistence.nix
     ../modules/secrets.nix
+    ../modules/lifecycle.nix
     ../modules/tailscale.nix
     ../modules/borgbackup.nix
     ../services/home-assistant
@@ -31,23 +32,33 @@ in
         "/persist/home-assistant/backups"
       ];
     };
-    secrets.encryptedFile =
-      if builtins.pathExists ../secrets/home-assistant.yaml then ../secrets/home-assistant.yaml else null;
-    tailscale.serveTarget =
-      if config.homelab.image.variant == "bootstrap" then null else "http://127.0.0.1:8123";
+    secrets.requiredFiles = [
+      config.homelab.backup.passphraseFile
+      config.homelab.backup.sshKeyFile
+    ];
+    tailscale.serveTarget = "http://127.0.0.1:8123";
+    lifecycle.units = [
+      "tailscaled"
+      "tailscale-policy"
+      "home-assistant"
+      "home-assistant-directories"
+    ];
+    lifecycle.backupJob = "borgbackup-job-${config.homelab.backup.name}";
     backup = {
-      enable = config.homelab.image.variant == "operational";
+      enable = true;
       repositoryFile = "/persist/borg/repository";
       schedule = "*-*-* 01:30:00 Europe/Zurich";
     };
     health = {
       units = [
+        "homelab-operational.target"
         "storage-contract"
         "operational-ready"
         "tailscaled"
         "home-assistant"
       ];
       url = "http://127.0.0.1:8123/api/";
+      httpStatus = 401; # API is reachable and correctly requires authentication.
     };
   };
 }

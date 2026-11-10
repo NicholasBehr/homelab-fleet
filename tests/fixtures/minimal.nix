@@ -4,6 +4,7 @@
     ../../modules/proxmox-lxc.nix
     ../../modules/persistence.nix
     ../../modules/secrets.nix
+    ../../modules/lifecycle.nix
     ../../modules/tailscale.nix
     ../../modules/borgbackup.nix
   ];

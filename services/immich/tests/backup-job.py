@@ -15,7 +15,7 @@ import tempfile
 launcher, cleanup, prepare, app_cleanup = map(Path, sys.argv[1:])
 native = Path(shlex.split(launcher.read_text())[-1])
 
-for scenario in ['success', 'borg-failure', 'dump-failure', 'lock-held', 'stale-owner', 'restart-failure']:
+for scenario in ['success', 'borg-failure', 'dump-failure', 'lock-held', 'stale-owner', 'restart-failure', 'target-stopped']:
     with tempfile.TemporaryDirectory() as temporary:
         root = Path(temporary)
         for directory in ['persist/backup', 'run/homelab-backup', 'etc', 'bin']:
@@ -46,6 +46,9 @@ fi
 if test "$name" = systemctl && test "$1" = start && test "$2" = tailscaled.service; then
  test "$SCENARIO" != restart-failure || exit 19
 fi
+if test "$name" = systemctl && test "$1" = is-active; then
+ if test "$SCENARIO" = target-stopped && test -e "$FIXTURE/run/homelab-backup/owner"; then exit 20; fi
+fi
 '''
         for command in ['borg', 'systemctl', 'runuser']:
             target = root/'bin'/command
@@ -65,8 +68,11 @@ fi
             assert (result.returncode == 0) == (scenario == 'success'), (scenario, result.stderr)
             events = (root/'events').read_text() if (root/'events').exists() else ''
             if scenario in ['lock-held', 'stale-owner']:
-                assert not events, (scenario, events)
+                assert 'systemctl stop ' not in events and 'systemctl start ' not in events, (scenario, events)
                 assert marker.exists()
+            elif scenario == 'target-stopped':
+                assert 'systemctl start ' not in events, events
+                assert marker.exists() and owner.exists()
             else:
                 for unit in ['tailscaled', 'redis-immich', 'immich-machine-learning', 'immich-server']:
                     assert 'systemctl start '+unit+'.service' in events, (scenario, events)

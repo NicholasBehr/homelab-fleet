@@ -1,3 +1,0 @@
-creation_rules:
-  - path_regex: secrets/immich\.yaml$
-    age: "age1m076s0ww52gaz0w7utl5zutz5gx90t9mqwsl3xx3atx392ns4pjq4rg6va,age1lsuqt6lktv0vsnuj4sx2rdl2y6u5w4eyntg9jaxspkuxwqsrus8qcsaue0"

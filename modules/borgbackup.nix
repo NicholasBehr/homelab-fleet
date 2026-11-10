@@ -24,6 +24,9 @@ let
     # A failed lock acquisition must not recover a different operation's services.
     test -s "$owner" || exit 0
     test "$(cat "$owner")" = "''${INVOCATION_ID:?systemd invocation required}" || exit 0
+    # A target stop is an intentional shutdown, not a backup failure. Do not
+    # resurrect applications or network identity; retain recovery intent instead.
+    systemctl is-active --quiet homelab-operational.target || exit 1
     exec 9>/persist/operation.lock
     ${pkgs.util-linux}/bin/flock -n 9
     ${cfg.cleanup}
@@ -64,11 +67,11 @@ in
     };
     passphraseFile = lib.mkOption {
       type = lib.types.str;
-      default = "/run/secrets/borg-passphrase";
+      default = "/persist/secrets/borg-passphrase";
     };
     sshKeyFile = lib.mkOption {
       type = lib.types.str;
-      default = "/run/secrets/borg-ssh-key";
+      default = "/persist/secrets/borg-ssh-key";
     };
     knownHostsFile = lib.mkOption {
       type = lib.types.str;
@@ -120,6 +123,9 @@ in
       readWritePaths = cfg.writablePaths ++ [ "/run/homelab-backup" ];
       preHook = ''
         ${loadRepository}
+        exec 8>/run/homelab-backup/operation.lock
+        ${pkgs.util-linux}/bin/flock -n 8
+        systemctl is-active --quiet homelab-operational.target
         exec 9>/persist/operation.lock
         ${pkgs.util-linux}/bin/flock -n 9
         test ! -e /run/homelab-backup/owner || { echo 'Unresolved backup recovery intent' >&2; exit 1; }

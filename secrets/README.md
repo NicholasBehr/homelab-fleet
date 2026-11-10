@@ -1,13 +1,15 @@
-# Production ciphertext
+# Runtime credentials
 
-immich.yaml contains SOPS-encrypted production Borg credentials. Its public age
-recipients belong to the production container and an independent recovery
-identity. Private age/SSH keys and passphrases are never committed, embedded in
-images, placed in the Nix store or passed to CI. The repository endpoint, verified
-SSH host keys, recovery document and live account identifiers remain in protected
-operator storage outside this public repository.
+This directory contains documentation only. Production credential payloads,
+including ciphertext, do not belong in Git, images, the Nix store or CI.
 
-Home Assistant uses a separate SOPS payload and Borg repository when enrolled.
-Do not copy Immich credentials or reuse its repository. Keep its age recipient,
-backup credentials, endpoint and authenticated host key in the private operator
-inventory; only reviewed ciphertext may be added here.
+Each service has independently enrolled root-only files at
+`/persist/secrets/{borg-passphrase,borg-ssh-key}`. Both are included in encrypted
+Borg backups. One complete 1Password Borg recovery Document per service provides
+independent access after loss of `/persist`; see `docs/recovery.md` for its schema,
+permissions, retrieval checks and migration procedure. The resettable Storage Box
+password is enrollment-only and omitted from escrow.
+
+Historical releases used SOPS. Preserve their age identities and recovery records
+until replacement and restoration are proven; removing ciphertext from the current
+tree does not remove it from Git history or old releases.

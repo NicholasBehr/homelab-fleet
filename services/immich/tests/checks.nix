@@ -1,12 +1,10 @@
 {
   pkgs,
-  operational,
-  bootstrap,
-  recovery,
+  immich,
 }:
 let
   backupFixture =
-    (operational.extendModules {
+    (immich.extendModules {
       modules = [
         {
           homelab.backup = {
@@ -18,7 +16,7 @@ let
       ];
     }).config;
   runtimeFixture =
-    (operational.extendModules {
+    (immich.extendModules {
       modules = [
         {
           homelab.backup.repositoryFile = pkgs.lib.mkForce "/tmp/homelab-borg-runtime-repository";
@@ -90,35 +88,22 @@ in
     PY
     grep -q 'MACHINE_LEARNING_CPU_ONLY=1' \
       ${
-        operational.config.systemd.units."immich-machine-learning.service".unit
+        immich.config.systemd.units."immich-machine-learning.service".unit
       }/immich-machine-learning.service
     MACHINE_LEARNING_CPU_ONLY=1 \
       GUNICORN_CMD_ARGS="--no-control-socket --check-config --config $mlCheckDir/config.py" \
-      ${operational.config.services.immich.package.machine-learning}/bin/machine-learning
+      ${immich.config.services.immich.package.machine-learning}/bin/machine-learning
     touch "$out"
   '';
-  secret-service =
-    if builtins.pathExists ../../../secrets/immich.yaml then
-      pkgs.runCommand "operational-secret-service-wiring" { } ''
-        test -s ${
-          operational.config.systemd.units."sops-install-secrets.service".unit
-        }/sops-install-secrets.service
-        grep -q 'Requires=.*sops-install-secrets.service' \
-          ${operational.config.systemd.units."operational-ready.service".unit}/operational-ready.service
-        grep -q 'After=.*sops-install-secrets.service' \
-          ${operational.config.systemd.units."operational-ready.service".unit}/operational-ready.service
-        test -s ${
-          recovery.config.systemd.units."sops-install-secrets.service".unit
-        }/sops-install-secrets.service
-        touch "$out"
-      ''
-    else
-      pkgs.runCommand "no-enrolled-secret-service" { } ''touch "$out"'';
-  bootstrap =
-    assert !(bootstrap.config.systemd.services ? immich-server);
-    assert !(bootstrap.config.systemd.services ? postgresql);
-    bootstrap.config.system.build.toplevel;
-  operational = operational.config.system.build.toplevel;
-  recovery = recovery.config.system.build.toplevel;
+  secret-service = pkgs.runCommand "runtime-secret-service-wiring" { } ''
+    grep -q 'Requires=.*storage-contract.service' \
+      ${immich.config.systemd.units."operational-ready.service".unit}/operational-ready.service
+    grep -q 'After=.*storage-contract.service' \
+      ${immich.config.systemd.units."operational-ready.service".unit}/operational-ready.service
+    grep -q '/persist/secrets/borg-passphrase' \
+      ${pkgs.writeText "ready-script" immich.config.systemd.services.operational-ready.script}
+    touch "$out"
+  '';
+  system = immich.config.system.build.toplevel;
   backup-config = backupFixture.system.build.toplevel;
 }
