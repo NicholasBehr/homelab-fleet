@@ -42,6 +42,8 @@ in
     ];
     tailscale.serveTarget = "http://127.0.0.1:2283";
     lifecycle.units = [
+      "tailscaled"
+      "tailscale-policy"
       "immich-server"
       "immich-machine-learning"
       "postgresql"
@@ -49,6 +51,7 @@ in
       "redis-immich"
       "immich-directories"
     ];
+    lifecycle.backupJob = "borgbackup-job-${config.homelab.backup.name}";
     intelMedia.renderGid = c.renderGid;
     backup = {
       enable = true;

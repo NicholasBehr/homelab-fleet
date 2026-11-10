@@ -120,8 +120,11 @@ a fresh protected directory and verify, without trusting the working copy, that:
    the encrypted key export is usable with the documented passphrase; and
 4. repository, remote path and schedule match the deployed runtime files and job.
 
-Set `status` to `enrolled` and enable scheduled backups only after these checks and
-a fresh-volume restore rehearsal pass. Then remove the protected working plaintext
+Set `status` to `enrolled` only after these checks. Before enabling scheduled
+backups, complete a fresh-volume restore rehearsal. For a new empty repository,
+rehearse the same image and procedure with synthetic data and a separate disposable
+repository and volumes; an empty production repository has no archive to restore.
+Then remove the protected working plaintext
 and retain the independently retrieved Document. Rotation replaces all affected
 runtime credentials and the escrow document as one reviewed
 operation; never assume an old document remains compatible.
@@ -165,13 +168,17 @@ private operator inventory, not public Nix configuration. The job and
 before application quiescing. This runtime option accepts only remote SSH URIs;
 other deployments may instead set the static `homelab.backup.repository` option.
 
-Immich's schedule is 02:15 Europe/Zurich. During initial enrollment, keep the timer
-stopped until repository initialization, escrow and a manual backup/restore check
-pass. Initialize only the intended new repository with
+Immich's schedule is 02:15 Europe/Zurich. During initial enrollment, keep the target
+inactive until repository initialization, independent escrow verification and the
+isolated synthetic backup/restore rehearsal pass. Initialize only the intended new repository with
 `borg-job-immich init --encryption=repokey-blake2`;
 normal jobs have `doInit=false`. Export its Borg key and escrow the export,
 passphrase, SSH key, endpoint and trust information in the standard 1Password
-Document above. Retrieve and verify that document independently. Keep multiple
+Document above. Retrieve and verify that document independently. After activation,
+run the native job immediately and verify its archive and an independent restore
+before treating the service as protected. Until then, preserve any existing source
+and recovery copies; for a genuinely new service, do not add irreplaceable data.
+Keep multiple
 recovery copies; a backup repository alone is not a complete 3-2-1 strategy.
 
 Scheduled operation acquires `/persist/operation.lock`, records restart intent,

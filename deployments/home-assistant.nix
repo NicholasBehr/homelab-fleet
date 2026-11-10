@@ -38,9 +38,12 @@ in
     ];
     tailscale.serveTarget = "http://127.0.0.1:8123";
     lifecycle.units = [
+      "tailscaled"
+      "tailscale-policy"
       "home-assistant"
       "home-assistant-directories"
     ];
+    lifecycle.backupJob = "borgbackup-job-${config.homelab.backup.name}";
     backup = {
       enable = true;
       repositoryFile = "/persist/borg/repository";
@@ -55,6 +58,7 @@ in
         "home-assistant"
       ];
       url = "http://127.0.0.1:8123/api/";
+      httpStatus = 401; # API is reachable and correctly requires authentication.
     };
   };
 }

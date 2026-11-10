@@ -15,7 +15,10 @@ pkgs.testers.runNixOSTest {
       homelab.lifecycle.units = [
         "fixture-app"
         "fixture-db"
+        "tailscaled"
+        "tailscale-policy"
       ];
+      homelab.lifecycle.backupJob = "borgbackup-job-fixture";
       systemd.services = {
         storage-contract = {
           serviceConfig = {
@@ -69,8 +72,19 @@ pkgs.testers.runNixOSTest {
         };
         borgbackup-job-fixture = {
           serviceConfig.Type = "oneshot";
-          path = [ pkgs.systemd ];
+          path = [
+            pkgs.systemd
+            pkgs.util-linux
+          ];
           script = ''
+            mkdir -p /run/homelab-backup
+            exec 8>/run/homelab-backup/operation.lock
+            flock -n 8
+            systemctl is-active --quiet homelab-operational.target
+            if test -e /persist/hold-backup; then
+              touch /run/backup-held
+              while test -e /persist/hold-backup; do sleep 1; done
+            fi
             systemctl stop fixture-app tailscaled
             systemctl is-active --quiet homelab-operational.target
             touch /persist/backup-ran
@@ -91,6 +105,12 @@ pkgs.testers.runNixOSTest {
     machine.fail("test -e /run/systemd/generator/multi-user.target.wants/homelab-operational.target")
     for unit in ["fixture-app", "fixture-db", "tailscaled", "tailscale-policy", "borgbackup-job-fixture.timer"]:
         machine.fail(f"systemctl is-active {unit}")
+    # Run the real activation script with an isolated marker and a failing reload.
+    machine.succeed('mkdir -p /tmp/reload-fixture/bin; printf "%s\\n" "#!/bin/sh" \'echo "$*" >> /tmp/reload-fixture/events\' \'test "$1" != daemon-reload\' > /tmp/reload-fixture/bin/systemctl; chmod +x /tmp/reload-fixture/bin/systemctl')
+    machine.succeed("sed -e 's@${pkgs.systemd}/bin@/tmp/reload-fixture/bin@g' -e 's@/var/lib/homelab@/tmp/reload-fixture/state@g' $(command -v homelab-activate) > /tmp/reload-fixture/activate; chmod +x /tmp/reload-fixture/activate")
+    machine.fail("/tmp/reload-fixture/activate")
+    machine.fail("test -e /tmp/reload-fixture/state/operational-enabled")
+    machine.succeed("grep -q '^stop homelab-operational.target$' /tmp/reload-fixture/events")
     machine.fail("homelab-activate")
     machine.fail("test -e /var/lib/homelab/operational-enabled")
     for unit in ["fixture-app", "fixture-db", "tailscaled", "tailscale-policy", "borgbackup-job-fixture.timer"]:
@@ -117,6 +137,21 @@ pkgs.testers.runNixOSTest {
     machine.wait_for_unit("homelab-operational.target")
     machine.wait_for_unit("fixture-app")
     machine.wait_for_unit("tailscaled")
+    # Simulate shutdown owning the coordination lock while a manual job starts.
+    machine.succeed("rm /persist/backup-ran; systemd-run --unit=lock-holder ${pkgs.util-linux}/bin/flock -x /run/homelab-backup/operation.lock ${pkgs.coreutils}/bin/sleep 30")
+    machine.succeed("systemctl is-active --quiet lock-holder")
+    machine.fail("systemctl start borgbackup-job-fixture")
+    machine.fail("test -e /persist/backup-ran")
+    machine.wait_for_unit("fixture-app")
+    machine.succeed("systemctl stop lock-holder; systemctl reset-failed borgbackup-job-fixture")
+    # A running backup prevents deactivation; stopping the timer prevents another.
+    machine.succeed("touch /persist/hold-backup; systemctl start --no-block borgbackup-job-fixture")
+    machine.wait_for_file("/run/backup-held")
+    machine.fail("homelab-deactivate")
+    machine.fail("systemctl is-active borgbackup-job-fixture.timer")
+    machine.succeed("test -e /var/lib/homelab/operational-enabled; systemctl is-active --quiet homelab-operational.target; rm /persist/hold-backup")
+    machine.wait_until_succeeds("! systemctl is-active --quiet borgbackup-job-fixture")
+    machine.succeed("systemctl start borgbackup-job-fixture.timer")
     machine.shutdown()
     machine.start()
     machine.wait_for_unit("homelab-operational.target")

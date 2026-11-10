@@ -123,6 +123,9 @@ in
       readWritePaths = cfg.writablePaths ++ [ "/run/homelab-backup" ];
       preHook = ''
         ${loadRepository}
+        exec 8>/run/homelab-backup/operation.lock
+        ${pkgs.util-linux}/bin/flock -n 8
+        systemctl is-active --quiet homelab-operational.target
         exec 9>/persist/operation.lock
         ${pkgs.util-linux}/bin/flock -n 9
         test ! -e /run/homelab-backup/owner || { echo 'Unresolved backup recovery intent' >&2; exit 1; }

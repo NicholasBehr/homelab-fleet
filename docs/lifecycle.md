@@ -41,7 +41,9 @@ homelab-activate
 
 Before activation, initialize only the approved new Borg repository or verify the
 existing repository, independently retrieve its 1Password Document, and complete
-the required restore rehearsal. First enrollment may start `tailscaled` explicitly
+the required isolated restore rehearsal. For a new empty repository, rehearse with
+synthetic data in a separate disposable environment; the first native backup of the
+new service runs immediately after activation. See [recovery](recovery.md). First enrollment may start `tailscaled` explicitly
 through the console after credentials pass readiness, then use interactive
 `tailscale up` with the approved tag. Never start restored Tailscale state until
 the original instance is definitively stopped and restoration is complete.
@@ -52,13 +54,15 @@ target: a manual timer/job request cannot activate the workload during restorati
 Backup cleanup refuses to restart services when the operational target is no
 longer active and retains recovery intent for operator inspection.
 
-To stop for restoration/replacement, stop the service's backup timer first and
-wait for any running backup to finish. Then use the console:
+To stop for restoration/replacement, use the console:
 
 ```sh
 homelab-deactivate
 ```
 
+The command stops the timer and takes the backup coordination lock. If a backup
+is running, it leaves the timer stopped and asks you to retry after it finishes.
+Once it holds the lock, a concurrent native backup cannot quiesce the workload.
 This stops Tailscale SSH too. Verify each member is stopped; services manually
 started during restoration must also be stopped before extraction or cutover.
 If activation fails, the command removes the activation record and stops the target.

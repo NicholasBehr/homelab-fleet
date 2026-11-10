@@ -73,7 +73,9 @@ an IP whitelist for the coordinator socket. Home Assistant will connect to
    Complete enrollment/recovery checks from the console, then use
    `homelab-activate` to activate the workload on this disposable root.
    Verify `storage-contract.service`, `operational-ready.service`, `tailscaled`,
-   and `home-assistant` are active. The health URL is local `127.0.0.1:8123/api/`.
+   and `home-assistant` are active. The local `/api/` probe expects HTTP 401:
+   it checks that the HTTP authentication layer responds, not authenticated API
+   functionality. Verify login and Zigbee separately.
 2. Enroll the intended Tailscale identity and verify `https://<container-tailnet-name>`
    works. Confirm port 8123 remains unreachable from the physical LAN.
 3. Complete the Home Assistant owner account onboarding. Use a unique password

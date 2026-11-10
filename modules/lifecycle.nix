@@ -6,16 +6,9 @@
 }:
 let
   cfg = config.homelab.lifecycle;
-  backup = config.homelab.backup;
-  startup = lib.unique (
-    cfg.units
-    ++ [
-      "tailscaled"
-      "tailscale-policy"
-    ]
-  );
-  job = "borgbackup-job-${backup.name}";
-  timer = lib.optional backup.enable "${job}.timer";
+  startup = lib.unique cfg.units;
+  job = cfg.backupJob;
+  timer = lib.optional (job != null) "${job}.timer";
   marker = "/var/lib/homelab/operational-enabled";
   generator = pkgs.writeShellScript "homelab-operational-generator" ''
     if ! test -f ${marker}; then
@@ -59,12 +52,22 @@ let
     runtimeInputs = [
       pkgs.coreutils
       pkgs.systemd
+      pkgs.util-linux
     ];
     text = ''
-      if systemctl is-active --quiet ${job}; then
-        echo 'Refusing to deactivate while the backup job is active' >&2
-        exit 1
-      fi
+      ${lib.optionalString (job != null) ''
+        systemctl stop ${lib.escapeShellArg "${job}.timer"}
+        install -d -m 0700 /run/homelab-backup
+        exec 8>/run/homelab-backup/operation.lock
+        if ! flock -n 8; then
+          echo 'Backup is running; timer stopped, retry after it finishes' >&2
+          exit 1
+        fi
+        if systemctl is-active --quiet ${lib.escapeShellArg job}; then
+          echo 'Backup is still finishing; timer stopped, retry shortly' >&2
+          exit 1
+        fi
+      ''}
       rm -f ${marker}
       systemctl daemon-reload
       systemctl stop homelab-operational.target
@@ -77,6 +80,11 @@ in
       type = lib.types.listOf lib.types.str;
       default = [ ];
       description = "Application and dependency units started by explicit operational activation.";
+    };
+    backupJob = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      description = "Backup service whose timer and execution are coordinated with shutdown.";
     };
   };
   config = {
@@ -107,7 +115,7 @@ in
         requires = [ "operational-ready.service" ];
         after = [ "operational-ready.service" ];
       }))
-      (lib.optionalAttrs backup.enable {
+      (lib.optionalAttrs (job != null) {
         ${job} = {
           partOf = [ "homelab-operational.target" ];
           # A persistent timer or manual request must not run the job during a
@@ -117,7 +125,7 @@ in
         };
       })
     ];
-    systemd.timers = lib.optionalAttrs backup.enable {
+    systemd.timers = lib.optionalAttrs (job != null) {
       ${job} = {
         wantedBy = lib.mkForce [ ];
         partOf = [ "homelab-operational.target" ];

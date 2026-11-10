@@ -47,7 +47,7 @@ if test "$name" = systemctl && test "$1" = start && test "$2" = tailscaled.servi
  test "$SCENARIO" != restart-failure || exit 19
 fi
 if test "$name" = systemctl && test "$1" = is-active; then
- test "$SCENARIO" != target-stopped || exit 20
+ if test "$SCENARIO" = target-stopped && test -e "$FIXTURE/run/homelab-backup/owner"; then exit 20; fi
 fi
 '''
         for command in ['borg', 'systemctl', 'runuser']:
@@ -68,7 +68,7 @@ fi
             assert (result.returncode == 0) == (scenario == 'success'), (scenario, result.stderr)
             events = (root/'events').read_text() if (root/'events').exists() else ''
             if scenario in ['lock-held', 'stale-owner']:
-                assert not events, (scenario, events)
+                assert 'systemctl stop ' not in events and 'systemctl start ' not in events, (scenario, events)
                 assert marker.exists()
             elif scenario == 'target-stopped':
                 assert 'systemctl start ' not in events, events

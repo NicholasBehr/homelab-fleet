@@ -5,11 +5,8 @@ let
     name: host:
     let
       c = host.config;
-      services = c.homelab.lifecycle.units ++ [
-        "tailscaled"
-        "tailscale-policy"
-      ];
-      timer = "borgbackup-job-${c.homelab.backup.name}";
+      services = c.homelab.lifecycle.units;
+      timer = c.homelab.lifecycle.backupJob;
       tree = c.environment.etc."systemd/system".source;
     in
     assert lib.all (unit: c.systemd.services.${unit}.wantedBy == [ ]) services;
