@@ -97,6 +97,16 @@ the provider and is intentionally absent from the recovery document. It remains
 valid at Hetzner until reset; treating it as single-use is an operator convention,
 not automatic revocation. Do not grant the service access to provider credentials.
 
+Follow `AGENTS.md` secret-handling rules throughout enrollment and recovery. Set
+umask077 before file creation; metadata and success/failure results are sufficient
+for agent inspection. Secret values must travel directly between protected files,
+trusted programs and the intended endpoints, never through chat, clipboard, shell
+arguments, environment values or tool output. Disable tracing and payload logging;
+ensure errors cannot echo secrets. Compare files silently rather than displaying
+contents or hashes. Create runtime credentials through protected staging and
+atomic installation that refuses existing targets. Changes to existing credentials
+follow the reviewed rotation plan. Use synthetic material for CI and tests.
+
 Write the final document only after the intended repository is initialized and its
 ID and encrypted key export are available. Download the saved Document again into
 a fresh protected directory and verify, without trusting the working copy, that:
