@@ -10,6 +10,8 @@ with tarfile.open(sys.argv[1], mode='r|*') as archive:
         if '..' in path.parts:
             raise SystemExit('Unsafe template path')
         if name == 'sbin/init': init = True
+        if name == 'etc/systemd/system/multi-user.target.wants/homelab-operational.target':
+            raise SystemExit('Template contains operational activation')
         if name.startswith(('persist/', 'data/', 'run/secrets/')) and not member.isdir():
             raise SystemExit(f'Runtime state present in template: {name}')
     if not init: raise SystemExit('LXC init missing')

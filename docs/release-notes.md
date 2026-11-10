@@ -1,4 +1,13 @@
-# v0.4.0 — runtime credential enrollment
+# v0.4.0 — single service images and runtime credentials
+
+Publish only `immich` and `home-assistant`; remove bootstrap/recovery outputs from
+the new catalog. Each image defaults to an inactive workload. Operators use
+`systemctl enable --now homelab-operational.target` after enrollment or isolated
+restoration. Enablement lives on the disposable root and is outside Borg backups;
+new roots remain inactive even with restored persistent state. The manifest marks
+`variant=single`, `activationTarget` and `defaultActivated=false`. Historical
+artifacts remain available for historical backups. See `docs/lifecycle.md` for
+activation, shutdown and the tested NixOS unit-directory adaptation.
 
 Immich and Home Assistant now read Borg credentials from root-only files at
 `/persist/secrets/{borg-passphrase,borg-ssh-key}`. Images contain credential paths
@@ -25,7 +34,7 @@ current credentials into the new `/persist/secrets` files. Verify file contents,
 ownership, permissions and independent escrow access before stopped root replacement.
 Do not initialize a new Immich repository or change its credentials as part of this
 migration. Follow the detailed transition in `docs/recovery.md`. Home Assistant
-bootstrap requires its separately enrolled credentials and verified Borg endpoint.
+enrollment requires its separately enrolled credentials and verified Borg endpoint.
 Complete backup and fresh-volume restoration before normal operation. Storage
 markers, application state paths and ownership stay unchanged; the changed secret
 requirements intentionally advance repository SemVer to 0.4.0. Database and

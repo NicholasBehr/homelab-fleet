@@ -7,7 +7,7 @@ volume and is accessed through Tailscale Serve.
 
 ## Before building an operator release
 
-The operational image requires its own operator-enrolled Borg credential files. Keep
+The service image requires its own operator-enrolled Borg credential files. Keep
 plaintext credentials out of Git, Nix, image inputs and command-line arguments.
 Enroll the service's dedicated Borg repository, SSH key/passphrase,
 and independently authenticated SSH host key as described in
@@ -15,9 +15,9 @@ and independently authenticated SSH host key as described in
 repository. Store the completed recovery set in one `Home Assistant production
 recovery` 1Password Document using the same JSON schema, independent-download
 verification and enrollment gates as Immich. The operational readiness gate
-intentionally refuses to start HA until enrollment is complete. The bootstrap
-image is for initial enrollment and does not start Home Assistant or scheduled
-backups.
+intentionally refuses to start HA until enrollment is complete. The single image
+boots with its operational target disabled: Home Assistant, Tailscale and backup
+timers stay stopped until explicit operator startup. See [lifecycle](lifecycle.md).
 
 The contract proposes CT IDs 210/211, 2 cores, 4 GiB RAM, 32 GiB root, and one
 32 GiB `/persist` volume. These are proposals, not allocations. Check the private
@@ -27,8 +27,7 @@ LAN: its Tailscale identity provides stable operator access, while ZHA initiates
 the LAN connection to the MR4U. Record live addressing privately; do not add it
 to this repository.
 
-The code registers `home-assistant`, `home-assistant-bootstrap`, and
-`home-assistant-recovery` images in the flake. Build and release them through the
+The code registers one `home-assistant` image in the flake. Build and release it through the
 normal PR, required checks, exact-main release workflow and attestation checks.
 Do not import a local development build into production.
 
@@ -70,7 +69,9 @@ an IP whitelist for the coordinator socket. Home Assistant will connect to
 
 ## Home Assistant first boot
 
-1. Boot the reviewed operational image with the exact `/persist` volume and marker.
+1. Boot the reviewed service image with the exact `/persist` volume and marker.
+   Complete enrollment/recovery checks from the console, then use
+   `systemctl enable --now homelab-operational.target` to activate the workload.
    Verify `storage-contract.service`, `operational-ready.service`, `tailscaled`,
    and `home-assistant` are active. The health URL is local `127.0.0.1:8123/api/`.
 2. Enroll the intended Tailscale identity and verify `https://<container-tailnet-name>`

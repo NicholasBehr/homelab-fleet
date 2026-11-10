@@ -1,8 +1,6 @@
 {
   pkgs,
   operational,
-  bootstrap,
-  recovery,
 }:
 let
   backupFixture =
@@ -101,16 +99,11 @@ in
     grep -q 'Requires=.*storage-contract.service' \
       ${operational.config.systemd.units."operational-ready.service".unit}/operational-ready.service
     grep -q 'After=.*storage-contract.service' \
-      ${recovery.config.systemd.units."operational-ready.service".unit}/operational-ready.service
+      ${operational.config.systemd.units."operational-ready.service".unit}/operational-ready.service
     grep -q '/persist/secrets/borg-passphrase' \
       ${pkgs.writeText "ready-script" operational.config.systemd.services.operational-ready.script}
     touch "$out"
   '';
-  bootstrap =
-    assert !(bootstrap.config.systemd.services ? immich-server);
-    assert !(bootstrap.config.systemd.services ? postgresql);
-    bootstrap.config.system.build.toplevel;
   operational = operational.config.system.build.toplevel;
-  recovery = recovery.config.system.build.toplevel;
   backup-config = backupFixture.system.build.toplevel;
 }

@@ -14,32 +14,16 @@
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
       mkContainer = import ./lib/mk-container.nix { inherit nixpkgs; };
-      mkImmich =
-        variant:
-        mkContainer {
-          deployment = ./deployments/immich.nix;
-          inherit variant;
-          specialArgs.immichNixpkgs = immich-nixpkgs;
-        };
-      mkHomeAssistant =
-        variant:
-        mkContainer {
-          deployment = ./deployments/home-assistant.nix;
-          inherit variant;
-        };
-      operational = mkImmich "operational";
-      bootstrap = mkImmich "bootstrap";
-      recovery = mkImmich "recovery";
-      homeAssistantOperational = mkHomeAssistant "operational";
-      homeAssistantBootstrap = mkHomeAssistant "bootstrap";
-      homeAssistantRecovery = mkHomeAssistant "recovery";
+      operational = mkContainer {
+        deployment = ./deployments/immich.nix;
+        specialArgs.immichNixpkgs = immich-nixpkgs;
+      };
+      homeAssistant = mkContainer {
+        deployment = ./deployments/home-assistant.nix;
+      };
       configurations = {
         immich = operational;
-        immich-bootstrap = bootstrap;
-        immich-recovery = recovery;
-        home-assistant = homeAssistantOperational;
-        home-assistant-bootstrap = homeAssistantBootstrap;
-        home-assistant-recovery = homeAssistantRecovery;
+        home-assistant = homeAssistant;
       };
       mkTemplate =
         host: host.config.system.build.tarball.override { compressCommand = "pixz -t -1 -p 2"; };
@@ -54,19 +38,19 @@
         inherit
           pkgs
           operational
-          bootstrap
-          recovery
           ;
       };
       fixture = mkContainer {
         deployment = ./tests/fixtures/minimal.nix;
-        variant = "bootstrap";
       };
       checks =
         (import ./tests/checks.nix {
-          inherit pkgs nixpkgs;
-          bootstrap = fixture;
+          inherit pkgs nixpkgs fixture;
         })
+        // {
+          lifecycle = import ./tests/lifecycle.nix { inherit pkgs; };
+          lifecycle-wiring = import ./tests/lifecycle-wiring.nix { inherit pkgs configurations; };
+        }
         // nixpkgs.lib.mapAttrs' (
           name: value: nixpkgs.lib.nameValuePair ("immich-" + name) value
         ) serviceChecks;
@@ -79,27 +63,11 @@
       imageCatalog = {
         immich = {
           service = "immich";
-          variant = "operational";
-        };
-        immich-bootstrap = {
-          service = "immich";
-          variant = "bootstrap";
-        };
-        immich-recovery = {
-          service = "immich";
-          variant = "recovery";
+          variant = "single";
         };
         home-assistant = {
           service = "home-assistant";
-          variant = "operational";
-        };
-        home-assistant-bootstrap = {
-          service = "home-assistant";
-          variant = "bootstrap";
-        };
-        home-assistant-recovery = {
-          service = "home-assistant";
-          variant = "recovery";
+          variant = "single";
         };
       };
       nixosConfigurations = configurations;

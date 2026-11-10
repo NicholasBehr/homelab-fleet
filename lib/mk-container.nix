@@ -1,7 +1,6 @@
 { nixpkgs }:
 {
   deployment,
-  variant ? "operational",
   specialArgs ? { },
 }:
 nixpkgs.lib.nixosSystem {
@@ -9,6 +8,5 @@ nixpkgs.lib.nixosSystem {
   inherit specialArgs;
   modules = [
     deployment
-    { homelab.image.variant = variant; }
   ];
 }

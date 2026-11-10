@@ -24,6 +24,9 @@ let
     # A failed lock acquisition must not recover a different operation's services.
     test -s "$owner" || exit 0
     test "$(cat "$owner")" = "''${INVOCATION_ID:?systemd invocation required}" || exit 0
+    # A target stop is an intentional shutdown, not a backup failure. Do not
+    # resurrect applications or network identity; retain recovery intent instead.
+    systemctl is-active --quiet homelab-operational.target || exit 1
     exec 9>/persist/operation.lock
     ${pkgs.util-linux}/bin/flock -n 9
     ${cfg.cleanup}

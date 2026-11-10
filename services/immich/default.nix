@@ -7,7 +7,6 @@
 }:
 let
   c = config.homelab.deployment;
-  bootstrap = config.homelab.image.variant == "bootstrap";
   gate = {
     requires = [
       "storage-contract.service"
@@ -25,12 +24,12 @@ in
   config = lib.mkMerge [
     {
       environment.etc."homelab-versions.json".text = builtins.toJSON {
-        immich = if bootstrap then null else config.services.immich.package.version;
-        postgresql = if bootstrap then null else config.services.postgresql.package.version;
+        immich = config.services.immich.package.version;
+        postgresql = config.services.postgresql.package.version;
         contractVersion = c.contractVersion;
       };
     }
-    (lib.mkIf (!bootstrap) {
+    {
       homelab.backup = {
         paths = [
           "/persist"
@@ -126,12 +125,6 @@ in
           install -d -m 0700 -o redis-immich -g redis-immich /persist/redis
         '';
       };
-    })
-    (lib.mkIf (config.homelab.image.variant == "recovery") {
-      systemd.services.immich-server.wantedBy = lib.mkForce [ ];
-      systemd.services.immich-machine-learning.wantedBy = lib.mkForce [ ];
-      systemd.services.tailscale-policy.wantedBy = lib.mkForce [ ];
-      homelab.backup.enable = lib.mkForce false;
-    })
+    }
   ];
 }

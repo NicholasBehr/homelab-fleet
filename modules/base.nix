@@ -6,14 +6,6 @@
 }:
 {
   options.homelab = {
-    image.variant = lib.mkOption {
-      type = lib.types.enum [
-        "bootstrap"
-        "operational"
-        "recovery"
-      ];
-      default = "operational";
-    };
     deployment = lib.mkOption {
       type = lib.types.attrs;
       description = "Operator deployment contract, exported in the release manifest.";
@@ -57,7 +49,6 @@
       checkReversePath = "loose";
     };
     environment.systemPackages = with pkgs; [
-      age
       curl
       jq
       util-linux

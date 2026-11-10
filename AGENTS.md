@@ -1,6 +1,7 @@
 # Durable rules
 - Unprivileged NixOS LXC only; Immich first; standard Intel render-device sharing.
 - Replace disposable images; no routine production nixos-rebuild or deploy-rs.
+- Publish one image per service. Fresh roots keep homelab-operational.target disabled; activate explicitly after enrollment/restoration and identity-exclusivity checks. Keep enablement on the disposable root, outside persistent backups; never infer permission to start from restored files or version markers.
 - Persist data and identity only on declared volumes. /persist stays on NVMe; /data contains only bulk originals suitable for HDD migration. Keep DBs, thumbnails, previews and encoded video on /persist.
 - GitHub builds/releases only; no homelab credentials or administrative access.
 - Operators pull explicit verified releases. MVP provisioning/replacement is manual.

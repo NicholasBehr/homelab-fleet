@@ -10,7 +10,7 @@
     default = [ ];
     description = "Operator-enrolled root-only runtime credentials; contents never enter image inputs.";
   };
-  config.systemd.services.operational-ready = lib.mkIf (config.homelab.image.variant != "bootstrap") {
+  config.systemd.services.operational-ready = {
     requires = [ "storage-contract.service" ];
     after = [ "storage-contract.service" ];
     serviceConfig = {

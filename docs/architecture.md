@@ -98,8 +98,9 @@ provides a tested equivalent; never disable upstream tests to accommodate it.
 2. Add a deployment that imports only required shared modules, supplies typed
    storage/secret/Tailscale options, and gates every stateful service on storage
    and readiness. Give the service its own identity and Borg repository.
-3. Register configurations, catalog entries, contract and checks explicitly in
-   the flake. Image variants are bootstrap, operational and recovery as required.
-   Each image supplies `/etc/homelab-versions.json` for its manifest.
+3. Register one configuration, catalog entry, contract and checks explicitly in
+   the flake. The single image serves enrollment, restoration and operation through
+   a disabled-by-default `homelab-operational.target`; declare its members in the
+   deployment. Each image supplies `/etc/homelab-versions.json` for its manifest.
 4. Verify that an unrelated service change leaves this image's derivation unchanged.
    Rehearse enrollment, replacement, backup failure and complete restoration.

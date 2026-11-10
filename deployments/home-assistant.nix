@@ -8,6 +8,7 @@ in
     ../modules/proxmox-lxc.nix
     ../modules/persistence.nix
     ../modules/secrets.nix
+    ../modules/lifecycle.nix
     ../modules/tailscale.nix
     ../modules/borgbackup.nix
     ../services/home-assistant
@@ -35,15 +36,19 @@ in
       config.homelab.backup.passphraseFile
       config.homelab.backup.sshKeyFile
     ];
-    tailscale.serveTarget =
-      if config.homelab.image.variant == "bootstrap" then null else "http://127.0.0.1:8123";
+    tailscale.serveTarget = "http://127.0.0.1:8123";
+    lifecycle.units = [
+      "home-assistant"
+      "home-assistant-directories"
+    ];
     backup = {
-      enable = config.homelab.image.variant == "operational";
+      enable = true;
       repositoryFile = "/persist/borg/repository";
       schedule = "*-*-* 01:30:00 Europe/Zurich";
     };
     health = {
       units = [
+        "homelab-operational.target"
         "storage-contract"
         "operational-ready"
         "tailscaled"

@@ -2,8 +2,10 @@
 
 ## Direct, quiesced Borg backups
 
-The operational image enables scheduled backups; bootstrap and recovery images
-do not. Enroll the repository before relying on the schedule. Each service
+The single service image keeps its operational target disabled by default.
+Explicit activation starts scheduled backups; enrollment and restoration use the
+same image with the target inactive. See [lifecycle](lifecycle.md). Enroll the
+repository before relying on the schedule. Each service
 gets its own restricted Storage Box subaccount, repository, SSH key and passphrase.
 Obtain and independently authenticate the endpoint host key; ssh-keyscan alone is
 not verification. Store the verified `[HOST]:23` entry in `/persist/borg/known_hosts`.
@@ -210,7 +212,8 @@ Restore to fresh, explicitly recorded test volumes first. Retain the source back
 and original volumes. Never extract over running state. Select an explicit archive
 and the exact compatible image, PostgreSQL and extensions from its version record.
 
-1. Provision bootstrap with new empty declared mounts and their markers. Keep
+1. Provision the exact compatible service image with new empty declared mounts
+   and their markers. Verify `homelab-operational.target` is disabled/inactive. Keep
    Tailscale stopped and prevent its automatic restart while restoring identity.
    Verify its MainPID is zero. Retrieve Borg credentials and authenticated endpoint
    trust from independent escrow into protected runtime files; never put secret
@@ -235,13 +238,13 @@ and the exact compatible image, PostgreSQL and extensions from its version recor
    contract, all six `.immich` markers (which may be empty), and upload/library links
    into `/data/immich`. Keep thumbnails, previews and encoded video on `/persist`.
    Check restored runtime credentials are root:root mode0600 under mode0700.
-5. Replace bootstrap root with the matching recovery image using stopped transfers
-   and GUID/attachment checks. Wait for systemd initialization to complete and verify
-   storage/readiness gates, PostgreSQL and Redis individually. Automatic app/ML and
-   `tailscale-policy` startup and backups are disabled in this image. Restored
-   Tailscale state can still contain a saved Serve proxy: run `tailscale serve reset`
-   and verify no Serve configuration and app/ML MainPID zero before DB restoration.
-   Verify restored runtime credentials pass the readiness gate.
+5. On the same image with the operational target disabled/inactive, verify restored
+   runtime credentials and start only the required directory, PostgreSQL and Redis
+   units explicitly through the console. Verify app/ML and Tailscale MainPID zero,
+   and the backup timer inactive. Restored Tailscale state can contain saved Serve
+   settings; leave the daemon stopped throughout restoration so none are exposed.
+   The normal policy resets Serve during operational activation. Verify the
+   storage/readiness gates and each restoration dependency individually.
 6. With a fresh database and app never started, inspect `pg_restore --list` on the
    custom dump. Exclude extension and public-schema creation entries already owned
    by NixOS setup. Review the resulting list for these exact extension versions.
@@ -249,8 +252,9 @@ and the exact compatible image, PostgreSQL and extensions from its version recor
    --no-privileges --role=immich --use-list=REVIEWED_LIST --dbname=immich DUMP`
    as postgres. Stop on every error; never initialize an empty replacement library.
 7. Verify database rows/extensions, original checksums, layout, identity and secret
-   permissions. Replace the recovery root with the matching operational image via
-   another stopped, provenance-checked transfer. Verify normal startup, HTTPS, real
+   permissions. Stop manually started restoration dependencies, establish identity
+   exclusivity, then `systemctl enable --now homelab-operational.target` on this
+   same root. Verify normal startup, HTTPS, real
    login, thumbnails, playback and jobs; check search/QSV for the intended workload.
    Take a new successful backup and verify service/API recovery before normal use.
 

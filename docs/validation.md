@@ -6,6 +6,7 @@ not this public repository. Historical evidence never authorizes a new mutation.
 
 | Check | Evidence / boundary |
 |---|---|
+| Single-image lifecycle (v0.4.0) | Under validation: Linux VM test exercises disabled boot, failed activation, restoration helpers, explicit enable/disable, timer/job isolation and reboot persistence. Evaluated wiring checks cover both real services. Proxmox restoration/cutover remains a separate operator gate |
 | Runtime credential transition (v0.4.0) | In progress: local metadata regression tests cover private modes, empty files, wrong ownership, unsafe directory permissions and non-regular files. Production replacement and independent fresh-volume restoration remain required; earlier SOPS evidence below applies only to historical releases |
 | Linux builds, secret/mount guards, Borg/PG fixture restore | Passed for v0.2.1 at the checked main commit |
 | Release verification | All seven v0.2.1 assets passed provenance, attestation and checksum verification; manifests, versions and contracts matched reviewed source |

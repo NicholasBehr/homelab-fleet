@@ -43,7 +43,9 @@ Use `gh attestation verify ASSET --repo NicholasBehr/homelab-fleet
 --signer-digest COMMIT --source-digest COMMIT --source-ref refs/heads/main
 --deny-self-hosted-runners`. Run `sha256sum -c SHA256SUMS` (or `shasum -a 256 -c`
 on macOS). Compare service/variant, upstream versions, contract, encrypted-secret
-classification and expected archive. Preserve a private verification receipt.
+classification, runtime credential paths, disabled activation default and expected
+archive. Preserve a private verification receipt. Each service publishes one image;
+see [explicit activation](lifecycle.md) for all lifecycle phases.
 
 ## Initial enrollment
 
@@ -75,7 +77,7 @@ Attach persist as mp0 and data as mp1; never write a marker to unidentified stor
 Proxmox mountpoints precede guest init. Verify generated AppArmor, ID maps, render
 ownership, TUN0600 and all guard failures before enrolling.
 
-Boot bootstrap and enroll unique Borg credentials through authenticated operator
+Boot the service image with its operational target disabled and enroll unique Borg credentials through authenticated operator
 access. Install `/persist/secrets/borg-passphrase` and `borg-ssh-key` as root:root
 mode0600 under a root:root mode0700 directory. The image only declares paths and
 validation rules. Keep all credential contents out of Git, command arguments,
@@ -91,6 +93,10 @@ HTTPS and denied cross-service/LAN access. Policies belong to the operator; CI h
 no tailnet or Proxmox credentials. Configure remote Borg as [recovery](recovery.md)
 describes before trusting production data.
 
+After enrollment, independently verified escrow and restoration checks, activate
+with `systemctl enable --now homelab-operational.target` from the console. A fresh
+root always requires this explicit step; see [lifecycle](lifecycle.md).
+
 ## Replace a root
 
 1. Verify explicit image release and compatible versions; review migrations.
@@ -101,7 +107,9 @@ describes before trusting production data.
 4. Create a fresh root on a new approved CT ID; record its GUID. Stop the old
    container gracefully. Ensure both old/new are stopped before moving mp0/mp1
    using `pct move-volume OLD mp0 --target-vmid NEW --target-volume mp0` and mp1.
-5. Recheck transferred GUIDs, start NEW, and check each required unit, secret
+5. Recheck transferred GUIDs and start NEW with its operational target disabled.
+   Complete offline validation, confirm the original identity is stopped, then
+   explicitly enable/start the target. Check each required unit, secret
    permissions, identity continuity, DB/assets, placement, HTTPS, playback and jobs.
 6. Retain old root and backup until verified. Never run two copies of one identity.
    Do not transfer migrated data back to older software without proven compatibility;
