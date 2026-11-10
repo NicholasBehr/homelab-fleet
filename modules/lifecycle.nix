@@ -95,15 +95,11 @@ in
       ++ map (name: "${name}.service") startup;
     };
     systemd.services = lib.mkMerge [
-      {
-        tailscaled = {
-          requires = [ "operational-ready.service" ];
-          after = [ "operational-ready.service" ];
-        };
-      }
       (lib.genAttrs startup (_: {
         wantedBy = lib.mkForce [ ];
         partOf = [ "homelab-operational.target" ];
+        requires = [ "operational-ready.service" ];
+        after = [ "operational-ready.service" ];
       }))
       (lib.optionalAttrs backup.enable {
         ${job} = {
@@ -119,6 +115,8 @@ in
       ${job} = {
         wantedBy = lib.mkForce [ ];
         partOf = [ "homelab-operational.target" ];
+        requires = [ "operational-ready.service" ];
+        after = [ "operational-ready.service" ];
       };
     };
   };
