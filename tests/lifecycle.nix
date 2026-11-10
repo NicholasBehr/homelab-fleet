@@ -80,6 +80,7 @@ pkgs.testers.runNixOSTest {
   testScript = ''
     start_all()
     machine.wait_for_unit("multi-user.target")
+    machine.succeed("test -f /etc/systemd/system/homelab-operational.target; test ! -L /etc/systemd/system/homelab-operational.target")
     machine.fail("systemctl is-enabled homelab-operational.target")
     for unit in ["fixture-app", "fixture-db", "tailscaled", "tailscale-policy", "borgbackup-job-fixture.timer"]:
         machine.fail(f"systemctl is-active {unit}")
@@ -107,6 +108,10 @@ pkgs.testers.runNixOSTest {
     machine.succeed("systemctl disable --now homelab-operational.target")
     for unit in ["fixture-app", "fixture-db", "tailscaled", "borgbackup-job-fixture.timer"]:
         machine.fail(f"systemctl is-active {unit}")
+    machine.succeed("systemctl enable --now homelab-operational.target")
+    machine.wait_for_unit("homelab-operational.target")
+    machine.wait_for_unit("fixture-app")
+    machine.succeed("systemctl disable --now homelab-operational.target")
     machine.reboot()
     machine.wait_for_unit("multi-user.target")
     machine.fail("systemctl is-active fixture-app tailscaled")

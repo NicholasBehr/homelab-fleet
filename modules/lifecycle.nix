@@ -42,6 +42,13 @@ in
         install -d -m 0755 /etc/systemd/system
         ${pkgs.coreutils}/bin/cp --recursive --symbolic-link --update=none --no-preserve=mode \
           ${config.environment.etc."systemd/system".source}/. /etc/systemd/system/
+        # disable removes linked unit files too. Keep this installable target a
+        # regular root-local file so it can be re-enabled without rebooting.
+        target=$(mktemp /etc/systemd/system/.homelab-operational.XXXXXX)
+        install -m 0644 ${
+          config.environment.etc."systemd/system".source
+        }/homelab-operational.target "$target"
+        mv -Tf "$target" /etc/systemd/system/homelab-operational.target
       '';
     };
     # Raw text supplies [Install] without NixOS's wantedBy, which would enable it

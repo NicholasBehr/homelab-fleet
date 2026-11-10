@@ -76,15 +76,18 @@ longer publish those output names.
 
 NixOS normally links `/etc/systemd/system` wholesale to its immutable generated
 tree. `modules/lifecycle.nix` disables that one directory link and materializes the
-same tree as directories with immutable unit-file links during activation. Existing
-root-local enablement links survive reboot; unit contents still come from the
-reviewed image. This supports ordinary `systemctl enable/disable` without a custom
+same tree as directories with immutable unit-file links during activation. The
+installable operational target is a root-owned regular file copied from that tree:
+`systemctl disable` may remove a symlinked unit file, so this keeps the target
+available for immediate re-enablement. Existing root-local enablement links survive
+reboot; unit definitions still come from the reviewed image. This supports ordinary
+`systemctl enable/disable` without a custom
 mode tool or a writable `/etc` overlay. Unexpected legacy directory symlinks fail
 activation; install a fresh root instead of modifying an old production root.
 
 The adaptation assumes the repository's disposable-root replacement policy;
 routine in-place rebuilds are unsupported. The Linux lifecycle boot test covers
 initial inactivity, enrollment without activation, isolated dependency startup,
-activation failure, standard enable/disable, timer/job isolation and reboot
+activation failure, repeated enable/disable without reboot, timer/job isolation and reboot
 persistence. Remove this adaptation if upstream NixOS supplies a supported mutable
 unit-enablement directory with equivalent tested behavior.
