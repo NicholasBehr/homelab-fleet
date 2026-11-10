@@ -8,7 +8,7 @@ originals suitable for later HDD migration. Home Assistant uses a single `/persi
 volume and a LAN connected SMLIGHT Zigbee coordinator.
 
 **Status:** Immich production is running from the verified v0.2.1 operational
-image. Tailscale-only access, SOPS enrollment, QSV, direct remote Borg backup,
+image. Tailscale-only access, runtime credential enrollment, QSV, direct remote Borg backup,
 independent recovery escrow, full fresh-volume restoration and managed root
 replacement are verified. The scheduled backup runs daily at 02:15
 Europe/Zurich. See [validation](docs/validation.md) for boundaries and remaining

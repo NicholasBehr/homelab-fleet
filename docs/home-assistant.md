@@ -7,9 +7,9 @@ volume and is accessed through Tailscale Serve.
 
 ## Before building an operator release
 
-The operational image requires its own SOPS-encrypted Borg credentials. Keep
+The operational image requires its own operator-enrolled Borg credential files. Keep
 plaintext credentials out of Git, Nix, image inputs and command-line arguments.
-Enroll the service's age identity, dedicated Borg repository, SSH key/passphrase,
+Enroll the service's dedicated Borg repository, SSH key/passphrase,
 and independently authenticated SSH host key as described in
 [backup and recovery](recovery.md). Do not reuse Immich's backup identity or
 repository. Store the completed recovery set in one `Home Assistant production

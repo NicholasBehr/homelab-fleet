@@ -31,8 +31,10 @@ in
         "/persist/home-assistant/backups"
       ];
     };
-    secrets.encryptedFile =
-      if builtins.pathExists ../secrets/home-assistant.yaml then ../secrets/home-assistant.yaml else null;
+    secrets.requiredFiles = [
+      config.homelab.backup.passphraseFile
+      config.homelab.backup.sshKeyFile
+    ];
     tailscale.serveTarget =
       if config.homelab.image.variant == "bootstrap" then null else "http://127.0.0.1:8123";
     backup = {

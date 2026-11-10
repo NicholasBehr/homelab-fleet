@@ -64,11 +64,11 @@ in
     };
     passphraseFile = lib.mkOption {
       type = lib.types.str;
-      default = "/run/secrets/borg-passphrase";
+      default = "/persist/secrets/borg-passphrase";
     };
     sshKeyFile = lib.mkOption {
       type = lib.types.str;
-      default = "/run/secrets/borg-ssh-key";
+      default = "/persist/secrets/borg-ssh-key";
     };
     knownHostsFile = lib.mkOption {
       type = lib.types.str;

@@ -6,14 +6,14 @@ case "$stage" in
   lint)
     mapfile -t nix_files < <(git ls-files '*.nix')
     nixfmt --check "${nix_files[@]}"
-    shellcheck modules/borg-repository scripts/check scripts/release-assets scripts/verify-storage scripts/health-check services/immich/secrets-init tests/*.sh services/*/tests/*.sh services/*/backup-* services/*/layout
+    shellcheck modules/borg-repository scripts/check scripts/release-assets scripts/verify-storage scripts/health-check tests/*.sh services/*/tests/*.sh services/*/backup-* services/*/layout
     python3 -m unittest discover -s tests -p 'test_*.py'
     for directory in services/*/tests; do python3 -m unittest discover -s "$directory" -p 'test_*.py'; done
     python3 tests/secret-scan.py
     ;;
   eval) nix flake check --no-build ;;
   tests)
-    bash tests/secrets-roundtrip.sh
+    sudo --preserve-env=PATH bash tests/runtime-secrets-linux.sh
     bash tests/borg-restore.sh
     sudo --preserve-env=PATH unshare --mount bash tests/storage-linux.sh
     for script in services/*/tests/*-linux.sh; do sudo --preserve-env=PATH unshare --mount bash "$script"; done

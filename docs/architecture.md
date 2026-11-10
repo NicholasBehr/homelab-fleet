@@ -3,7 +3,7 @@
 ## Code boundaries
 
 `modules/` implements shared base hardening, native Proxmox LXC integration,
-mount-identity guards, SOPS readiness, Tailscale, optional Intel userspace and Borg.
+mount-identity guards, runtime credential readiness, Tailscale, optional Intel userspace and Borg.
 Modules declare options and never import service deployments. `services/immich/`
 owns native application settings, hot/bulk layout, package patch, backup hooks and
 service tests. `deployments/immich.nix` explicitly composes modules and supplies
@@ -24,7 +24,8 @@ systemd through `/sbin/init`. No Docker daemon, guest kernel or guest bootloader
 Root is disposable by replacement policy, not wiped each boot; no impermanence module.
 Software is in `/nix/store`, declarative config is exposed under `/etc`, temporary
 runtime state is under `/run`. No runtime keys or data-volume contents ship in images.
-Only SOPS ciphertext may be included; plaintext decryption happens at runtime.
+Credentials are enrolled on `/persist` independently of image builds. Neither
+plaintext nor encrypted production credential payloads enter image inputs.
 
 Unprivileged default UID mapping, generated AppArmor confinement and test-validated
 `nesting=1` remain. No privileged LXC, unconfined profile, DKMS, VF or kernel changes.
@@ -46,7 +47,7 @@ This deployment has no USB, render device, Thread, OTBR, MQTT broker or `/data`.
 | `/persist/home-assistant` | SQLite database, `.storage`, ZHA configuration/network backups, automations and dashboards |
 | `/persist/home-assistant/backups` | Home Assistant backup artifacts |
 | `/persist/tailscale` | Tailnet identity and Serve state |
-| `/persist/secrets/age-key.txt` | Root-only age identity |
+| `/persist/secrets/{borg-passphrase,borg-ssh-key}` | Operator-enrolled root-only Borg credentials |
 | `/persist/borg/{config,cache,known_hosts}` | Borg configuration, disposable cache and authenticated SSH trust |
 | `/persist/borg/repository` | Private runtime repository URI |
 
@@ -60,7 +61,8 @@ The initial MR4U setup uses the CC2674P10 radio on TCP 7638 for ZHA
 (`socket://SLZB_ADDRESS:7638`, ZNP, 115200 baud, no flow control). EFR32MG26 on
 port 6638 remains unused for future Thread planning. The SMLIGHT integration uses
 the MR4U management API and event stream on ports 80/81. Its credentials are
-entered in HA and stored in encrypted persistent state, never in Nix. Record
+entered in HA and stored in permission-protected persistent state, encrypted in
+Borg backups, never in Nix. Record
 radio identity, firmware, socket mappings and access credentials in the private
 operator inventory, not the public deployment contract.
 
@@ -74,8 +76,7 @@ operator inventory, not the public deployment contract.
 | `/persist/postgresql/17` | Live PostgreSQL; never raw-copied into Borg |
 | `/persist/redis` | Redis queue state |
 | `/persist/tailscale` | Node/SSH identity and Serve state |
-| `/persist/secrets/age-key.txt` | Root-only age identity |
-| `/run/secrets/{borg-passphrase,borg-ssh-key}` | Runtime SOPS plaintext; root-only |
+| `/persist/secrets/{borg-passphrase,borg-ssh-key}` | Operator-enrolled root-only Borg credentials |
 | `/persist/borg/{config,cache,known_hosts}` | Borg security/cache state and verified SSH trust |
 | `/persist/backup/immich.dump` | Atomic logical database backup input |
 | `/var/cache/immich` | Disposable downloaded models; may download again after replacement |

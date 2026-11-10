@@ -1,45 +1,24 @@
-{ config, lib, ... }:
-let
-  encrypted = config.homelab.secrets.encryptedFile;
-  present = encrypted != null;
-  bootstrap = config.homelab.image.variant == "bootstrap";
-in
 {
-  options.homelab.secrets.encryptedFile = lib.mkOption {
-    type = lib.types.nullOr lib.types.path;
-    default = null;
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+{
+  options.homelab.secrets.requiredFiles = lib.mkOption {
+    type = lib.types.listOf (lib.types.strMatching "/persist/secrets/[^/]+");
+    default = [ ];
+    description = "Operator-enrolled root-only runtime credentials; contents never enter image inputs.";
   };
-  config = {
-    # The readiness gate orders against the pinned module's actual systemd unit.
-    sops.useSystemdActivation = true;
-    sops.age = {
-      keyFile = "/persist/secrets/age-key.txt";
-      generateKey = false;
+  config.systemd.services.operational-ready = lib.mkIf (config.homelab.image.variant != "bootstrap") {
+    requires = [ "storage-contract.service" ];
+    after = [ "storage-contract.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
     };
-    sops.secrets = lib.optionalAttrs (!bootstrap && present) {
-      borg-passphrase = {
-        sopsFile = encrypted;
-      };
-      borg-ssh-key = {
-        sopsFile = encrypted;
-      };
-    };
-    systemd.services.operational-ready = lib.mkIf (!bootstrap) {
-      requires = [ "storage-contract.service" ] ++ lib.optional present "sops-install-secrets.service";
-      after = [ "storage-contract.service" ] ++ lib.optional present "sops-install-secrets.service";
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-      };
-      script = ''
-        test -s /persist/secrets/age-key.txt || { echo "Enroll container age identity first" >&2; exit 1; }
-        ${
-          if present then
-            "test -s /run/secrets/borg-passphrase && test -s /run/secrets/borg-ssh-key"
-          else
-            "echo 'Operational secrets absent: follow docs/operations.md' >&2; exit 1"
-        }
-      '';
-    };
+    script = ''
+      ${pkgs.python3}/bin/python3 ${../scripts/verify-secret} ${lib.escapeShellArgs config.homelab.secrets.requiredFiles}
+    '';
   };
 }

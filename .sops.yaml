@@ -1,5 +1,0 @@
-creation_rules:
-  - path_regex: secrets/immich\.yaml$
-    age: "age1m076s0ww52gaz0w7utl5zutz5gx90t9mqwsl3xx3atx392ns4pjq4rg6va,age1lsuqt6lktv0vsnuj4sx2rdl2y6u5w4eyntg9jaxspkuxwqsrus8qcsaue0"
-  - path_regex: secrets/home-assistant\.yaml$
-    age: "age1p5e4c98ycqu3qdxfzz5knwaqfs4xgt4cyswr6ygj2l0nhznxug9qsmawsw,age1f26z4leg9hmnqcdjhp6dsm5ruce2t8rs9s9m8554qhjxfsujaars9tlkjm"

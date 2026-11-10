@@ -35,8 +35,10 @@ in
         "/persist/borg/cache"
       ];
     };
-    secrets.encryptedFile =
-      if builtins.pathExists ../secrets/immich.yaml then ../secrets/immich.yaml else null;
+    secrets.requiredFiles = [
+      config.homelab.backup.passphraseFile
+      config.homelab.backup.sshKeyFile
+    ];
     tailscale.serveTarget =
       if config.homelab.image.variant == "bootstrap" then null else "http://127.0.0.1:2283";
     intelMedia.renderGid = c.renderGid;

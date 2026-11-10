@@ -3,22 +3,17 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     immich-nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    sops-nix = {
-      url = "github:Mic92/sops-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
   outputs =
     {
       self,
       nixpkgs,
       immich-nixpkgs,
-      sops-nix,
     }:
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
-      mkContainer = import ./lib/mk-container.nix { inherit nixpkgs sops-nix; };
+      mkContainer = import ./lib/mk-container.nix { inherit nixpkgs; };
       mkImmich =
         variant:
         mkContainer {
@@ -128,8 +123,6 @@
           jq
           borgbackup
           postgresql_17
-          age
-          sops
           util-linux
         ];
       };
@@ -141,8 +134,6 @@
         p.mkShell {
           packages = with p; [
             bash
-            age
-            sops
             shellcheck
             nixfmt
             python3

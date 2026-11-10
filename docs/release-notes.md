@@ -1,11 +1,17 @@
-# v0.3.1 — Home Assistant production enrollment
+# v0.4.0 — runtime credential enrollment
 
-Add the dedicated Home Assistant SOPS ciphertext encrypted to the production
-container identity and an independent recovery identity. Standardize one complete
-JSON 1Password Document per production service, independently re-downloaded and
-verified against SOPS, SSH, authenticated endpoint trust, Borg repository ID and
-encrypted key export before enrollment is accepted. No live account, endpoint,
-repository or 1Password identifiers enter this repository.
+Immich and Home Assistant now read Borg credentials from root-only files at
+`/persist/secrets/{borg-passphrase,borg-ssh-key}`. Images contain credential paths
+and validation rules only; SOPS, age enrollment and production ciphertext leave
+the current source/image inputs. Readiness rejects missing, empty, symlinked,
+incorrectly owned or overly permissive files. Credential rotation no longer
+requires an image release. The release manifest retains
+`encryptedSecretsIncluded=false` and adds `runtimeCredentialFiles`.
+
+Standardize one complete JSON 1Password Borg recovery Document per service,
+independently retrieved and checked against SSH, endpoint trust, repository ID
+and encrypted key export. Omit the resettable enrollment password. The new schema
+does not require age fields; preserve historical recovery material during migration.
 
 The Home Assistant LXC may use DHCP on the trusted LAN. Operator access remains
 stable through its tagged Tailscale identity; ZHA initiates its connection to the
@@ -13,12 +19,17 @@ MR4U. Keep the coordinator socket whitelist off and do not forward the MR4U's
 management or coordinator ports. This removes MAC/IP reservation coupling from
 container replacement without exposing Home Assistant on the physical LAN.
 
-Migration: keep the v0.3.0 bootstrap root and backup timer stopped while installing
-the private runtime repository URI and independently authenticated host key. Create
-only the dedicated approved repository, export its encrypted key, complete the
-recovery Document and prove independent retrieval plus fresh-volume restoration.
-Publish and verify the exact v0.3.1 operational image before replacing the root.
-Repository SemVer does not promise SQLite or Zigbee-network rollback safety.
+Migration: before replacing an existing SOPS-based root, take a consistent backup,
+preserve the old image and age recovery material, and securely enroll the same
+current credentials into the new `/persist/secrets` files. Verify file contents,
+ownership, permissions and independent escrow access before stopped root replacement.
+Do not initialize a new Immich repository or change its credentials as part of this
+migration. Follow the detailed transition in `docs/recovery.md`. Home Assistant
+bootstrap requires its separately enrolled credentials and verified Borg endpoint.
+Complete backup and fresh-volume restoration before normal operation. Storage
+markers, application state paths and ownership stay unchanged; the changed secret
+requirements intentionally advance repository SemVer to 0.4.0. Database and
+Zigbee-network rollback safety remain independent of the repository version.
 
 # v0.3.0 — Home Assistant Zigbee service
 

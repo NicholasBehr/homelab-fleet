@@ -69,9 +69,6 @@ the value and are not literals to copy:
 ```json
 {
   "purpose": "service and environment",
-  "containerAgeRecipient": "public age recipient",
-  "recoveryAgeRecipient": "independent public age recipient",
-  "recoveryAgeIdentity": "independent private age identity",
   "borgPassphrase": "repository passphrase",
   "borgSshPrivateKey": "dedicated private SSH key",
   "borgSshPublicKey": "matching public SSH key",
@@ -91,31 +88,62 @@ the value and are not literals to copy:
 }
 ```
 
-Generate each service's age identity, Borg SSH key and Borg passphrase separately;
+Generate each service's Borg SSH key and Borg passphrase separately;
 never reuse Immich material. Keep working plaintext only in a mode0700 temporary
 directory with private files mode0600. The Storage Box account password is an
 enrollment credential, not recovery material: use it interactively to install the
 dedicated public key, then rely on the escrowed SSH key. It may be reset through
-the provider and is intentionally absent from the recovery document.
+the provider and is intentionally absent from the recovery document. It remains
+valid at Hetzner until reset; treating it as single-use is an operator convention,
+not automatic revocation. Do not grant the service access to provider credentials.
 
 Write the final document only after the intended repository is initialized and its
 ID and encrypted key export are available. Download the saved Document again into
 a fresh protected directory and verify, without trusting the working copy, that:
 
-1. the recovery identity derives `recoveryAgeRecipient` and decrypts the service's
-   committed SOPS payload;
-2. the SSH public key derives from `borgSshPrivateKey` and authenticates only the
+1. the SSH public key derives from `borgSshPrivateKey` and authenticates only the
    restricted service subaccount;
-3. `knownHosts` matches the independently authenticated endpoint key;
-4. the repository opens with `borgPassphrase`, its ID matches `repositoryID`, and
+2. `knownHosts` matches the independently authenticated endpoint key;
+3. the repository opens with `borgPassphrase`, its ID matches `repositoryID`, and
    the encrypted key export is usable with the documented passphrase; and
-5. repository, remote path and schedule match the deployed runtime files and job.
+4. repository, remote path and schedule match the deployed runtime files and job.
 
 Set `status` to `enrolled` and enable scheduled backups only after these checks and
 a fresh-volume restore rehearsal pass. Then remove the protected working plaintext
 and retain the independently retrieved Document. Rotation replaces all affected
-SOPS recipients/runtime credentials and the escrow document as one reviewed
+runtime credentials and the escrow document as one reviewed
 operation; never assume an old document remains compatible.
+
+## Runtime credential contract and migration
+
+Images declare credential paths and validation rules only. Each service keeps
+`/persist/secrets` root:root mode0700 and its `borg-passphrase` and `borg-ssh-key`
+files root:root mode0600 (mode0400 is also accepted). Missing, empty, symlinked,
+incorrectly owned or overly permissive credentials fail readiness. Files and their
+parent directories must not be writable by other users. Never repair unsafe files
+by silently replacing them. All `/persist` credentials are included in encrypted
+Borg archives; independent 1Password recovery access breaks the bootstrap cycle.
+
+One Borg Document is the sole service backup recovery secret record. It replaces
+age identities and loose key attachments for new enrollments. Application logins,
+radio passwords and provider administrator access remain separate credentials;
+the Borg Document does not replace those operator accounts.
+
+Before replacing a pre-v0.4.0 SOPS-based root, take a consistent backup and preserve
+the exact old image, ciphertext and age recovery material. With the existing root
+still available, securely install the current `/run/secrets/borg-passphrase` and
+`borg-ssh-key` contents at the new `/persist/secrets` paths without displaying them,
+changing their values or overwriting existing destination files. Compare file
+contents privately and validate ownership/modes. Verify the unchanged repository
+ID and key export using a fresh download of the service's 1Password Document.
+Stop if destination files conflict or independent recovery cannot be proved.
+
+Replace only the root through the approved stopped-transfer procedure; verify
+startup, backup, independent recovery and fresh-volume restoration. Preserve old
+age identities and the original recovery Document until these checks pass; older
+images and historical archives may still need them. Do not rewrite Git history or
+assume removing current ciphertext invalidates old copies. No application data,
+repository encryption, database schema or volume marker changes are implied.
 
 The Immich deployment reads its remote repository URI from
 `/persist/borg/repository`, a root-owned mode0600 file containing exactly one line,
@@ -179,30 +207,31 @@ and the exact compatible image, PostgreSQL and extensions from its version recor
    values in command arguments or Nix. Verify the repository and explicit archive
    with `borg check --verify-data` before extraction.
 2. Decide whether this is loss recovery or a compromise. For loss recovery, the
-   archived age key can decrypt the matching image's SOPS payload. Recover Tailscale
+   archived runtime credentials can be restored directly. Recover Tailscale
    identity only with the original definitively stopped; revoke it and enroll a new
    node if exclusivity cannot be assured. Never run duplicate live identities.
    For suspected compromise, rotate identities/credentials instead; establish a new
-   age key, re-encrypt SOPS with independently escrowed recovery credentials, and
-   publish/verify the matching ciphertext-bearing image before proceeding.
+   runtime credential set and update independent escrow before proceeding. If the
+   Borg encryption key was exposed, changing its passphrase alone is insufficient;
+   plan a new repository and credential rotation.
 3. Inspect archive paths and capacity, then selectively extract directly into the
    empty, quiesced mounts with numeric ownership preserved. Restore `persist/immich`,
    `data/immich`, Redis, the logical dump/version record under `persist/backup`,
-   Borg config/trust and the chosen identities. Do not extract the entire archive
+   Borg config/trust, `persist/secrets` and the chosen identities. Do not extract the entire archive
    indiscriminately: preserve the new outer volume markers and omit live PostgreSQL,
    reproducible caches and legacy staging. Duplicate scratch media is unnecessary.
    Keep the source archive and original volumes retained.
 4. Verify Immich1100, PostgreSQL71 and Redis1101 ownership against the reviewed
    contract, all six `.immich` markers (which may be empty), and upload/library links
    into `/data/immich`. Keep thumbnails, previews and encoded video on `/persist`.
-   Check the restored age key is root-owned mode0600.
+   Check restored runtime credentials are root:root mode0600 under mode0700.
 5. Replace bootstrap root with the matching recovery image using stopped transfers
    and GUID/attachment checks. Wait for systemd initialization to complete and verify
    storage/readiness gates, PostgreSQL and Redis individually. Automatic app/ML and
    `tailscale-policy` startup and backups are disabled in this image. Restored
    Tailscale state can still contain a saved Serve proxy: run `tailscale serve reset`
    and verify no Serve configuration and app/ML MainPID zero before DB restoration.
-   Verify decrypted SOPS secrets are root-owned mode0400.
+   Verify restored runtime credentials pass the readiness gate.
 6. With a fresh database and app never started, inspect `pg_restore --list` on the
    custom dump. Exclude extension and public-schema creation entries already owned
    by NixOS setup. Review the resulting list for these exact extension versions.

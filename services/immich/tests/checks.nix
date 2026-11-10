@@ -97,23 +97,15 @@ in
       ${operational.config.services.immich.package.machine-learning}/bin/machine-learning
     touch "$out"
   '';
-  secret-service =
-    if builtins.pathExists ../../../secrets/immich.yaml then
-      pkgs.runCommand "operational-secret-service-wiring" { } ''
-        test -s ${
-          operational.config.systemd.units."sops-install-secrets.service".unit
-        }/sops-install-secrets.service
-        grep -q 'Requires=.*sops-install-secrets.service' \
-          ${operational.config.systemd.units."operational-ready.service".unit}/operational-ready.service
-        grep -q 'After=.*sops-install-secrets.service' \
-          ${operational.config.systemd.units."operational-ready.service".unit}/operational-ready.service
-        test -s ${
-          recovery.config.systemd.units."sops-install-secrets.service".unit
-        }/sops-install-secrets.service
-        touch "$out"
-      ''
-    else
-      pkgs.runCommand "no-enrolled-secret-service" { } ''touch "$out"'';
+  secret-service = pkgs.runCommand "runtime-secret-service-wiring" { } ''
+    grep -q 'Requires=.*storage-contract.service' \
+      ${operational.config.systemd.units."operational-ready.service".unit}/operational-ready.service
+    grep -q 'After=.*storage-contract.service' \
+      ${recovery.config.systemd.units."operational-ready.service".unit}/operational-ready.service
+    grep -q '/persist/secrets/borg-passphrase' \
+      ${pkgs.writeText "ready-script" operational.config.systemd.services.operational-ready.script}
+    touch "$out"
+  '';
   bootstrap =
     assert !(bootstrap.config.systemd.services ? immich-server);
     assert !(bootstrap.config.systemd.services ? postgresql);

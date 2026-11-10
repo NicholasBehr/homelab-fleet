@@ -1,11 +1,12 @@
 # Verification matrix
 
-Status as of 2026-11-08. Historical commands/results remain in Git history; exact
+Status as of 2026-11-10. Historical commands/results remain in Git history; exact
 live GUIDs, identities and recovery receipts are in the protected operator inventory,
 not this public repository. Historical evidence never authorizes a new mutation.
 
 | Check | Evidence / boundary |
 |---|---|
+| Runtime credential transition (v0.4.0) | In progress: local metadata regression tests cover private modes, empty files, wrong ownership, unsafe directory permissions and non-regular files. Production replacement and independent fresh-volume restoration remain required; earlier SOPS evidence below applies only to historical releases |
 | Linux builds, secret/mount guards, Borg/PG fixture restore | Passed for v0.2.1 at the checked main commit |
 | Release verification | All seven v0.2.1 assets passed provenance, attestation and checksum verification; manifests, versions and contracts matched reviewed source |
 | Unprivileged native NixOS LXC boot | Passed with nesting=1; generated AppArmor/default ID mapping retained |
