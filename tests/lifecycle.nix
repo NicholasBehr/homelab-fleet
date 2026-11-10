@@ -68,7 +68,13 @@ pkgs.testers.runNixOSTest {
         };
         borgbackup-job-fixture = {
           serviceConfig.Type = "oneshot";
-          script = "touch /persist/backup-ran";
+          path = [ pkgs.systemd ];
+          script = ''
+            systemctl stop fixture-app tailscaled
+            systemctl is-active --quiet homelab-operational.target
+            touch /persist/backup-ran
+            systemctl start tailscaled fixture-app
+          '';
         };
       };
       systemd.timers.borgbackup-job-fixture.timerConfig = {
@@ -102,6 +108,9 @@ pkgs.testers.runNixOSTest {
     for unit in ["fixture-app", "fixture-db", "tailscaled", "borgbackup-job-fixture.timer"]:
         machine.wait_for_unit(unit)
     machine.succeed("systemctl start borgbackup-job-fixture; test -e /persist/backup-ran")
+    machine.wait_for_unit("homelab-operational.target")
+    machine.wait_for_unit("fixture-app")
+    machine.wait_for_unit("tailscaled")
     machine.reboot()
     machine.wait_for_unit("homelab-operational.target")
     machine.wait_for_unit("fixture-app")

@@ -56,10 +56,8 @@ in
     systemd.units."homelab-operational.target".text = ''
       [Unit]
       Description=Explicitly activated homelab workload
-      Requires=storage-contract.service operational-ready.service ${
-        lib.concatMapStringsSep " " (name: "${name}.service") startup
-      }
-      Wants=${lib.concatStringsSep " " timer}
+      Requires=storage-contract.service operational-ready.service
+      Wants=${lib.concatStringsSep " " (map (name: "${name}.service") startup ++ timer)}
       After=storage-contract.service operational-ready.service ${
         lib.concatMapStringsSep " " (name: "${name}.service") startup
       }

@@ -20,6 +20,11 @@ the target stops its members. Database helpers remain available for explicit
 mode transition. Do not independently enable member units or start applications
 while restoring their state.
 
+The target requires storage and credential readiness, and wants its workload
+members. A temporary member stop during a quiesced backup must not stop the target
+itself. Member health is checked independently; target activation is not proof of
+application health.
+
 ```sh
 # Inspect without starting anything.
 systemctl is-enabled homelab-operational.target
@@ -88,6 +93,7 @@ activation; install a fresh root instead of modifying an old production root.
 The adaptation assumes the repository's disposable-root replacement policy;
 routine in-place rebuilds are unsupported. The Linux lifecycle boot test covers
 initial inactivity, enrollment without activation, isolated dependency startup,
-activation failure, repeated enable/disable without reboot, timer/job isolation and reboot
+activation failure, backup quiesce/restart, repeated enable/disable without reboot,
+timer/job isolation and reboot
 persistence. Remove this adaptation if upstream NixOS supplies a supported mutable
 unit-enablement directory with equivalent tested behavior.
