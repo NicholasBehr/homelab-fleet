@@ -2,8 +2,9 @@
 
 Each service has one release output: `immich` or `home-assistant`. The same image
 supports first enrollment, restoration and normal operation. The operational target
-is declared in the NixOS boot graph, but a fresh root lacks its root-local activation
-record. Storage checks run, but application services, databases, Tailscale and
+is added to the boot transaction by a systemd generator only when the root-local
+activation record exists. A fresh root therefore keeps application services,
+databases, Tailscale and
 scheduled backup timers remain inactive.
 Missing/unsafe credentials fail readiness before protected services start.
 
@@ -83,11 +84,13 @@ longer publish those output names.
 ## NixOS lifecycle model
 
 NixOS owns the declarative systemd unit tree; this design does not replace or make
-that tree mutable. `homelab-operational.target` is always wanted by
-`multi-user.target` and has `ConditionPathExists=` for the disposable-root record.
-On a fresh image, systemd skips it. Activation writes the record atomically before
-starting the target; failed startup removes it again. Deactivation removes it before
-stopping the target, so even an interrupted stop cannot reactivate on reboot.
+that tree mutable. An early systemd generator adds a transient link under
+`/run/systemd/generator` only when the disposable-root record exists. On a fresh
+image, neither the target nor any of its dependencies enters the boot transaction.
+Activation writes the record atomically, reloads systemd generators and starts the
+target; failed startup removes the record and reloads again. Deactivation removes
+the record and reloads before stopping the target, so even an interrupted stop
+cannot reactivate on reboot.
 
 Routine in-place rebuilds remain unsupported. The Linux lifecycle boot test covers
 initial inactivity, enrollment without activation, isolated dependency startup,

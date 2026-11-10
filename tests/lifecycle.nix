@@ -87,13 +87,12 @@ pkgs.testers.runNixOSTest {
   testScript = ''
     start_all()
     machine.wait_for_unit("multi-user.target")
-    machine.succeed("systemctl is-enabled homelab-operational.target")
     machine.fail("test -e /var/lib/homelab/operational-enabled")
+    machine.fail("test -e /run/systemd/generator/multi-user.target.wants/homelab-operational.target")
     for unit in ["fixture-app", "fixture-db", "tailscaled", "tailscale-policy", "borgbackup-job-fixture.timer"]:
         machine.fail(f"systemctl is-active {unit}")
-    machine.succeed("systemctl start homelab-operational.target")
-    machine.fail("systemctl is-active homelab-operational.target")
-    machine.fail("systemctl is-active fixture-app")
+    machine.fail("homelab-activate")
+    machine.fail("test -e /var/lib/homelab/operational-enabled")
     machine.fail("test -e /persist/app-started")
     machine.succeed("touch /persist/enrolled; systemctl reset-failed")
     # Restored/enrolled state does not activate an otherwise fresh root.
@@ -107,6 +106,7 @@ pkgs.testers.runNixOSTest {
     machine.fail("systemctl is-active fixture-app tailscaled")
     machine.succeed("systemctl stop fixture-db; systemctl reset-failed")
     machine.succeed("homelab-activate")
+    machine.succeed("test -L /run/systemd/generator/multi-user.target.wants/homelab-operational.target")
     machine.wait_for_unit("homelab-operational.target")
     for unit in ["fixture-app", "fixture-db", "tailscaled", "borgbackup-job-fixture.timer"]:
         machine.wait_for_unit(unit)
@@ -118,6 +118,7 @@ pkgs.testers.runNixOSTest {
     machine.wait_for_unit("homelab-operational.target")
     machine.wait_for_unit("fixture-app")
     machine.succeed("homelab-deactivate")
+    machine.fail("test -e /run/systemd/generator/multi-user.target.wants/homelab-operational.target")
     for unit in ["fixture-app", "fixture-db", "tailscaled", "borgbackup-job-fixture.timer"]:
         machine.fail(f"systemctl is-active {unit}")
     machine.succeed("homelab-activate")
@@ -127,7 +128,6 @@ pkgs.testers.runNixOSTest {
     machine.reboot()
     machine.wait_for_unit("multi-user.target")
     machine.fail("systemctl is-active fixture-app tailscaled")
-    machine.succeed("systemctl is-enabled homelab-operational.target")
     machine.fail("test -e /var/lib/homelab/operational-enabled")
   '';
 }

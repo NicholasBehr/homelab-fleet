@@ -17,6 +17,15 @@ let
   job = "borgbackup-job-${backup.name}";
   timer = lib.optional backup.enable "${job}.timer";
   marker = "/var/lib/homelab/operational-enabled";
+  generator = pkgs.writeShellScript "homelab-operational-generator" ''
+    if ! test -f ${marker}; then
+      exit 0
+    fi
+    ${pkgs.coreutils}/bin/install -d -m 0755 "$1/multi-user.target.wants"
+    ${pkgs.coreutils}/bin/ln -s \
+      /run/current-system/systemd/units/homelab-operational.target \
+      "$1/multi-user.target.wants/homelab-operational.target"
+  '';
   activate = pkgs.writeShellApplication {
     name = "homelab-activate";
     runtimeInputs = [
@@ -30,8 +39,10 @@ let
       printf '1\n' >"$record"
       chmod 0600 "$record"
       mv -T "$record" ${marker}
+      systemctl daemon-reload
       if ! systemctl start homelab-operational.target; then
         rm -f ${marker}
+        systemctl daemon-reload
         systemctl stop homelab-operational.target || true
         exit 1
       fi
@@ -49,6 +60,7 @@ let
         exit 1
       fi
       rm -f ${marker}
+      systemctl daemon-reload
       systemctl stop homelab-operational.target
     '';
   };
@@ -66,11 +78,11 @@ in
       activate
       deactivate
     ];
-    # The target is declaratively part of boot, but the root-local condition keeps
-    # a fresh image inert. Restored /persist state can never satisfy this gate.
+    # A systemd generator adds the target to the boot transaction only when the
+    # disposable root carries the activation record. /persist cannot satisfy it.
+    systemd.generators.homelab-operational-generator = generator;
     systemd.targets."homelab-operational" = {
       description = "Explicitly activated homelab workload";
-      unitConfig.ConditionPathExists = marker;
       requires = [
         "storage-contract.service"
         "operational-ready.service"
@@ -81,7 +93,6 @@ in
         "operational-ready.service"
       ]
       ++ map (name: "${name}.service") startup;
-      wantedBy = [ "multi-user.target" ];
     };
     systemd.services = lib.mkMerge [
       {
