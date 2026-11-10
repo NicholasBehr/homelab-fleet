@@ -104,6 +104,6 @@ in
       ${pkgs.writeText "ready-script" immich.config.systemd.services.operational-ready.script}
     touch "$out"
   '';
-  operational = immich.config.system.build.toplevel;
+  system = immich.config.system.build.toplevel;
   backup-config = backupFixture.system.build.toplevel;
 }

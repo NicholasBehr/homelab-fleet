@@ -18,12 +18,11 @@
         deployment = ./deployments/immich.nix;
         specialArgs.immichNixpkgs = immich-nixpkgs;
       };
-      homeAssistant = mkContainer {
+      home-assistant = mkContainer {
         deployment = ./deployments/home-assistant.nix;
       };
       configurations = {
-        inherit immich;
-        home-assistant = homeAssistant;
+        inherit immich home-assistant;
       };
       mkTemplate =
         host: host.config.system.build.tarball.override { compressCommand = "pixz -t -1 -p 2"; };
