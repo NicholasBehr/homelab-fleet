@@ -6,7 +6,7 @@ not this public repository. Historical evidence never authorizes a new mutation.
 
 | Check | Evidence / boundary |
 |---|---|
-| Single-image lifecycle (v0.4.0) | Under validation: Linux VM test exercises disabled boot, failed activation, restoration helpers, explicit enable/disable, timer/job isolation and reboot persistence. Evaluated wiring checks cover both real services. Proxmox restoration/cutover remains a separate operator gate |
+| Single-image lifecycle (v0.4.0) | [Linux CI passed](https://github.com/NicholasBehr/homelab-fleet/actions/runs/42914368055) for inactive boot, failed activation, restoration helpers, activation/deactivation, timer/job isolation and restart persistence. Wiring checks cover both real services. Proxmox restoration/cutover remains a separate operator gate |
 | Runtime credential transition (v0.4.0) | In progress: local metadata regression tests cover private modes, empty files, wrong ownership, unsafe directory permissions and non-regular files. Production replacement and independent fresh-volume restoration remain required; earlier SOPS evidence below applies only to historical releases |
 | Linux builds, secret/mount guards, Borg/PG fixture restore | Passed for v0.2.1 at the checked main commit |
 | Release verification | All seven v0.2.1 assets passed provenance, attestation and checksum verification; manifests, versions and contracts matched reviewed source |
@@ -41,11 +41,13 @@ proof of production restoration. Pattern scanning is heuristic, not proof of no
 secret leakage. CI has no homelab credentials or network access.
 
 Nix derivation comparison selects affected images/checks. Missing old schema/base
-falls back to all outputs. Current evaluation failures fail CI. Local actual-derivation probes passed: docs selected none, an Immich Serve-target
-change selected operational/recovery images while leaving bootstrap/shared fixture
-unchanged, and a shared base change selected all images plus the shared fixture.
-The first refactor CI run built every output successfully. Cache handoff between
-validation and image jobs was observed; eviction never changes correctness.
+falls back to all outputs. Current evaluation failures fail CI. Cache handoff between
+validation and image jobs avoids rebuilding available shared derivations; separate
+image runners still assemble each archive independently. Eviction never changes
+correctness. In the first successful single-image run, validation took 11m19s:
+6m11s building selected checks, 1m36s comparing derivations, and about 2m in
+cache restore/save. Image jobs then ran in parallel and took about 5–6 minutes.
+These are one run's measurements, not a guaranteed duration.
 
 Evidence: [v0.2.1 main checks](https://github.com/NicholasBehr/homelab-fleet/actions/runs/42487039074)
 and [v0.2.1 release](https://github.com/NicholasBehr/homelab-fleet/actions/runs/42487982978)

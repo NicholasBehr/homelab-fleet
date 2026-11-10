@@ -14,7 +14,7 @@
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
       mkContainer = import ./lib/mk-container.nix { inherit nixpkgs; };
-      operational = mkContainer {
+      immich = mkContainer {
         deployment = ./deployments/immich.nix;
         specialArgs.immichNixpkgs = immich-nixpkgs;
       };
@@ -22,7 +22,7 @@
         deployment = ./deployments/home-assistant.nix;
       };
       configurations = {
-        immich = operational;
+        inherit immich;
         home-assistant = homeAssistant;
       };
       mkTemplate =
@@ -37,7 +37,7 @@
       serviceChecks = import ./services/immich/tests/checks.nix {
         inherit
           pkgs
-          operational
+          immich
           ;
       };
       fixture = mkContainer {

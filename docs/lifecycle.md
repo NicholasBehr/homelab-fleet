@@ -3,9 +3,8 @@
 Each service has one release output: `immich` or `home-assistant`. The same image
 supports first enrollment, restoration and normal operation. The operational target
 is added to the boot transaction by a systemd generator only when the root-local
-activation record exists. A fresh root therefore keeps application services,
-databases, Tailscale and
-scheduled backup timers remain inactive.
+activation record exists. On a fresh root, application services, databases,
+Tailscale and scheduled backup timers remain inactive.
 Missing/unsafe credentials fail readiness before protected services start.
 
 `homelab-activate` and `homelab-deactivate` are narrow lifecycle commands. They
@@ -27,7 +26,8 @@ while restoring their state.
 The target requires storage and credential readiness, and wants its workload
 members. A temporary member stop during a quiesced backup must not stop the target
 itself. Member health is checked independently; target activation is not proof of
-application health.
+application health. Explicit manual starts bypass the boot gate; operators use
+those only for the documented enrollment or restoration steps.
 
 ```sh
 # Inspect without starting anything.
@@ -71,8 +71,9 @@ application, tailnet and recent successful backup.
 Enablement is a root-owned record under `/var/lib/homelab` on the disposable root.
 It survives ordinary reboot but is absent from a newly imported root. Borg archives
 `/persist` and declared data, not this root-local record. Restoring all persistent data
-therefore cannot activate a fresh root. Verify the activation record is absent and the target inactive
-before extraction; keep the original stopped before restoring its identity.
+therefore cannot activate a fresh root. Verify the activation record is absent and
+the target inactive before extraction; keep the original stopped before restoring
+its identity.
 
 Use the exact compatible release for application restoration. On the same image,
 start only the database and directory helpers needed for logical restoration,

@@ -213,7 +213,8 @@ and original volumes. Never extract over running state. Select an explicit archi
 and the exact compatible image, PostgreSQL and extensions from its version record.
 
 1. Provision the exact compatible service image with new empty declared mounts
-   and their markers. Verify `homelab-operational.target` is disabled/inactive. Keep
+   and their markers. Verify the root-local activation record is absent and
+   `homelab-operational.target` is inactive. Keep
    Tailscale stopped and prevent its automatic restart while restoring identity.
    Verify its MainPID is zero. Retrieve Borg credentials and authenticated endpoint
    trust from independent escrow into protected runtime files; never put secret

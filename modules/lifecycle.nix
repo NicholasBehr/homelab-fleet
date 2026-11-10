@@ -35,17 +35,23 @@ let
     text = ''
       install -d -m 0700 /var/lib/homelab
       record=$(mktemp /var/lib/homelab/.operational-enabled.XXXXXX)
-      trap 'rm -f "$record"' EXIT
+      installed=0
+      cleanup() {
+        status=$?
+        rm -f "$record"
+        if (( status != 0 && installed )); then
+          rm -f ${marker}
+          systemctl daemon-reload || true
+          systemctl stop homelab-operational.target || true
+        fi
+      }
+      trap cleanup EXIT
       printf '1\n' >"$record"
       chmod 0600 "$record"
       mv -T "$record" ${marker}
+      installed=1
       systemctl daemon-reload
-      if ! systemctl start homelab-operational.target; then
-        rm -f ${marker}
-        systemctl daemon-reload
-        systemctl stop homelab-operational.target || true
-        exit 1
-      fi
+      systemctl start homelab-operational.target
     '';
   };
   deactivate = pkgs.writeShellApplication {

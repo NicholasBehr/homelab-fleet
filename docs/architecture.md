@@ -100,7 +100,7 @@ provides a tested equivalent; never disable upstream tests to accommodate it.
    and readiness. Give the service its own identity and Borg repository.
 3. Register one configuration, catalog entry, contract and checks explicitly in
    the flake. The single image serves enrollment, restoration and operation through
-   a disabled-by-default `homelab-operational.target`; declare its members in the
+   an inactive-by-default `homelab-operational.target`; declare its members in the
    deployment. Each image supplies `/etc/homelab-versions.json` for its manifest.
 4. Verify that an unrelated service change leaves this image's derivation unchanged.
    Rehearse enrollment, replacement, backup failure and complete restoration.
