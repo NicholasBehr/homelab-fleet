@@ -36,7 +36,9 @@ manifest = dict(service=service, variant=entry['variant'], outputName=variant,
                 contract=evaluate('deploymentContracts.'+service),
                 encryptedSecretsIncluded=False,
                 runtimeCredentialFiles=evaluate('nixosConfigurations.'+variant+'.config.homelab.secrets.requiredFiles'),
-                activationTarget='homelab-operational.target', defaultActivated=False)
+                activationTarget='homelab-operational.target',
+                activationCommand='homelab-activate',
+                deactivationCommand='homelab-deactivate', defaultActivated=False)
 with open('dist/'+variant+'-manifest.json','w') as f:
     json.dump(manifest,f,indent=2); f.write('\n')
 PYTHON

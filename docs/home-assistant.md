@@ -16,7 +16,7 @@ repository. Store the completed recovery set in one `Home Assistant production
 recovery` 1Password Document using the same JSON schema, independent-download
 verification and enrollment gates as Immich. The operational readiness gate
 intentionally refuses to start HA until enrollment is complete. The single image
-boots with its operational target disabled: Home Assistant, Tailscale and backup
+boots without its root-local activation record: Home Assistant, Tailscale and backup
 timers stay stopped until explicit operator startup. See [lifecycle](lifecycle.md).
 
 The contract proposes CT IDs 210/211, 2 cores, 4 GiB RAM, 32 GiB root, and one
@@ -71,7 +71,7 @@ an IP whitelist for the coordinator socket. Home Assistant will connect to
 
 1. Boot the reviewed service image with the exact `/persist` volume and marker.
    Complete enrollment/recovery checks from the console, then use
-   `systemctl enable --now homelab-operational.target` to activate the workload.
+   `homelab-activate` to activate the workload on this disposable root.
    Verify `storage-contract.service`, `operational-ready.service`, `tailscaled`,
    and `home-assistant` are active. The health URL is local `127.0.0.1:8123/api/`.
 2. Enroll the intended Tailscale identity and verify `https://<container-tailnet-name>`

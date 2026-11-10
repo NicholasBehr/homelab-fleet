@@ -1,14 +1,17 @@
 # One image, explicit activation
 
 Each service has one release output: `immich` or `home-assistant`. The same image
-supports first enrollment, restoration and normal operation. Fresh roots have
-`homelab-operational.target` disabled. Storage checks run, but application services,
-databases, Tailscale and scheduled backup timers have no automatic boot links.
+supports first enrollment, restoration and normal operation. The operational target
+is declared in the NixOS boot graph, but a fresh root lacks its root-local activation
+record. Storage checks run, but application services, databases, Tailscale and
+scheduled backup timers remain inactive.
 Missing/unsafe credentials fail readiness before protected services start.
 
-There is no mode command, persistent activation marker or version-based activation.
-State files and format markers on `/persist` describe data; they do not authorize
-startup. Application/database compatibility still requires operator review.
+`homelab-activate` and `homelab-deactivate` are narrow lifecycle commands. They
+manage `/var/lib/homelab/operational-enabled` on the disposable root and the
+systemd target; they do not inspect or mutate `/persist`. State files and format
+markers on `/persist` describe data but never authorize startup. Application and
+database compatibility still require operator review.
 
 ## Standard controls
 
@@ -27,12 +30,12 @@ application health.
 
 ```sh
 # Inspect without starting anything.
-systemctl is-enabled homelab-operational.target
+test -e /var/lib/homelab/operational-enabled
 systemctl is-active homelab-operational.target
 
 # After enrollment/restoration and verification: activate now and on this root's
 # subsequent boots. Tailscale identity exclusivity must already be established.
-systemctl enable --now homelab-operational.target
+homelab-activate
 ```
 
 Before activation, initialize only the approved new Borg repository or verify the
@@ -52,22 +55,22 @@ To stop for restoration/replacement, stop the service's backup timer first and
 wait for any running backup to finish. Then use the console:
 
 ```sh
-systemctl disable --now homelab-operational.target
+homelab-deactivate
 ```
 
 This stops Tailscale SSH too. Verify each member is stopped; services manually
 started during restoration must also be stopped before extraction or cutover.
-If activation fails, disable/stop the target, inspect individual unit results,
-repair enrollment and verify again. Never interpret an enabled link as a health
-check. `health-check` additionally requires the application, tailnet and recent
-successful backup.
+If activation fails, the command removes the activation record and stops the target.
+Inspect individual unit results, repair enrollment and verify again. Never interpret
+the activation record as a health check. `health-check` additionally requires the
+application, tailnet and recent successful backup.
 
 ## Replacement and restoration
 
-Enablement is a local symlink under `/etc/systemd/system`, on the disposable root.
+Enablement is a root-owned record under `/var/lib/homelab` on the disposable root.
 It survives ordinary reboot but is absent from a newly imported root. Borg archives
-`/persist` and declared data, not root enablement. Restoring all persistent data
-therefore cannot activate a fresh root. Verify the target is disabled and inactive
+`/persist` and declared data, not this root-local record. Restoring all persistent data
+therefore cannot activate a fresh root. Verify the activation record is absent and the target inactive
 before extraction; keep the original stopped before restoring its identity.
 
 Use the exact compatible release for application restoration. On the same image,
@@ -77,23 +80,16 @@ root replacement between recovery and operation is unnecessary. Keep historical
 bootstrap/recovery artifacts available for historical releases; new releases no
 longer publish those output names.
 
-## NixOS unit-directory adaptation
+## NixOS lifecycle model
 
-NixOS normally links `/etc/systemd/system` wholesale to its immutable generated
-tree. `modules/lifecycle.nix` disables that one directory link and materializes the
-same tree as directories with immutable unit-file links during activation. The
-installable operational target is a root-owned regular file copied from that tree:
-`systemctl disable` may remove a symlinked unit file, so this keeps the target
-available for immediate re-enablement. Existing root-local enablement links survive
-reboot; unit definitions still come from the reviewed image. This supports ordinary
-`systemctl enable/disable` without a custom
-mode tool or a writable `/etc` overlay. Unexpected legacy directory symlinks fail
-activation; install a fresh root instead of modifying an old production root.
+NixOS owns the declarative systemd unit tree; this design does not replace or make
+that tree mutable. `homelab-operational.target` is always wanted by
+`multi-user.target` and has `ConditionPathExists=` for the disposable-root record.
+On a fresh image, systemd skips it. Activation writes the record atomically before
+starting the target; failed startup removes it again. Deactivation removes it before
+stopping the target, so even an interrupted stop cannot reactivate on reboot.
 
-The adaptation assumes the repository's disposable-root replacement policy;
-routine in-place rebuilds are unsupported. The Linux lifecycle boot test covers
+Routine in-place rebuilds remain unsupported. The Linux lifecycle boot test covers
 initial inactivity, enrollment without activation, isolated dependency startup,
-activation failure, backup quiesce/restart, repeated enable/disable without reboot,
-timer/job isolation and reboot
-persistence. Remove this adaptation if upstream NixOS supplies a supported mutable
-unit-enablement directory with equivalent tested behavior.
+activation failure, backup quiesce/restart, repeated activation/deactivation without
+reboot, timer/job isolation and reboot persistence.

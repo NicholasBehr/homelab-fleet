@@ -77,7 +77,7 @@ Attach persist as mp0 and data as mp1; never write a marker to unidentified stor
 Proxmox mountpoints precede guest init. Verify generated AppArmor, ID maps, render
 ownership, TUN0600 and all guard failures before enrolling.
 
-Boot the service image with its operational target disabled and enroll unique Borg credentials through authenticated operator
+Boot the service image without its root-local operational activation record and enroll unique Borg credentials through authenticated operator
 access. Install `/persist/secrets/borg-passphrase` and `borg-ssh-key` as root:root
 mode0600 under a root:root mode0700 directory. The image only declares paths and
 validation rules. Keep all credential contents out of Git, command arguments,
@@ -94,7 +94,7 @@ no tailnet or Proxmox credentials. Configure remote Borg as [recovery](recovery.
 describes before trusting production data.
 
 After enrollment, independently verified escrow and restoration checks, activate
-with `systemctl enable --now homelab-operational.target` from the console. A fresh
+with `homelab-activate` from the console. A fresh
 root always requires this explicit step; see [lifecycle](lifecycle.md).
 
 ## Replace a root
@@ -107,7 +107,7 @@ root always requires this explicit step; see [lifecycle](lifecycle.md).
 4. Create a fresh root on a new approved CT ID; record its GUID. Stop the old
    container gracefully. Ensure both old/new are stopped before moving mp0/mp1
    using `pct move-volume OLD mp0 --target-vmid NEW --target-volume mp0` and mp1.
-5. Recheck transferred GUIDs and start NEW with its operational target disabled.
+5. Recheck transferred GUIDs and start NEW with its activation record absent.
    Complete offline validation, confirm the original identity is stopped, then
    explicitly enable/start the target. Check each required unit, secret
    permissions, identity continuity, DB/assets, placement, HTTPS, playback and jobs.

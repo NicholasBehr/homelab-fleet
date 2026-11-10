@@ -2,7 +2,7 @@
 
 ## Direct, quiesced Borg backups
 
-The single service image keeps its operational target disabled by default.
+The single service image has no root-local operational activation record by default.
 Explicit activation starts scheduled backups; enrollment and restoration use the
 same image with the target inactive. See [lifecycle](lifecycle.md). Enroll the
 repository before relying on the schedule. Each service
@@ -238,7 +238,7 @@ and the exact compatible image, PostgreSQL and extensions from its version recor
    contract, all six `.immich` markers (which may be empty), and upload/library links
    into `/data/immich`. Keep thumbnails, previews and encoded video on `/persist`.
    Check restored runtime credentials are root:root mode0600 under mode0700.
-5. On the same image with the operational target disabled/inactive, verify restored
+5. On the same image with the activation record absent and target inactive, verify restored
    runtime credentials and start only the required directory, PostgreSQL and Redis
    units explicitly through the console. Verify app/ML and Tailscale MainPID zero,
    and the backup timer inactive. Restored Tailscale state can contain saved Serve
@@ -253,7 +253,7 @@ and the exact compatible image, PostgreSQL and extensions from its version recor
    as postgres. Stop on every error; never initialize an empty replacement library.
 7. Verify database rows/extensions, original checksums, layout, identity and secret
    permissions. Stop manually started restoration dependencies, establish identity
-   exclusivity, then `systemctl enable --now homelab-operational.target` on this
+   exclusivity, then `homelab-activate` on this
    same root. Verify normal startup, HTTPS, real
    login, thumbnails, playback and jobs; check search/QSV for the intended workload.
    Take a new successful backup and verify service/API recovery before normal use.

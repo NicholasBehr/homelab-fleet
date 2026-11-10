@@ -1,6 +1,7 @@
 { pkgs }:
 pkgs.testers.runNixOSTest {
   name = "single-image-operational-target";
+  globalTimeout = 300;
   nodes.machine = { lib, ... }: {
     imports = [ ../modules/lifecycle.nix ];
     options.homelab.backup = lib.mkOption {
@@ -86,11 +87,13 @@ pkgs.testers.runNixOSTest {
   testScript = ''
     start_all()
     machine.wait_for_unit("multi-user.target")
-    machine.succeed("test -f /etc/systemd/system/homelab-operational.target; test ! -L /etc/systemd/system/homelab-operational.target")
-    machine.fail("systemctl is-enabled homelab-operational.target")
+    machine.succeed("systemctl is-enabled homelab-operational.target")
+    machine.fail("test -e /var/lib/homelab/operational-enabled")
     for unit in ["fixture-app", "fixture-db", "tailscaled", "tailscale-policy", "borgbackup-job-fixture.timer"]:
         machine.fail(f"systemctl is-active {unit}")
-    machine.fail("systemctl start homelab-operational.target")
+    machine.succeed("systemctl start homelab-operational.target")
+    machine.fail("systemctl is-active homelab-operational.target")
+    machine.fail("systemctl is-active fixture-app")
     machine.fail("test -e /persist/app-started")
     machine.succeed("touch /persist/enrolled; systemctl reset-failed")
     # Restored/enrolled state does not activate an otherwise fresh root.
@@ -103,7 +106,7 @@ pkgs.testers.runNixOSTest {
     machine.succeed("systemctl start fixture-db")
     machine.fail("systemctl is-active fixture-app tailscaled")
     machine.succeed("systemctl stop fixture-db; systemctl reset-failed")
-    machine.succeed("systemctl enable --now homelab-operational.target")
+    machine.succeed("homelab-activate")
     machine.wait_for_unit("homelab-operational.target")
     for unit in ["fixture-app", "fixture-db", "tailscaled", "borgbackup-job-fixture.timer"]:
         machine.wait_for_unit(unit)
@@ -114,16 +117,17 @@ pkgs.testers.runNixOSTest {
     machine.reboot()
     machine.wait_for_unit("homelab-operational.target")
     machine.wait_for_unit("fixture-app")
-    machine.succeed("systemctl disable --now homelab-operational.target")
+    machine.succeed("homelab-deactivate")
     for unit in ["fixture-app", "fixture-db", "tailscaled", "borgbackup-job-fixture.timer"]:
         machine.fail(f"systemctl is-active {unit}")
-    machine.succeed("systemctl enable --now homelab-operational.target")
+    machine.succeed("homelab-activate")
     machine.wait_for_unit("homelab-operational.target")
     machine.wait_for_unit("fixture-app")
-    machine.succeed("systemctl disable --now homelab-operational.target")
+    machine.succeed("homelab-deactivate")
     machine.reboot()
     machine.wait_for_unit("multi-user.target")
     machine.fail("systemctl is-active fixture-app tailscaled")
-    machine.fail("systemctl is-enabled homelab-operational.target")
+    machine.succeed("systemctl is-enabled homelab-operational.target")
+    machine.fail("test -e /var/lib/homelab/operational-enabled")
   '';
 }

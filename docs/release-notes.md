@@ -2,12 +2,12 @@
 
 Publish only `immich` and `home-assistant`; remove bootstrap/recovery outputs from
 the new catalog. Each image defaults to an inactive workload. Operators use
-`systemctl enable --now homelab-operational.target` after enrollment or isolated
+`homelab-activate` after enrollment or isolated
 restoration. Enablement lives on the disposable root and is outside Borg backups;
 new roots remain inactive even with restored persistent state. The manifest marks
 `variant=single`, `activationTarget` and `defaultActivated=false`. Historical
 artifacts remain available for historical backups. See `docs/lifecycle.md` for
-activation, shutdown and the tested NixOS unit-directory adaptation.
+activation, shutdown and the tested NixOS root-local activation gate.
 
 Immich and Home Assistant now read Borg credentials from root-only files at
 `/persist/secrets/{borg-passphrase,borg-ssh-key}`. Images contain credential paths
