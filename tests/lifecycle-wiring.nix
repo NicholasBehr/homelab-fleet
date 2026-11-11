@@ -11,9 +11,13 @@ let
     in
     assert lib.all (unit: c.systemd.services.${unit}.wantedBy == [ ]) services;
     assert c.systemd.timers.${timer}.wantedBy == [ ];
+    assert name != "home-assistant" || c.systemd.targets.home-assistant.wantedBy == [ ];
     ''
       test ! -e ${tree}/multi-user.target.wants/homelab-operational.target
       test ! -e ${tree}/timers.target.wants/${timer}.timer
+      ${lib.optionalString (name == "home-assistant") ''
+        test ! -e ${tree}/multi-user.target.wants/home-assistant.target
+      ''}
       ${lib.concatMapStringsSep "\n" (unit: ''
         test ! -e ${tree}/multi-user.target.wants/${unit}.service
       '') services}

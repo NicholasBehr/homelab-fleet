@@ -71,6 +71,9 @@ in
         isSystemUser = true;
       };
       users.groups.hass.gid = lib.mkForce c.gid;
+      # The upstream target also starts the service at boot. Keep the entire
+      # workload behind the explicit operational activation boundary.
+      systemd.targets.home-assistant.wantedBy = lib.mkForce [ ];
       systemd.services = {
         home-assistant-directories = {
           inherit (gate) requires after;
