@@ -16,6 +16,7 @@
 - Never delete persistent storage outside verified disposable test volumes, or assume software rollback reverses migrations.
 
 # Secret handling
+- Use only the `Homelab` 1Password vault for all reads and writes; always select it explicitly and never access other vaults.
 - Never display secret values or load them into model context, chat, tool results, screenshots, clipboard, logs or receipts. Do not inspect credential files or recovery Documents with commands that print their contents. Authorized backup, restore, enrollment and verification programs may read secret bytes internally and transfer them directly between approved endpoints; this is not permission to expose their values.
 - Prefer metadata-only discovery and allowlisted schema/public-key inspection. Verify secret equality with a silent comparison and report only success/failure; do not print secret hashes, excerpts, lengths or encoded values. Redacting output after capture is not a substitute for preventing capture. Restrict 1Password operations to the intended service Document; do not enumerate unrelated secrets.
 - Generate and populate credentials with trusted local programs, protected file descriptors or direct authenticated file transfers. Never put secret values in command arguments, shell substitutions, exported environment variables, Nix expressions, source patches, tool arguments or prompts to the user. Disable shell tracing and verbose/debug payload logging; ensure failure output cannot include credential contents. Use synthetic credentials in tests and CI.
