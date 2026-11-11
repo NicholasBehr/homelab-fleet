@@ -58,12 +58,29 @@ can finalize those deletions.
 ## Recovery escrow document standard
 
 Use the same escrow flow for every production service. Create one 1Password
-**Document** in the approved operator vault, named `<Service> production recovery`,
-whose file is `<Service-slug>-production-recovery-enrolled.json` (for example,
-`Immich-production-recovery-enrolled.json` or
-`Home-Assistant-production-recovery-enrolled.json`). Do not split the material
-across Login, Secure Note or attachment items. Do not put the 1Password item/vault
-IDs, live account names or endpoint values in this repository.
+**Document** in the `Homelab` vault, titled `borg-<service-slug>` and tagged
+`homelab`. For example, the Immich and Home Assistant item titles are
+`borg-immich` and `borg-home-assistant`. The Document's attached JSON filename is
+informational: use `<Service-slug>-production-recovery-enrolled.json` for a completed
+enrollment; an existing prepared document may retain its original filename until
+the reviewed transition completes. The JSON `status` records whether enrollment is
+prepared or enrolled. Do not split the material across Login, Secure Note or
+attachment items. Do not put 1Password item/vault IDs, live account names or
+endpoint values in this repository.
+
+For recovery, identify the service slug from its deployment contract, then retrieve
+the exact `borg-<service-slug>` Document from `Homelab` into a new, protected file.
+For example, after creating a private mode0700 staging directory and setting
+`umask 077`:
+
+```sh
+op document get borg-immich --vault Homelab --out-file /path/to/new-private-file.json
+```
+
+Replace the placeholder with a fresh path; do not print the Document, enumerate
+unrelated items, use a clipboard, or overwrite an existing file. Inspect its schema
+and compare credentials only through status-only verification as described below.
+The same title and vault convention applies to future services.
 
 The JSON document has this service-independent shape; strings shown below describe
 the value and are not literals to copy:
