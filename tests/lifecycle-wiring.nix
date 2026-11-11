@@ -8,15 +8,22 @@ let
       services = c.homelab.lifecycle.units;
       timer = c.homelab.lifecycle.backupJob;
       tree = c.environment.etc."systemd/system".source;
+      managedUnits = map (unit: "${unit}.service") services;
+      enabledTargetStartsManagedService = target:
+        target.wantedBy != [ ]
+        && lib.intersectLists managedUnits (target.wants ++ target.requires) != [ ];
     in
     assert lib.all (unit: c.systemd.services.${unit}.wantedBy == [ ]) services;
     assert c.systemd.timers.${timer}.wantedBy == [ ];
-    assert name != "home-assistant" || c.systemd.targets.home-assistant.wantedBy == [ ];
+    assert !lib.any enabledTargetStartsManagedService (lib.attrValues c.systemd.targets);
     ''
       test ! -e ${tree}/multi-user.target.wants/homelab-operational.target
       test ! -e ${tree}/timers.target.wants/${timer}.timer
       ${lib.optionalString (name == "home-assistant") ''
         test ! -e ${tree}/multi-user.target.wants/home-assistant.target
+      ''}
+      ${lib.optionalString (name == "immich") ''
+        test ! -e ${tree}/multi-user.target.wants/postgresql.target
       ''}
       ${lib.concatMapStringsSep "\n" (unit: ''
         test ! -e ${tree}/multi-user.target.wants/${unit}.service
