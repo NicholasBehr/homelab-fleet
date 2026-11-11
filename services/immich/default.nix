@@ -87,6 +87,8 @@ in
         dataDir = "/persist/postgresql/17";
         enableTCPIP = false;
       };
+      # The upstream target otherwise starts PostgreSQL before activation.
+      systemd.targets.postgresql.wantedBy = lib.mkForce [ ];
       services.redis.servers.immich = {
         settings.dir = lib.mkForce "/persist/redis";
       };
