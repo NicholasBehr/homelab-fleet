@@ -1,14 +1,25 @@
 """Fail-closed matrix aggregation and exact-release artifact handoff."""
 import hashlib
 import importlib.machinery
+import importlib.util
 import json
 from pathlib import Path
 import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-gate = importlib.machinery.SourceFileLoader('ci_result', str(ROOT/'scripts/ci-result')).load_module()
-release = importlib.machinery.SourceFileLoader('assemble_release', str(ROOT/'scripts/assemble-release')).load_module()
+
+
+def load_source(name, path):
+    loader = importlib.machinery.SourceFileLoader(name, str(path))
+    spec = importlib.util.spec_from_loader(name, loader)
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    return module
+
+
+gate = load_source('ci_result', ROOT / 'scripts/ci-result')
+release = load_source('assemble_release', ROOT / 'scripts/assemble-release')
 
 class RequiredCheck(unittest.TestCase):
     def test_selected_images_require_success(self):

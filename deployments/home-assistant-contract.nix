@@ -21,7 +21,7 @@
     path = "/persist";
     marker = "homelab-home-assistant-persist-v1";
   };
-  homeAssistant = {
+  application = {
     state = "/persist/home-assistant";
     port = 8123;
     uid = 1102;
@@ -30,5 +30,5 @@
   uidOffset = 100000;
   gidOffset = 100000;
   tunDevice = "/dev/net/tun";
-  contractVersion = 1;
+  contractVersion = 2;
 }

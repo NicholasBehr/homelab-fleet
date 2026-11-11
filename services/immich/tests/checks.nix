@@ -95,15 +95,6 @@ in
       ${immich.config.services.immich.package.machine-learning}/bin/machine-learning
     touch "$out"
   '';
-  secret-service = pkgs.runCommand "runtime-secret-service-wiring" { } ''
-    grep -q 'Requires=.*storage-contract.service' \
-      ${immich.config.systemd.units."operational-ready.service".unit}/operational-ready.service
-    grep -q 'After=.*storage-contract.service' \
-      ${immich.config.systemd.units."operational-ready.service".unit}/operational-ready.service
-    grep -q '/persist/secrets/borg-passphrase' \
-      ${pkgs.writeText "ready-script" immich.config.systemd.services.operational-ready.script}
-    touch "$out"
-  '';
   system = immich.config.system.build.toplevel;
   backup-config = backupFixture.system.build.toplevel;
 }

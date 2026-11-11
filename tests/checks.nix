@@ -3,6 +3,16 @@
   nixpkgs,
   fixture,
 }:
+let
+  secretFixture =
+    (fixture.extendModules {
+      modules = [
+        {
+          homelab.secrets.requiredFiles = [ "/persist/secrets/fixture" ];
+        }
+      ];
+    }).config;
+in
 {
   # Exercise all matching tmpfiles z rules: they accumulate, rather than
   # selecting only the first file's rule for a path.
@@ -24,4 +34,13 @@
         touch "$out"
       '';
   shared-modules = fixture.config.system.build.toplevel;
+  runtime-secret-service = pkgs.runCommand "runtime-secret-service-wiring" { } ''
+    grep -q 'Requires=.*storage-contract.service' \
+      ${secretFixture.systemd.units."operational-ready.service".unit}/operational-ready.service
+    grep -q 'After=.*storage-contract.service' \
+      ${secretFixture.systemd.units."operational-ready.service".unit}/operational-ready.service
+    grep -q '/persist/secrets/fixture' \
+      ${pkgs.writeText "ready-script" secretFixture.systemd.services.operational-ready.script}
+    touch "$out"
+  '';
 }

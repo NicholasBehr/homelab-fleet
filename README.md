@@ -11,17 +11,17 @@ One image per service supports enrollment, restoration and operation. New roots
 keep applications, Tailscale and backup timers inactive until explicit systemd
 activation; see [lifecycle](docs/lifecycle.md).
 
-**Status:** Immich production is running from the verified v0.2.1 operational
-image. Tailscale-only access, legacy SOPS enrollment, QSV, direct remote Borg backup,
-independent recovery escrow, full fresh-volume restoration and managed root
-replacement are verified. The scheduled backup runs daily at 02:15
-Europe/Zurich. See [validation](docs/validation.md) for boundaries and remaining
-workload-specific checks.
-
-The v0.4.0 single-image/runtime-credential transition is under validation; it has
-not replaced the running production deployment.
+**Status:** All services use the single-image lifecycle and independently escrowed
+runtime Borg credentials. Immich has verified QSV, remote backup, fresh-volume
+restoration and managed root replacement. Home Assistant has the same inactive-root,
+storage, credential and backup boundaries; its Zigbee-specific recovery procedure
+is documented separately. See [validation](docs/validation.md) for the exact
+evidence and remaining workload-specific checks.
 
 - [Architecture, layout and adding services](docs/architecture.md)
+- [Service onboarding contract](docs/adding-a-service.md)
+- [Immich backup and restoration](docs/immich.md)
+- [Home Assistant and Zigbee](docs/home-assistant.md)
 - [Enrollment, releases and replacement](docs/operations.md)
 - [Backup and disaster recovery](docs/recovery.md)
 - [Verification matrix](docs/validation.md)

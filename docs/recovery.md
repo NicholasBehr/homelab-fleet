@@ -61,12 +61,10 @@ Use the same escrow flow for every production service. Create one 1Password
 **Document** in the `Homelab` vault, titled `borg-<service-slug>` and tagged
 `homelab`. For example, the Immich and Home Assistant item titles are
 `borg-immich` and `borg-home-assistant`. The Document's attached JSON filename is
-informational: use `<Service-slug>-production-recovery-enrolled.json` for a completed
-enrollment; an existing prepared document may retain its original filename until
-the reviewed transition completes. The JSON `status` records whether enrollment is
-prepared or enrolled. Do not split the material across Login, Secure Note or
-attachment items. Do not put 1Password item/vault IDs, live account names or
-endpoint values in this repository.
+informational; use `<service-slug>-production-recovery-enrolled.json`. The JSON
+`status` must be `enrolled` after independent verification. Do not split the
+material across Login, Secure Note or attachment items. Do not put 1Password
+item/vault IDs, live account names or endpoint values in this repository.
 
 For recovery, identify the service slug from its deployment contract, then retrieve
 the exact `borg-<service-slug>` Document from `Homelab` into a new, protected file.
@@ -146,7 +144,7 @@ and retain the independently retrieved Document. Rotation replaces all affected
 runtime credentials and the escrow document as one reviewed
 operation; never assume an old document remains compatible.
 
-## Runtime credential contract and migration
+## Runtime credential contract
 
 Images declare credential paths and validation rules only. Each service keeps
 `/persist/secrets` root:root mode0700 and its `borg-passphrase` and `borg-ssh-key`
@@ -154,146 +152,86 @@ files root:root mode0600 (mode0400 is also accepted). Missing, empty, symlinked,
 incorrectly owned or overly permissive credentials fail readiness. Files and their
 parent directories must not be writable by other users. Never repair unsafe files
 by silently replacing them. All `/persist` credentials are included in encrypted
-Borg archives; independent 1Password recovery access breaks the bootstrap cycle.
+Borg archives; independent 1Password recovery access prevents dependence on the
+lost volume.
 
-One Borg Document is the sole service backup recovery secret record. It replaces
-age identities and loose key attachments for new enrollments. Application logins,
-radio passwords and provider administrator access remain separate credentials;
-the Borg Document does not replace those operator accounts.
+One Borg Document is the sole service backup recovery secret record. Application
+logins, radio passwords and provider administrator access remain separate
+credentials; the Borg Document does not replace those operator accounts.
 
-Before replacing a pre-v0.4.0 SOPS-based root, take a consistent backup and preserve
-the exact old image, ciphertext and age recovery material. With the existing root
-still available, securely install the current `/run/secrets/borg-passphrase` and
-`borg-ssh-key` contents at the new `/persist/secrets` paths without displaying them,
-changing their values or overwriting existing destination files. Compare file
-contents privately and validate ownership/modes. Verify the unchanged repository
-ID and key export using a fresh download of the service's 1Password Document.
-Stop if destination files conflict or independent recovery cannot be proved.
+Every production deployment reads its remote repository URI from
+`/persist/borg/repository`, a root-owned mode0600 file containing exactly one remote
+SSH URI. Keep the endpoint in the private operator inventory, not public Nix. The
+native job and `borg-job-<service-slug>` wrapper read the same data file;
+missing/invalid files fail before application quiescing. Static repository options
+are for isolated fixtures, not production endpoint publication.
 
-Replace only the root through the approved stopped-transfer procedure; verify
-startup, backup, independent recovery and fresh-volume restoration. Preserve old
-age identities and the original recovery Document until these checks pass; older
-images and historical archives may still need them. Do not rewrite Git history or
-assume removing current ciphertext invalidates old copies. No application data,
-repository encryption, database schema or volume marker changes are implied.
+During initial enrollment, keep the target inactive until repository initialization,
+independent escrow verification and an isolated synthetic backup/restore rehearsal
+pass. Initialize only the intended new repository with the service wrapper and
+`--encryption=repokey-blake2`; normal jobs have `doInit=false`. Export the Borg key
+and escrow it with the passphrase, SSH key, endpoint and trust information. After
+activation, run the native job immediately and independently restore representative
+data before treating the service as protected. Do not add irreplaceable data before
+that point. A backup repository alone is not a complete 3-2-1 strategy.
 
-The Immich deployment reads its remote repository URI from
-`/persist/borg/repository`, a root-owned mode0600 file containing exactly one line,
-for example `ssh://SUBACCOUNT@HOST:23/./immich`. Keep the actual endpoint in the
-private operator inventory, not public Nix configuration. The job and
-`borg-job-immich` wrapper read the same file as data; missing/invalid files fail
-before application quiescing. This runtime option accepts only remote SSH URIs;
-other deployments may instead set the static `homelab.backup.repository` option.
-
-Immich's schedule is 02:15 Europe/Zurich. During initial enrollment, keep the target
-inactive until repository initialization, independent escrow verification and the
-isolated synthetic backup/restore rehearsal pass. Initialize only the intended new repository with
-`borg-job-immich init --encryption=repokey-blake2`;
-normal jobs have `doInit=false`. Export its Borg key and escrow the export,
-passphrase, SSH key, endpoint and trust information in the standard 1Password
-Document above. Retrieve and verify that document independently. After activation,
-run the native job immediately and verify its archive and an independent restore
-before treating the service as protected. Until then, preserve any existing source
-and recovery copies; for a genuinely new service, do not add irreplaceable data.
-Keep multiple
-recovery copies; a backup repository alone is not a complete 3-2-1 strategy.
-
-Scheduled operation acquires `/persist/operation.lock`, records restart intent,
-stops Immich server/ML, atomically writes a custom-format PostgreSQL dump and
-version record, and stops Redis/Tailscale. Borg reads `/persist` and `/data/immich`
-directly. It excludes live PostgreSQL, Borg cache, incomplete dump files and retained legacy
-staging directories from the previous workflow.
-Originals are read once from their explicit `/data` path; Borg archives the hot-tree
-links as links. Redis and node state are frozen. PostgreSQL remains running but
-only its logical dump is archived. No duplicate media staging is required.
-
-Services stay stopped through archive creation, checking and retention work.
-Downtime can be long for the first backup or large imports. Borg postHook and
-systemd ExecStopPost attempt all required restarts, including after prepare/Borg
-failure. Recovery intent stays if any restart fails; inspect and intervene.
-Power loss cannot run cleanup, so verify normal service startup after reboot.
-Retention defaults to daily7/weekly4/monthly6; warnings fail the job. A dump needs
-additional NVMe space; failed dumps must fail the backup, not yield partial success.
-
-Run `systemctl start borgbackup-job-immich`, inspect the current invocation's
-exit/result and archive timestamp, and periodically run `borg-job-immich check
---verify-data`. `health-check` requires every configured unit, API/tailnet health,
-successful job status and an archive no older than36h. It deliberately fails when
-backups are unconfigured. Test failure recovery on the actual container before
-production. Do not infer success from an old archive or old unit result.
+Scheduled operation acquires `/persist/operation.lock`, records restart intent and
+runs the service's prepare hook before Borg reads its declared paths. Services stay
+stopped through archive creation, checking and retention work. The post-hook and
+systemd `ExecStopPost` attempt cleanup after prepare/Borg failure; recovery intent
+stays if cleanup fails. Power loss cannot run cleanup, so verify service state after
+reboot. Warnings fail the job. `health-check` requires declared units, API/tailnet
+health, a successful job and a fresh archive; it deliberately fails when backups
+are unconfigured. Exact schedules, paths, exclusions and quiescing behavior belong
+in each service guide.
 
 For a migration recovery point, stop the backup timer and wait for its active job,
 take the operation lock, run the same prepare hook and archive the same declared
 paths/exclusions while leaving the application stopped. Verify success, then stop
 the container immediately; do not run normal cleanup/restart before replacement.
-If backup fails, abort replacement and recover services. Obtain approval of a detailed plan for the identified instance, including
-quiescing, archive verification, replacement, failure recovery and downtime.
+If backup fails, abort replacement and recover services. Obtain approval of a
+detailed plan for the identified instance, including quiescing, archive
+verification, replacement, failure recovery and downtime.
 Equivalent command-level fixes within that approved scope need no new approval.
 
-## Complete disaster restoration
+## Complete disaster restoration contract
 
-Restore to fresh, explicitly recorded test volumes first. Retain the source backup
-and original volumes. Never extract over running state. Select an explicit archive
-and the exact compatible image, PostgreSQL and extensions from its version record.
+Every service follows this outer sequence; its service guide supplies exact archive
+paths, ownership, logical restore commands and acceptance checks.
 
-1. Provision the exact compatible service image with new empty declared mounts
-   and their markers. Verify the root-local activation record is absent and
-   `homelab-operational.target` is inactive. Keep
-   Tailscale stopped and prevent its automatic restart while restoring identity.
-   Verify its MainPID is zero. Retrieve Borg credentials and authenticated endpoint
-   trust from independent escrow into protected runtime files; never put secret
-   values in command arguments or Nix. Verify the repository and explicit archive
-   with `borg check --verify-data` before extraction.
-2. Decide whether this is loss recovery or a compromise. For loss recovery, the
-   archived runtime credentials can be restored directly. Recover Tailscale
-   identity only with the original definitively stopped; revoke it and enroll a new
-   node if exclusivity cannot be assured. Never run duplicate live identities.
-   For suspected compromise, rotate identities/credentials instead; establish a new
-   runtime credential set and update independent escrow before proceeding. If the
-   Borg encryption key was exposed, changing its passphrase alone is insufficient;
-   plan a new repository and credential rotation.
-3. Inspect archive paths and capacity, then selectively extract directly into the
-   empty, quiesced mounts with numeric ownership preserved. Restore `persist/immich`,
-   `data/immich`, Redis, the logical dump/version record under `persist/backup`,
-   Borg config/trust, `persist/secrets` and the chosen identities. Do not extract the entire archive
-   indiscriminately: preserve the new outer volume markers and omit live PostgreSQL,
-   reproducible caches and legacy staging. Duplicate scratch media is unnecessary.
-   Keep the source archive and original volumes retained.
-4. Verify Immich1100, PostgreSQL71 and Redis1101 ownership against the reviewed
-   contract, all six `.immich` markers (which may be empty), and upload/library links
-   into `/data/immich`. Keep thumbnails, previews and encoded video on `/persist`.
-   Check restored runtime credentials are root:root mode0600 under mode0700.
-5. On the same image with the activation record absent and target inactive, verify restored
-   runtime credentials and start only the required directory, PostgreSQL and Redis
-   units explicitly through the console. Verify app/ML and Tailscale MainPID zero,
-   and the backup timer inactive. Restored Tailscale state can contain saved Serve
-   settings; leave the daemon stopped throughout restoration so none are exposed.
-   The normal policy resets Serve during operational activation. Verify the
-   storage/readiness gates and each restoration dependency individually.
-6. With a fresh database and app never started, inspect `pg_restore --list` on the
-   custom dump. Exclude extension and public-schema creation entries already owned
-   by NixOS setup. Review the resulting list for these exact extension versions.
-   Restore using `pg_restore --single-transaction --exit-on-error --no-owner
-   --no-privileges --role=immich --use-list=REVIEWED_LIST --dbname=immich DUMP`
-   as postgres. Stop on every error; never initialize an empty replacement library.
-7. Verify database rows/extensions, original checksums, layout, identity and secret
-   permissions. Stop manually started restoration dependencies, establish identity
-   exclusivity, then `homelab-activate` on this
-   same root. Verify normal startup, HTTPS, real
-   login, thumbnails, playback and jobs; check search/QSV for the intended workload.
-   Take a new successful backup and verify service/API recovery before normal use.
+1. Select an explicit verified archive and the exact compatible image from its
+   manifest/version record. Restore first to fresh volumes whose creation records,
+   paths and markers match the reviewed contract. Retain the source archive and
+   original volumes; never extract over running state.
+2. Confirm the replacement root has no activation record, the operational target
+   is inactive and Tailscale plus all application units have no running process.
+   Retrieve only the intended service's Borg Document from `Homelab` into protected
+   storage and verify repository/archive integrity before extraction.
+3. Decide whether identities may be restored or must be rotated. Never start a
+   restored Tailscale, application, database or coordinator identity while its
+   original may still run. A compromise recovery requires a reviewed credential,
+   repository and identity-rotation plan.
+4. Inspect archive paths and capacity, then selectively extract the service guide's
+   allowlisted paths with numeric ownership preserved. Preserve new outer volume
+   markers; omit live database files, reproducible caches and disposable root state.
+5. Verify fixed ownership, internal application markers/links, credential modes,
+   checksums and declared volume placement. Initialize no empty replacement state
+   and stop on any incompatible or unexplained path.
+6. Start only the explicitly documented restoration helpers while the operational
+   target remains inactive. Perform the service-specific logical restore, verify
+   its data and stop every helper again. Keep Tailscale and application listeners
+   stopped throughout this phase.
+7. Establish identity exclusivity, run the service acceptance checks, then activate
+   this same root with `homelab-activate`. Verify real workload behavior, take a new
+   backup and independently restore representative data before normal use.
 
-This custom-format dump uses pg_restore, not Immich's `.sql.gz` UI import. The design
-follows upstream's requirement to preserve database and media together while writes
-are stopped: https://docs.immich.app/administration/backup-and-restore/ . Native
-NixOS paths replace Docker paths. The v0.1.0 rehearsal passed this fresh-volume
-procedure using independent escrow and an off-guest encrypted repository, including
-normal operational startup, original checksums, login/playback and a new backup.
-A separate test Storage Box rehearsal also passed remote integrity/retention,
-isolated media/database restoration and independent 1Password escrow retrieval.
-Production subsequently passed the same remote backup, integrity, independent
-escrow and isolated restoration gates; its daily timer is active. See
-[validation](validation.md).
+A new service is incomplete until `docs/<service-slug>.md` defines the selective
+paths, exclusions, owners, restoration helpers, logical restore, integrity checks,
+identity rules and acceptance tests required by this sequence.
+
+Immich's exact paths, PostgreSQL procedure, ownership and acceptance checks are in
+the [Immich service guide](immich.md). Home Assistant's SQLite/Zigbee procedure is
+in the [Home Assistant service guide](home-assistant.md).
 
 ## Other failures
 

@@ -64,22 +64,23 @@ require exact creation provenance and current GUID/attachment checks; IDs/names
 alone are insufficient. Record a new allocation plan and absence checks before
 creation, then immediately record its actual GUID. Never use stale public inventories.
 
-The contract proposes CT200/201, 2 cores, 6GiB RAM, 32GiB root, 128GiB persist and
-512GiB data on local-zfs. The persist allowance budgets roughly 20% of a full
-originals volume for generated media, plus database, dumps, Borg cache and headroom;
-it is an estimate, not a limit on application growth. Verify actual allocations in
-the private operator inventory. Production provisioning, including `nesting=1`,
-must be included in the approved plan. Standard native provisioning is `pct create`
-with a verified local template,
-`--ostype nixos --unprivileged 1`, reviewed resource/network/device options and
-`--onboot 0` until validation. Downloading to the host template cache is a host write
-and must be included in the approved plan.
+Evaluate the selected service's proposed resources with
+`nix eval --json .#deploymentContracts.<service-slug>`. Compare every proposed ID,
+volume, path, marker, network setting and optional device with the private operator
+inventory; the public contract is not an allocation record. Capacity values are
+estimates, not limits on application growth. Production provisioning, including
+`nesting=1`, must be included in the approved plan. Standard native provisioning is
+`pct create` with a verified local template, `--ostype nixos --unprivileged 1`,
+reviewed resource/network/device options and `--onboot 0` until validation.
+Downloading to the host template cache is a host write and must be included in the
+approved plan. Service-specific sizing and device requirements belong in its guide.
 
 Create only new, explicitly identified state volumes. Record GUIDs and initialize
 `.homelab-volume` markers from the reviewed contract on those fresh volumes only.
-Attach persist as mp0 and data as mp1; never write a marker to unidentified storage.
-Proxmox mountpoints precede guest init. Verify generated AppArmor, ID maps, render
-ownership, TUN0600 and all guard failures before enrolling.
+Attach every declared volume at its contract slot and path; never assume a service
+has `/data` or a fixed number of mountpoints. Never write a marker to unidentified
+storage. Proxmox mountpoints precede guest init. Verify generated AppArmor, ID maps,
+TUN0600, every declared optional device and all guard failures before enrolling.
 
 Boot the service image without its root-local operational activation record and enroll unique Borg credentials through authenticated operator
 access. Install `/persist/secrets/borg-passphrase` and `borg-ssh-key` as root:root
@@ -98,6 +99,11 @@ HTTPS and denied cross-service/LAN access. Policies belong to the operator; CI h
 no tailnet or Proxmox credentials. Configure remote Borg as [recovery](recovery.md)
 describes before trusting production data.
 
+Before enrollment, extend and validate the operator's tailnet policy for the new
+service. The public example must include its tag owner, administrator SSH/HTTPS
+grant, intended user HTTPS grant and positive/negative policy tests. Never apply the
+example identities directly or put live identities in this repository.
+
 After enrollment, independently verified escrow and restoration checks, activate
 with `homelab-activate` from the console. A fresh
 root always requires this explicit step; see [lifecycle](lifecycle.md).
@@ -110,12 +116,14 @@ root always requires this explicit step; see [lifecycle](lifecycle.md).
 3. Create and verify a consistent backup. For a migration-bearing replacement,
    keep the application stopped after its final backup; no writes after that point.
 4. Create a fresh root on a new approved CT ID; record its GUID. Stop the old
-   container gracefully. Ensure both old/new are stopped before moving mp0/mp1
-   using `pct move-volume OLD mp0 --target-vmid NEW --target-volume mp0` and mp1.
+   container gracefully. Ensure both old/new are stopped before moving each
+   declared persistent volume to the same reviewed slot on the replacement. Use
+   explicit `pct move-volume` operations only within the approved resource plan.
 5. Recheck transferred GUIDs and start NEW with its activation record absent.
    Complete offline validation, confirm the original identity is stopped, then
-   explicitly enable/start the target. Check each required unit, secret
-   permissions, identity continuity, DB/assets, placement, HTTPS, playback and jobs.
+   explicitly activate the target. Check each required unit, credential permissions,
+   identity continuity, application data/placement, HTTPS, real workload behavior
+   and the next backup using the service-specific acceptance procedure.
 6. Retain old root and backup until verified. Never run two copies of one identity.
    Do not transfer migrated data back to older software without proven compatibility;
    restore the matching backup into fresh volumes instead.
