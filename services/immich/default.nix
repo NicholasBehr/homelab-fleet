@@ -43,8 +43,6 @@ in
           "/persist/postgresql"
           "/persist/borg/cache"
           "/persist/backup/immich.dump.tmp"
-          # Legacy staging remains retained until explicit verified cleanup.
-          "/persist/backup/immich-hot"
           "/persist/backup/redis"
         ];
         prepare = "${pkgs.bash}/bin/bash ${./backup-prepare}";
@@ -66,7 +64,7 @@ in
         };
         enable = true;
         host = "127.0.0.1";
-        mediaLocation = c.immichStorage.hot;
+        mediaLocation = c.application.hot;
         accelerationDevices = [ c.renderDevice ];
         settings.ffmpeg = {
           accel = "qsv";
@@ -74,10 +72,10 @@ in
         };
       };
       users.users.immich = {
-        uid = c.immichUid;
+        uid = c.application.uid;
         extraGroups = [ "render" ];
       };
-      users.groups.immich.gid = c.immichGid;
+      users.groups.immich.gid = c.application.gid;
       users.users.postgres.uid = c.postgresUid;
       users.groups.postgres.gid = c.postgresGid;
       users.users.redis-immich.uid = c.redisUid;
@@ -123,7 +121,7 @@ in
         serviceConfig.Type = "oneshot";
         script = ''
           install -d -m 0700 -o postgres -g postgres /persist/postgresql /persist/postgresql/17
-          ${pkgs.bash}/bin/bash ${./layout} ${c.immichStorage.hot} ${c.immichStorage.bulk} ${toString c.immichUid} ${toString c.immichGid}
+          ${pkgs.bash}/bin/bash ${./layout} ${c.application.hot} ${c.application.bulk} ${toString c.application.uid} ${toString c.application.gid}
           install -d -m 0700 -o redis-immich -g redis-immich /persist/redis
         '';
       };

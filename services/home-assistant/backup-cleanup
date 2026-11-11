@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+failed=0
+for unit in tailscaled home-assistant; do
+  systemctl start "$unit.service" || failed=1
+done
+(( failed == 0 )) || exit 1

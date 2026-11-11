@@ -1,10 +1,6 @@
 result
 result-*
 .direnv/
-.env
-*.key
-*.agekey
-secrets/plaintext*
 __pycache__/
 dist/
 .ci-roots/

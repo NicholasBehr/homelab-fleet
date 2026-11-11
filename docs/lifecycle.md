@@ -82,9 +82,9 @@ its identity.
 Use the exact compatible release for application restoration. On the same image,
 start only the database and directory helpers needed for logical restoration,
 verify data and credentials, stop those helpers, then activate the target. A second
-root replacement between recovery and operation is unnecessary. Keep historical
-bootstrap/recovery artifacts available for historical releases; new releases no
-longer publish those output names.
+root replacement between recovery and operation is unnecessary. Current releases
+publish only one image per service; there are no separate bootstrap or recovery
+roles.
 
 ## NixOS lifecycle model
 

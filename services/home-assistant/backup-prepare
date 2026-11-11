@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+systemctl stop home-assistant.service
+if systemctl is-active --quiet home-assistant.service; then exit 1; fi
+systemctl stop tailscaled.service
+if systemctl is-active --quiet tailscaled.service; then exit 1; fi
