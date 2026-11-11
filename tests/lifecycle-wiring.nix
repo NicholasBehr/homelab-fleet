@@ -9,9 +9,9 @@ let
       timer = c.homelab.lifecycle.backupJob;
       tree = c.environment.etc."systemd/system".source;
       managedUnits = map (unit: "${unit}.service") services;
-      enabledTargetStartsManagedService = target:
-        target.wantedBy != [ ]
-        && lib.intersectLists managedUnits (target.wants ++ target.requires) != [ ];
+      enabledTargetStartsManagedService =
+        target:
+        target.wantedBy != [ ] && lib.intersectLists managedUnits (target.wants ++ target.requires) != [ ];
     in
     assert lib.all (unit: c.systemd.services.${unit}.wantedBy == [ ]) services;
     assert c.systemd.timers.${timer}.wantedBy == [ ];
