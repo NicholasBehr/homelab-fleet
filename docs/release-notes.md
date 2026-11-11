@@ -1,3 +1,11 @@
+# v0.4.1 — enforce the activation boundary
+
+Prevent the upstream Home Assistant and PostgreSQL targets from starting services
+before the root-local operational activation record is created. Extend lifecycle
+wiring checks to catch enabled targets that directly start managed services.
+Storage paths, credentials and application versions remain unchanged. Replace
+roots only after a consistent backup and the usual identity-exclusivity checks.
+
 # v0.4.0 — single service images and runtime credentials
 
 Publish only `immich` and `home-assistant`; remove bootstrap/recovery outputs from
