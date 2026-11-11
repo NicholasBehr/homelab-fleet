@@ -25,7 +25,11 @@ rebuild; cache availability is not proof of validation. Size limits and eviction
 reduce the speedup. Initial custom builds and changed root assembly still cost
 time. Unchanged images need not be rebuilt for every service change.
 
-Update `VERSION` and release notes on the PR. After exact-main Checks succeed,
+Before opening a PR that requires new service images, bump `VERSION` by at least
+a patch relative to current main and update the release notes. Choose a minor or
+major bump when SemVer requires it; if main advances before merging, adjust the
+PR's version and notes so its version remains greater than main's.
+Documentation-only PRs do not require a version bump. After exact-main Checks succeed,
 manually dispatch Release. It rejects an already used tag/version, requests all
 catalog images (reusing cached closures when available), compresses and validates
 them in parallel using the same per-image job/cache pattern as CI, then validates
