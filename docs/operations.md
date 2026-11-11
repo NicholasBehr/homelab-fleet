@@ -83,7 +83,8 @@ mode0600 under a root:root mode0700 directory. The image only declares paths and
 validation rules. Keep all credential contents out of Git, command arguments,
 logs, images and the Nix store; never promote rehearsal credentials to production.
 
-Escrow the complete Borg recovery set as one private 1Password Document;
+Escrow the complete Borg recovery set as one `borg-<service-slug>` 1Password Document
+in the `Homelab` vault with the `homelab` tag;
 retrieve it and prove repository access and restoration before removing temporary
 local copies. Never put recovery secrets on automatically disposable test volumes.
 Treat the resettable Storage Box password as enrollment-only and omit it from

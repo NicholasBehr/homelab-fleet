@@ -12,8 +12,8 @@ plaintext credentials out of Git, Nix, image inputs and command-line arguments.
 Enroll the service's dedicated Borg repository, SSH key/passphrase,
 and independently authenticated SSH host key as described in
 [backup and recovery](recovery.md). Do not reuse Immich's backup identity or
-repository. Store the completed recovery set in one `Home Assistant production
-recovery` 1Password Document using the same JSON schema, independent-download
+repository. Store the recovery set in the `Homelab` vault as the tagged
+`borg-home-assistant` 1Password Document using the same JSON schema, independent-download
 verification and enrollment gates as Immich. The operational readiness gate
 intentionally refuses to start HA until enrollment is complete. The single image
 boots without its root-local activation record: Home Assistant, Tailscale and backup
