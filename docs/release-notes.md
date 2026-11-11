@@ -1,4 +1,4 @@
-# v0.4.1 — activation boundary and repository consistency
+# v0.4.2 — service contracts and onboarding
 
 Prevent upstream Home Assistant and PostgreSQL targets from starting managed
 services before the root-local operational activation record exists. Lifecycle
@@ -10,7 +10,7 @@ Every service is now required to have a matching deployment, resource contract a
 service check set. The example Tailscale policy covers both published services.
 Contract application fields use one `application` block consistently; this advances
 the Immich contract to version 3 and Home Assistant's to version 2 without changing
-paths or ownership values.
+paths or ownership values. Updated service images include these changes.
 
 Add a normative service-onboarding contract covering names, deployment schema,
 versions, lifecycle, backups, restoration, tests, policy and operator acceptance.
