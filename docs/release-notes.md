@@ -1,3 +1,9 @@
+# v0.4.2 — Home Assistant mobile app
+
+Include and enable the Home Assistant Mobile App integration so Companion apps
+can register and connect through the existing Tailscale-only HTTPS endpoint.
+Persistent paths, credentials and storage contracts remain unchanged.
+
 # v0.4.1 — enforce the activation boundary
 
 Prevent the upstream Home Assistant and PostgreSQL targets from starting services
