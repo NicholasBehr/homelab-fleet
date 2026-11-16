@@ -1,3 +1,10 @@
+# v0.4.4 — Home Assistant readiness probe
+
+Use the unauthenticated frontend root for Home Assistant health checks. Repeated
+requests to the authenticated API could trigger the configured IP-ban threshold
+and ban loopback. A pre-existing loopback ban requires an approved recovery
+procedure before the new probe can pass; preserve other ban entries.
+
 # v0.4.3 — service contracts and onboarding
 
 Harmonize Home Assistant with Immich by giving it service-owned backup hooks,

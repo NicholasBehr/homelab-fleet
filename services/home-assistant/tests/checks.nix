@@ -29,6 +29,8 @@ in
         "mobile_app"
       ];
     assert home-assistant.config.services.home-assistant.config.mobile_app == { };
+    assert home-assistant.config.homelab.health.url == "http://127.0.0.1:8123/";
+    assert home-assistant.config.homelab.health.httpStatus == 200;
     pkgs.runCommand "home-assistant-service-config" { } ''
       grep -q 'Requires=.*operational-ready.service' \
         ${home-assistant.config.systemd.units."home-assistant.service".unit}/home-assistant.service
