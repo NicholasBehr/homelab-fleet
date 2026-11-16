@@ -57,8 +57,10 @@ in
         "tailscaled"
         "home-assistant"
       ];
-      url = "http://127.0.0.1:8123/api/";
-      httpStatus = 401; # API is reachable and correctly requires authentication.
+      # An unauthenticated API request counts as a failed login and can ban
+      # loopback; the frontend root is a non-authenticating readiness probe.
+      url = "http://127.0.0.1:8123/";
+      httpStatus = 200;
     };
   };
 }
