@@ -26,7 +26,9 @@ in
       home-assistant.config.services.home-assistant.extraComponents == [
         "zha"
         "smlight"
+        "mobile_app"
       ];
+    assert home-assistant.config.services.home-assistant.config.mobile_app == { };
     pkgs.runCommand "home-assistant-service-config" { } ''
       grep -q 'Requires=.*operational-ready.service' \
         ${home-assistant.config.systemd.units."home-assistant.service".unit}/home-assistant.service

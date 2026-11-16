@@ -44,8 +44,10 @@ in
         extraComponents = lib.mkForce [
           "zha"
           "smlight"
+          "mobile_app"
         ];
         config = {
+          mobile_app = { };
           http = {
             server_host = "127.0.0.1";
             server_port = c.port;
