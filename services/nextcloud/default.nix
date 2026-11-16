@@ -115,6 +115,7 @@ in
         default_phone_region = "CH";
         maintenance_window_start = 0;
         shareapi_allow_links = false;
+        skeletondirectory = "";
         # Bound retained data independently of user file quotas.
         trashbin_retention_obligation = "auto, 30";
         versions_retention_obligation = "auto, 30";
