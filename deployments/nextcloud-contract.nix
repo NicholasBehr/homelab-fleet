@@ -24,8 +24,7 @@
   data = {
     slot = "mp1";
     storage = "local-zfs";
-    # 932 GiB is approximately 1 decimal TB; quota, not reserved capacity.
-    sizeGiB = 932;
+    sizeGiB = 1024;
     path = "/data";
     marker = "homelab-nextcloud-data-v1";
   };

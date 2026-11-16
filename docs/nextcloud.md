@@ -10,8 +10,7 @@ additional physical space. Retention caps versions/trash at 30 days.
 ## Storage and resources
 
 The proposed contract uses 2 CPUs, 4 GiB RAM, 32 GiB disposable root, 128 GiB NVMe
-`/persist`, and 932 GiB `/data` (approximately one decimal TB, quota not reserved
-capacity). Allocation requires live provenance/capacity discovery and approval.
+`/persist`, and 1024 GiB `/data` (1 TiB, quota not reserved capacity). Allocation requires live provenance/capacity discovery and approval.
 
 | Path | Contents |
 |---|---|
