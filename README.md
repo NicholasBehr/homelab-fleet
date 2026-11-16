@@ -38,3 +38,5 @@ and `nix flake check --no-build`; Linux builds run on GitHub. Open a PR from a s
 branch. Checks always evaluate configurations and run runtime fixtures, then build
 only changed derivations. Releases use repository SemVer from `VERSION` and include
 catalog images, manifests, checksums and GitHub provenance. No automatic deployment.
+
+Nextcloud: [private MVP, enrollment and recovery](docs/nextcloud.md).

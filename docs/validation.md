@@ -9,7 +9,7 @@ past release evidence; historical records never authorize a new mutation.
 | Area | Current coverage |
 |---|---|
 | Service completeness | Every `services/<name>` has a matching deployment, resource contract, service guide, catalog/configuration registration and service-specific Nix check set; flake assertions validate common contract and runtime wiring |
-| Single-image lifecycle | Both services are inactive on fresh roots; tests cover failed activation, activation/deactivation, restart persistence, backup isolation and enabled-target bypasses |
+| Single-image lifecycle | All services are inactive on fresh roots; tests cover failed activation, activation/deactivation, restart persistence, backup isolation and enabled-target bypasses |
 | Runtime credentials | Metadata tests reject missing, empty, symlinked, non-regular, incorrectly owned or overly permissive files; image inputs contain paths and validation only |
 | Storage guards | Disposable mount tests reject absent, root-backed and marker-mismatched volumes; Immich layout tests keep originals on `/data` and generated media on `/persist` |
 | Backup recovery | Synthetic failure injection covers quiescing, Borg/dump failure, restart attempts and retained recovery intent; encrypted Borg/PostgreSQL fixtures exercise archive and logical restore |
@@ -55,3 +55,16 @@ Production readiness remains conditional on those workload-specific gates. Test
 credentials, repositories and disposable volumes must never become production
 resources, and retained recovery copies stay protected until their replacement is
 independently verified.
+
+## Nextcloud implementation boundary
+
+Nextcloud adds evaluated storage/listener/activation/secret assertions, synthetic
+backup-hook failure injection and a real Nextcloud/PostgreSQL/Borg VM restoration
+fixture. These checks must pass in the service PR; no production Nextcloud
+provisioning, device-client test or restoration rehearsal is claimed here.
+
+Before production: verify a recorded disposable Proxmox rehearsal, private
+Tailscale access from iOS/macOS, 10 GB ordinary WebDAV and chunked transfers,
+interruption/retry, quota/full-volume behavior, root replacement, full restoration,
+backup duration and independently retrieved `borg-nextcloud` escrow. `/data` HDD
+migration remains a separate approved operation with preserved recovery copies.

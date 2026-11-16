@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+umask 077
+install -d -m 0700 /persist/backup /run/homelab-backup
+# Preserve maintenance state; never undo an operator's pre-existing maintenance.
+nextcloud-occ status --output=json | jq -er '.maintenance | if . then "on" else "off" end' > /run/homelab-backup/maintenance
+: > /run/homelab-backup/restart
+nextcloud-occ maintenance:mode --on >/dev/null
+systemctl stop nextcloud-cron.timer nextcloud-cron.service nextcloud-update-db.service
+systemctl stop nginx.service phpfpm-nextcloud.service
+for unit in nextcloud-cron nextcloud-update-db nginx phpfpm-nextcloud; do
+  if systemctl is-active --quiet "$unit.service"; then
+    echo 'Nextcloud writer did not stop' >&2; exit 1
+  fi
+done
+# All writers must have stopped before the dump; live PostgreSQL is excluded.
+runuser -u postgres -- pg_dump --format=custom nextcloud > /persist/backup/nextcloud.dump.tmp
+mv /persist/backup/nextcloud.dump.tmp /persist/backup/nextcloud.dump
+cp /etc/homelab-versions.json /persist/backup/versions.json
+systemctl stop redis-nextcloud.service tailscaled.service

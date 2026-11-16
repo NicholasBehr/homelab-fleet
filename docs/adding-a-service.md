@@ -42,6 +42,8 @@ storage authorization. It must define:
 Every persistent volume needs a stable slot, path and unique marker. `/persist`
 stays on NVMe. Declare `/data` only for bulk originals that may later move to HDD;
 databases, indexes, thumbnails, previews and encoded output remain on `/persist`.
+Nextcloud has an explicit exception: its complete application data directory goes
+on `/data`; PostgreSQL, configuration and operational identity remain on `/persist`.
 Advance `contractVersion` whenever the exported contract schema or a compatibility
 value changes. Repository SemVer and upstream application versions are independent.
 
