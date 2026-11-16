@@ -15,7 +15,7 @@ capacity). Allocation requires live provenance/capacity discovery and approval.
 
 | Path | Contents |
 |---|---|
-| `/data/nextcloud` | Complete Nextcloud application data, including `.ocdata`, originals, app data, previews, versions, trash and chunk uploads |
+| `/data/nextcloud` | Complete Nextcloud application data, including `.ncdata`, originals, app data, previews, versions, trash and chunk uploads |
 | `/data/nextcloud-tmp/{php,nginx-body,nginx-fastcgi}` | Disposable PHP and Nginx buffering; excluded from backup |
 | `/persist/nextcloud/config` | Mutable `config.php` identity/state and image-generated override symlink |
 | `/persist/postgresql/17` | Live PostgreSQL; excluded from file backups |

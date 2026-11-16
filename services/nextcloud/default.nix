@@ -206,7 +206,7 @@ in
         # Do not install, delete app trees, or touch passwords on normal startup.
         script = lib.mkForce ''
           test -s ${a.state}/config/config.php || { echo 'Initialize or restore explicitly before activation' >&2; exit 1; }
-          test -f ${a.data}/.ocdata || { echo 'Missing Nextcloud data marker' >&2; exit 1; }
+          test -f ${a.data}/.ncdata || { echo 'Missing Nextcloud data marker' >&2; exit 1; }
           maintenance=$(${lib.getExe occ} config:system:get maintenance)
           ${lib.getExe occ} upgrade
           if test "$maintenance" = true || test "$maintenance" = 1; then
