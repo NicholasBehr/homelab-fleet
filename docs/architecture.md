@@ -4,12 +4,13 @@
 
 `modules/` implements shared base hardening, native Proxmox LXC integration,
 mount-identity guards, runtime credential readiness, Tailscale, optional Intel userspace and Borg.
-Modules declare options and never import service deployments. `services/immich/`
-owns native application settings, hot/bulk layout, package patch, backup hooks and
-service tests. `deployments/immich.nix` explicitly composes modules and supplies
-storage, secret and endpoint settings. Its adjacent contract records proposed
-resources and fixed ownership. `lib/mk-container.nix` constructs systems; the flake
-explicitly registers configurations, images, contracts and checks.
+Modules declare options and never import service deployments. Each
+`services/<name>/` directory owns native application settings, backup hooks and
+service-specific tests. Each matching `deployments/<name>.nix` explicitly composes
+shared modules and supplies storage, secret and endpoint settings; its adjacent
+contract records proposed resources and fixed ownership. `lib/mk-container.nix`
+constructs systems; the flake explicitly registers configurations, images,
+contracts and prefixed service checks.
 
 NixOS 26.05 is pinned in `flake.lock`. Immich's module/package use a separate
 pinned unstable input because the stable package was marked insecure. PostgreSQL
@@ -93,14 +94,8 @@ provides a tested equivalent; never disable upstream tests to accommodate it.
 
 ## Add a service
 
-1. Add `services/<name>/` with explicit upstream module/package configuration,
-   state paths, fixed ownership, backup hooks and application tests.
-2. Add a deployment that imports only required shared modules, supplies typed
-   storage/secret/Tailscale options, and gates every stateful service on storage
-   and readiness. Give the service its own identity and Borg repository.
-3. Register one configuration, catalog entry, contract and checks explicitly in
-   the flake. The single image serves enrollment, restoration and operation through
-   an inactive-by-default `homelab-operational.target`; declare its members in the
-   deployment. Each image supplies `/etc/homelab-versions.json` for its manifest.
-4. Verify that an unrelated service change leaves this image's derivation unchanged.
-   Rehearse enrollment, replacement, backup failure and complete restoration.
+Follow the normative [service onboarding contract](adding-a-service.md). It defines
+the required names, repository shape, deployment schema, lifecycle, versions JSON,
+backup/recovery behavior, tests, flake registration, Tailscale policy and operator
+acceptance gates. Registrations remain explicit and service modules remain simple;
+there is no generator or automatic import layer.

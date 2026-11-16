@@ -1,6 +1,11 @@
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
-  c = config.homelab.deployment.homeAssistant;
+  c = config.homelab.deployment.application;
   gate = {
     requires = [
       "storage-contract.service"
@@ -16,7 +21,7 @@ in
   config = lib.mkMerge [
     {
       environment.etc."homelab-versions.json".text = builtins.toJSON {
-        homeAssistant = config.services.home-assistant.finalPackage.version;
+        "home-assistant" = config.services.home-assistant.finalPackage.version;
         contractVersion = config.homelab.deployment.contractVersion;
       };
     }
@@ -28,19 +33,8 @@ in
           "/persist/borg/cache"
           "/persist/home-assistant/backups/*.tmp"
         ];
-        prepare = ''
-          set -euo pipefail
-          systemctl stop home-assistant.service
-          if systemctl is-active --quiet home-assistant.service; then exit 1; fi
-          systemctl stop tailscaled.service
-          if systemctl is-active --quiet tailscaled.service; then exit 1; fi
-        '';
-        cleanup = ''
-          failed=0
-          systemctl start tailscaled.service || failed=1
-          systemctl start home-assistant.service || failed=1
-          (( failed == 0 )) || exit 1
-        '';
+        prepare = "${pkgs.bash}/bin/bash ${./backup-prepare}";
+        cleanup = "${pkgs.bash}/bin/bash ${./backup-cleanup}";
       };
       services.home-assistant = {
         enable = true;

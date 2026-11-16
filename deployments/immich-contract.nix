@@ -28,14 +28,14 @@
     path = "/data";
     marker = "homelab-immich-media-v1";
   };
-  immichStorage = {
+  application = {
     hot = "/persist/immich";
     bulk = "/data/immich";
+    uid = 1100;
+    gid = 1100;
   };
   renderDevice = "/dev/dri/renderD128"; # verified PCI 0000:00:02.0, 8086:4680
   renderGid = 303;
-  immichUid = 1100;
-  immichGid = 1100;
   postgresUid = 71;
   postgresGid = 71;
   redisUid = 1101;
@@ -43,5 +43,5 @@
   uidOffset = 100000;
   gidOffset = 100000;
   tunDevice = "/dev/net/tun";
-  contractVersion = 2;
+  contractVersion = 3;
 }

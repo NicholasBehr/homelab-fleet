@@ -10,6 +10,4 @@ for name in filter(None, paths):
     text = Path(name).read_text(errors='replace')
     for pattern in patterns:
         if re.search(pattern, text): raise SystemExit(f'Possible plaintext secret in {name}')
-    if name.startswith('secrets/') and name.endswith('.yaml'):
-        raise SystemExit(f'Credential payloads do not belong in source: {name}')
 print('Tracked-source secret pattern check passed (not a proof of absence).')

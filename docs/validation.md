@@ -1,65 +1,57 @@
 # Verification matrix
 
-Status as of 2026-11-10. Historical commands/results remain in Git history; exact
-live GUIDs, identities and recovery receipts are in the protected operator inventory,
-not this public repository. Historical evidence never authorizes a new mutation.
+Status as of 2026-11-11. Exact live GUIDs, identities, credentials and recovery
+receipts remain in the protected operator inventory. Repository history contains
+past release evidence; historical records never authorize a new mutation.
 
-| Check | Evidence / boundary |
+## Automated guarantees
+
+| Area | Current coverage |
 |---|---|
-| Single-image lifecycle (v0.4.0) | [Linux CI passed](https://github.com/NicholasBehr/homelab-fleet/actions/runs/42914368055) for inactive boot, failed activation, restoration helpers, activation/deactivation, timer/job isolation and restart persistence. Wiring checks cover both real services. Proxmox restoration/cutover remains a separate operator gate |
-| Runtime credential transition (v0.4.0) | In progress: local metadata regression tests cover private modes, empty files, wrong ownership, unsafe directory permissions and non-regular files. Production replacement and independent fresh-volume restoration remain required; earlier SOPS evidence below applies only to historical releases |
-| Linux builds, secret/mount guards, Borg/PG fixture restore | Passed for v0.2.1 at the checked main commit |
-| Release verification | All seven v0.2.1 assets passed provenance, attestation and checksum verification; manifests, versions and contracts matched reviewed source |
-| Unprivileged native NixOS LXC boot | Passed with nesting=1; generated AppArmor/default ID mapping retained |
-| TUN/render permissions and discovery listeners | Passed after declarative fixes; no host device mode changes |
-| Missing/swapped mount identity guards | Passed on designated disposable volumes; no empty fallback state |
-| Managed root replacement | Passed repeatedly; volume GUIDs, sentinels, account/assets and identities survived |
-| Tailscale checked admin SSH/HTTPS, isolation | Passed for the production tag and identity; no LAN service exposure. One transient simultaneous control/DERP outage affected both Linux nodes and recovered without configuration changes; monitor for recurrence |
-| SOPS enrollment and independent recovery | Passed with production identities; 1Password Document save/retrieval and independent decryption verified |
-| Upload and generated-file placement | Passed: two synthetic originals on data; thumbnails/previews/encoded on persist |
-| Actual QSV Immich job | Passed HEVC input to H.264 output, hardware decode/encode and playback |
-| CPU inference fix | Actual Smart Search, face and OCR jobs processed both synthetic assets without worker crash |
-| Encrypted off-guest backup and isolated restore | Passed media hashes, recovered age-key match, PG17 DB/extension restore and asset/user counts |
-| Revised direct backup flow | Generated native job passed on a designated LXC: success, repository failure (exit2), dump failure (exit17), automatic service recovery and Borg data verification; local test repository, no remote endpoint |
-| Complete fresh-volume/container disaster restore | Passed with independent 1Password retrieval, off-guest encrypted repository and fresh volumes; original hashes, two assets/one user/two search embeddings, identities, permissions and normal v0.1.0 startup matched; operator confirmed thumbnails/playback; new backup and API recovery passed |
-| Remote Borg / retention | Passed on a dedicated test Storage Box subaccount: independently verified SSH host key, Borg1.4.4 on both ends, encrypted native-job backup/data check, synthetic retention deletion and isolated media/PG17 restore; live services recovered |
-| Remote recovery escrow | Passed: 1Password save/download matched; retrieved credentials with fresh Borg client state opened the remote repository and recovered the exact DB dump; escrowed encrypted key matched the working repository key |
-| Production enrollment | Passed on v0.2.1: unprivileged operational LXC, declared production volumes, stable age/Tailscale identities, dedicated Storage Box repository and mode-restricted runtime secrets verified |
-| Production backup and recovery | Native IPv4 Borg backup, `--verify-data`, independent escrow access and isolated media/PG restore passed. The separate full-volume rehearsal above covers container reconstruction. Daily 02:15 Europe/Zurich timer is active; application remains offline for the full backup |
-| Production replacement and cleanup | v0.2.1 root replacement preserved exact production volume/identity GUIDs and service health. Rehearsal CTs, disposable datasets and obsolete image caches were removed after creation-record, GUID and sole-attachment checks; the prior production root remains stopped as rollback material |
-| Secure Boot | Passed: enabled, signed Proxmox shim selected, kernel integrity lockdown active and pools healthy. Production services, HTTPS and bundled Jellyfin FFmpeg QSV passed afterward |
-| Representative phone/4K/10-bit/mobile uploads | Conditional on intended workload; synthetic test success is narrower |
-| Storage templates and later HDD migration | Not enabled/tested; separate validation and identified-volume migration required |
+| Service completeness | Every `services/<name>` has a matching deployment, resource contract, service guide, catalog/configuration registration and service-specific Nix check set; flake assertions validate common contract and runtime wiring |
+| Single-image lifecycle | Both services are inactive on fresh roots; tests cover failed activation, activation/deactivation, restart persistence, backup isolation and enabled-target bypasses |
+| Runtime credentials | Metadata tests reject missing, empty, symlinked, non-regular, incorrectly owned or overly permissive files; image inputs contain paths and validation only |
+| Storage guards | Disposable mount tests reject absent, root-backed and marker-mismatched volumes; Immich layout tests keep originals on `/data` and generated media on `/persist` |
+| Backup recovery | Synthetic failure injection covers quiescing, Borg/dump failure, restart attempts and retained recovery intent; encrypted Borg/PostgreSQL fixtures exercise archive and logical restore |
+| Application configuration | Immich checks exercise CPU-only ML selection, QSV wiring and backup runtime endpoints; Home Assistant checks cover loopback binding, ZHA/SMLIGHT, backup hooks and the full system closure |
+| Image and release integrity | CI evaluates every configuration, selects changed derivations, builds images on separate runners, rejects runtime state in archives and fails closed through the stable required gate |
+| Repository hygiene | Formatting, shell analysis, Python tests, secret-pattern scanning, service topology and public-doc address checks run before builds |
 
-## CI guarantees and limits
+ARM macOS evaluates and lints Linux derivations; it does not build or execute Linux
+systems. GitHub builds Linux checks and images without homelab credentials or
+administrative access. These controls are not a Proxmox boot test or proof of a
+particular live restore. Pattern scanning is heuristic, not proof that secrets are
+absent.
 
-ARM macOS formats, lints and evaluates Linux derivations; it does not build/run
-Linux. GitHub tests real disposable mounts, encrypted Borg with PostgreSQL, secret
-round-trips, hook failures and image layout in uncompressed tar archives. Release
-jobs build the compressed operator artifacts. These are not a Proxmox boot test or
-proof of production restoration. Pattern scanning is heuristic, not proof of no
-secret leakage. CI has no homelab credentials or network access.
+## Operator-verified boundaries
 
-Nix derivation comparison selects affected images/checks. Missing old schema/base
-falls back to all outputs. Current evaluation failures fail CI. Cache handoff between
-validation and image jobs avoids rebuilding available shared derivations; separate
-image runners still assemble each archive independently. Eviction never changes
-correctness. In the first successful single-image run, validation took 11m19s:
-6m11s building selected checks, 1m36s comparing derivations, and about 2m in
-cache restore/save. Image jobs then ran in parallel and took about 5–6 minutes.
-These are one run's measurements, not a guaranteed duration.
+| Area | Current evidence / boundary |
+|---|---|
+| Runtime credential adoption | All services use root-only `/persist/secrets` files and independently retrieved `borg-<service-slug>` Documents from the `Homelab` vault |
+| Native unprivileged LXC | Boot, generated AppArmor/default ID mapping, nesting, private TUN permissions and Tailscale-only application access verified without host device-mode changes |
+| Storage identity and replacement | Missing/swapped guards and managed root replacement verified; persistent volume identities and application state survived replacement |
+| Immich placement and workload | Originals/generated media placement, representative synthetic uploads, search/face/OCR processing and Intel QSV transcode/playback verified |
+| Backup and disaster recovery | Quiesced remote Borg backup, data verification, independent escrow retrieval, isolated PostgreSQL/media restore and fresh-volume/container recovery verified |
+| Home Assistant and Zigbee | Single-image lifecycle, guarded state path, loopback HTTP, separate backup identity and ZHA network-backup procedure established; live coordinator details stay private |
+| Secure Boot | Signed Proxmox boot, kernel lockdown, pools, service HTTPS and QSV verified after enablement |
 
-Evidence: [v0.2.1 main checks](https://github.com/NicholasBehr/homelab-fleet/actions/runs/42487039074)
-and [v0.2.1 release](https://github.com/NicholasBehr/homelab-fleet/actions/runs/42487982978)
-passed at `370df06b4e729ae1afa88dd53b27b0848fd88d28`. Full operator receipts
-remain private. The native-job test copied the evaluated job/sandbox/helpers into
-runtime files on backup-disabled images; it supplied required Borg runtime
-directories explicitly. Remote testing used the privately evaluated native job
-with a disposable test endpoint before production enrollment.
-The recovery image does not clear saved Serve
-state automatically; the operator reset it before restoring PostgreSQL.
+An inactive replacement root does not clear Serve state stored with a restored
+Tailscale identity. Keep Tailscale stopped during restoration; activation applies
+the declared Serve policy before returning the service to operation. Never operate
+duplicate Tailscale, Zigbee or application identities.
 
-Production is ready for imports, subject to the workload-specific capacity and
-representative-media checks above. Test credentials/repositories must never become production.
-Synthetic rehearsal does not establish capacity or representative-media coverage.
-Retained production recovery copies stay protected.
+## Remaining workload-specific gates
+
+- Validate capacity with the intended phone, 4K, 10-bit and mobile upload mix;
+  synthetic media coverage is narrower.
+- Rehearse Home Assistant restoration with replacement coordinator hardware before
+  relying on that hardware-loss path.
+- Treat any `/data` move to HDD as a separate identified-volume migration with a
+  fresh consistent backup, explicit approval and restoration verification.
+- Recheck backup freshness, independently restorable archives and identity
+  exclusivity before every migration-bearing replacement.
+
+Production readiness remains conditional on those workload-specific gates. Test
+credentials, repositories and disposable volumes must never become production
+resources, and retained recovery copies stay protected until their replacement is
+independently verified.

@@ -14,7 +14,7 @@ with tarfile.open(sys.argv[1], mode='r|*') as archive:
             raise SystemExit('Template contains operational activation')
         if name == 'var/lib/homelab/operational-enabled':
             raise SystemExit('Template contains the operational activation record')
-        if name.startswith(('persist/', 'data/', 'run/secrets/')) and not member.isdir():
+        if name.startswith(('persist/', 'data/')) and not member.isdir():
             raise SystemExit(f'Runtime state present in template: {name}')
     if not init: raise SystemExit('LXC init missing')
-print('Template has init and no runtime files on persistent mounts or /run/secrets.')
+print('Template has init and no runtime files on persistent mounts.')

@@ -4,19 +4,23 @@
   "groups": {
     "group:homelab-admins": ["admin@example.com"],
     "group:immich-users": ["user@example.com"],
+    "group:home-assistant-users": ["home@example.com"],
   },
   "tagOwners": {
     "tag:homelab-host": ["group:homelab-admins"],
     "tag:immich": ["group:homelab-admins"],
+    "tag:home-assistant": ["group:homelab-admins"],
   },
   "grants": [
-    {"src": ["group:homelab-admins"], "dst": ["tag:homelab-host", "tag:immich"], "ip": ["tcp:22", "tcp:443"]},
+    {"src": ["group:homelab-admins"], "dst": ["tag:homelab-host", "tag:immich", "tag:home-assistant"], "ip": ["tcp:22", "tcp:443"]},
     {"src": ["group:immich-users"], "dst": ["tag:immich"], "ip": ["tcp:443"]},
+    {"src": ["group:home-assistant-users"], "dst": ["tag:home-assistant"], "ip": ["tcp:443"]},
   ],
   "ssh": [
-    {"action": "check", "src": ["group:homelab-admins"], "dst": ["tag:homelab-host", "tag:immich"], "users": ["root"]},
+    {"action": "check", "src": ["group:homelab-admins"], "dst": ["tag:homelab-host", "tag:immich", "tag:home-assistant"], "users": ["root"]},
   ],
   "tests": [
     {"src": "user@example.com", "accept": ["tag:immich:443"], "deny": ["tag:immich:22", "tag:homelab-host:443"]},
+    {"src": "home@example.com", "accept": ["tag:home-assistant:443"], "deny": ["tag:home-assistant:22", "tag:immich:443"]},
   ],
 }

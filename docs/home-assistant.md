@@ -33,13 +33,10 @@ Do not import a local development build into production.
 
 ## MR4U initial setup
 
-The inspected device is reachable at `192.168.1.2`, running SLZB-OS `v3.2.4`.
-Ethernet is connected with DHCP, IPv6/Wi-Fi/VPN/DDNS/MQTT are off. Both radio
-coordinator sockets are configured but have no clients. Radio 1 is EFR32MG26 on
-6638 (firmware `20240602`); radio 2 is CC2674P10 on 7638 (firmware `20240716`).
-Automatic Zigbee firmware updates are currently on. Web authentication, socket
-whitelisting and fallback AP password protection are currently off. Analytics is
-currently allowed. All reported radio/core temperatures were about 35–37°C.
+Record the coordinator's address, SLZB-OS and radio firmware versions in the
+private operator inventory. In the steps below, `COORDINATOR_HOST` means that
+privately recorded DNS name or address. Confirm Ethernet is connected and that
+Wi-Fi, VPN, DDNS and MQTT features not required by this design are disabled.
 
 Before joining Zigbee devices:
 
@@ -64,8 +61,8 @@ Before joining Zigbee devices:
 The device serves management over plain HTTP on the LAN. Keep it on the trusted
 LAN, use a unique password, and do not forward its web or socket ports from the
 router. SMLIGHT documents the MR-series radio sockets as 6638 and 7638 and supports
-an IP whitelist for the coordinator socket. Home Assistant will connect to
-`192.168.1.2:7638`; management uses ports 80 and 81.
+an IP whitelist for the coordinator socket. Home Assistant connects to
+`COORDINATOR_HOST:7638`; management uses ports 80 and 81.
 
 ## Home Assistant first boot
 
@@ -82,7 +79,7 @@ an IP whitelist for the coordinator socket. Home Assistant will connect to
    and store it in the private operator vault.
 4. In **Settings → Devices & services → Add integration**, add **Zigbee Home
    Automation (ZHA)** manually. Set radio type **Texas Instruments ZNP** and
-   serial URL `socket://192.168.1.2:7638`. Use 115200 baud and no flow control.
+   serial URL `socket://COORDINATOR_HOST:7638`. Use 115200 baud and no flow control.
    Confirm the shown adapter is CC2674P10 before creating the network. Do not
    configure the EFR32MG26 / 6638 endpoint.
 5. Choose a Zigbee channel after checking local Wi-Fi channel use. Prefer 15, 20,
@@ -92,7 +89,7 @@ an IP whitelist for the coordinator socket. Home Assistant will connect to
    settings. Confirm the automatic backup is also present. These backups include
    network security material and must remain inside `/persist` and encrypted Borg.
 7. Add **SMLIGHT SLZB** separately from **Settings → Devices & services**. Enter
-   host `192.168.1.2` and the device username/password in the UI. This integration
+   host `COORDINATOR_HOST` and the device username/password in the UI. This integration
    monitors and manages the adapter; it does not replace ZHA's serial connection.
    Keep firmware and restart entities manual and restricted to administrators.
 8. Pair one nearby mains-powered router first, then add devices. Verify real
@@ -111,6 +108,32 @@ If either restart fails, the backup job must retain recovery intent and alert th
 operator. HA stays offline for the full Borg operation. The job excludes only the
 reproducible Borg cache and incomplete temporary HA backup artifacts. Default
 retention is daily 7, weekly 4, monthly 6.
+
+For disaster restoration, follow the generic [restoration
+contract](recovery.md#complete-disaster-restoration-contract). Borg's service set is
+`/persist`, excluding `/persist/borg/cache` and incomplete
+`/persist/home-assistant/backups/*.tmp` artifacts. Restore selectively into a fresh,
+marked `/persist` volume:
+
+- `persist/home-assistant`, including SQLite, `.storage` and ZHA backups;
+- Borg config, authenticated trust, repository endpoint and `persist/secrets`;
+- `persist/tailscale` only after proving the original identity cannot run;
+- completed Home Assistant backup artifacts when they are intentionally retained.
+
+Preserve the new outer volume marker and omit Borg cache and incomplete temporary
+artifacts. Verify the entire Home Assistant state tree is owned by UID/GID1102 and
+runtime credentials remain root:root mode0600 under mode0700. No separate logical
+database restore or restoration helper is required: SQLite was archived while Home
+Assistant was stopped. With the operational target, Home Assistant and Tailscale
+still inactive, run SQLite's `PRAGMA integrity_check` through a protected local
+Python process without printing application rows, and verify `.storage` plus the
+latest ZHA network backup are present.
+
+After proving Tailscale and Zigbee identity exclusivity, activate the same root.
+Verify HTTPS and real login, automations, dashboards, integrations, coordinator
+connection, device commands and the ZHA network identity. Take a new successful
+Borg backup and independently restore representative HA state and the ZHA backup
+before normal use.
 
 Before MR4U firmware, radio mode, port, IEEE, or channel changes:
 
