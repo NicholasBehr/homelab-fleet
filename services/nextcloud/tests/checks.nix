@@ -37,6 +37,12 @@ in
     assert !(builtins.any (rule: pkgs.lib.hasInfix "/persist/nextcloud" rule) c.systemd.tmpfiles.rules);
     assert c.systemd.services.nextcloud-cron.serviceConfig.KillMode == "control-group";
     assert c.systemd.services.nextcloud-setup.wants == [ ];
+    assert !(builtins.elem "nginx.service" c.systemd.targets.homelab-operational.requires);
+    assert
+      c.systemd.targets.homelab-operational.unitConfig.AssertPathExists == [
+        "/persist/nextcloud/config/config.php"
+        "/data/nextcloud/.ncdata"
+      ];
     pkgs.runCommand "nextcloud-service-config" { } ''
       grep -q 'ConditionPathExists=/var/lib/homelab/operational-enabled' \
         ${c.systemd.units."phpfpm-nextcloud.service".unit}/phpfpm-nextcloud.service

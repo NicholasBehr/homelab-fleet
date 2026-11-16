@@ -134,9 +134,11 @@ in
       enableTCPIP = false;
     };
     systemd.targets.postgresql.wantedBy = lib.mkForce [ ];
-    systemd.targets.homelab-operational.requires = [
-      "nextcloud-setup.service"
-      "nginx.service"
+    # Assert enrollment at activation without making normal backup stops tear
+    # down the operational target (Requires=nginx would do exactly that).
+    systemd.targets.homelab-operational.unitConfig.AssertPathExists = [
+      "${a.state}/config/config.php"
+      "${a.data}/.ncdata"
     ];
     services.redis.servers.nextcloud.settings = {
       dir = lib.mkForce "/persist/redis";
