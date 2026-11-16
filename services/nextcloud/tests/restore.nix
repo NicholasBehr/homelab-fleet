@@ -62,6 +62,11 @@ pkgs.testers.runNixOSTest {
     # Synthetic password transport is permitted in fixtures only.
     machine.succeed("nextcloud-occ maintenance:mode --off; OC_PASS=synthetic-client-password nextcloud-occ user:add --password-from-env --group=admin fixture")
     machine.succeed("nextcloud-occ user:setting fixture files quota 20MB")
+    machine.succeed("systemctl stop redis-nextcloud postgresql")
+    machine.succeed("mv /persist/postgresql/17/PG_VERSION /persist/postgresql/17/PG_VERSION.retained")
+    machine.fail("homelab-activate")
+    machine.fail("test -e /persist/postgresql/17/PG_VERSION")
+    machine.succeed("mv /persist/postgresql/17/PG_VERSION.retained /persist/postgresql/17/PG_VERSION; systemctl reset-failed")
     machine.succeed("borg-job-nextcloud init --encryption=repokey-blake2; homelab-activate")
     machine.wait_for_unit("nginx.service")
     machine.wait_for_unit("nextcloud-cron.timer")

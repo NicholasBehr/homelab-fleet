@@ -42,6 +42,7 @@ in
       c.systemd.targets.homelab-operational.unitConfig.AssertPathExists == [
         "/persist/nextcloud/config/config.php"
         "/data/nextcloud/.ncdata"
+        "/persist/postgresql/17/PG_VERSION"
       ];
     pkgs.runCommand "nextcloud-service-config" { } ''
       grep -q 'ConditionPathExists=/var/lib/homelab/operational-enabled' \
