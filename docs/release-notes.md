@@ -1,3 +1,16 @@
+# v0.5.2 — operational handoff hardening
+
+Make `health-check` find NixOS system tools when invoked directly through
+Proxmox `pct exec`, whose default PATH omits `/run/current-system/sw/bin`.
+Document the live Nextcloud enrollment and recovery lessons: robust Proxmox
+metadata checks, resumable account enrollment, admin-side Tailscale identity
+verification and runtime-only production credentials during disposable restore
+rehearsals. The validation matrix records the completed generic acceptance and
+the remaining real-client login/sync check without publishing live identifiers.
+
+No persistent path, marker, contract, application version or credential changes.
+Existing data needs no migration; replace roots normally to adopt the image fix.
+
 # v0.5.1 — preserve Nextcloud maintenance during startup
 
 Allow an explicitly activated Nextcloud instance to start while it is already in

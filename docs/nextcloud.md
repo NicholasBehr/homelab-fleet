@@ -73,6 +73,12 @@ On a verified fresh instance, with the operational target inactive:
    passwords as appropriate, run the first native backup and independently restore
    representative data before storing irreplaceable files.
 
+If account creation is interrupted after installation, do not rerun
+`nextcloud-initialize`. Keep the target inactive, start only the documented helpers,
+verify the installed database and exact user list, add only missing accounts through
+hidden prompts, recheck quota/maintenance, then stop the helpers. Operator scripts
+should be resumable at this boundary and must never overwrite an existing account.
+
 If initialization fails, stop helpers and investigate. Do not delete configuration
 or rerun installation over partial state. Recovery always uses restored state,
 never `nextcloud-initialize`. Users are application accounts, not Linux accounts.
@@ -113,6 +119,16 @@ fresh, recorded volumes, preserving outer markers:
 - `persist/backup/nextcloud.dump` and `persist/backup/versions.json`;
 - `persist/secrets`, Borg config/trust/runtime endpoint;
 - `persist/tailscale` only after establishing identity exclusivity.
+
+For a production-archive rehearsal on disposable volumes, keep recovered Borg
+material in protected runtime tmpfs and restore only `persist/nextcloud`,
+`data/nextcloud`, `persist/backup` and
+`persist/secrets/nextcloud-settings.json`. Do not extract Borg credentials or
+Tailscale state. The helpers' readiness check may see Borg files through temporary
+read-only service binds from tmpfs; remove its empty placeholders afterward. Confirm
+HTTP/Tailscale stayed inactive, import the dump, verify users/quota and representative
+checksums, then prove no credential or identity file persisted before retaining the
+test snapshot.
 
 Do not restore PostgreSQL's live directory, Redis state, temporary buffers or the
 root-local activation record. Keep the operational target and all app listeners

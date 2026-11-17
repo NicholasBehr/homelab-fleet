@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Inside the operational container; require every declared service and a recent backup.
 set -euo pipefail
+# Proxmox pct exec supplies a Debian-style minimal PATH, not the NixOS profile.
+export PATH="/run/current-system/sw/bin:$PATH"
 while IFS= read -r volume; do
   verify-storage "$(jq -r .path <<< "$volume")" "$(jq -r .marker <<< "$volume")"
 done < <(jq -c '.[]' /etc/homelab-storage.json)

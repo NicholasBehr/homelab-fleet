@@ -1,6 +1,6 @@
 # Verification matrix
 
-Status as of 2026-11-11. Exact live GUIDs, identities, credentials and recovery
+Status as of 2026-11-17. Exact live GUIDs, identities, credentials and recovery
 receipts remain in the protected operator inventory. Repository history contains
 past release evidence; historical records never authorize a new mutation.
 
@@ -15,7 +15,7 @@ past release evidence; historical records never authorize a new mutation.
 | Backup recovery | Synthetic failure injection covers quiescing, Borg/dump failure, restart attempts and retained recovery intent; encrypted Borg/PostgreSQL fixtures exercise archive and logical restore |
 | Application configuration | Immich checks exercise CPU-only ML selection, QSV wiring and backup runtime endpoints; Home Assistant checks cover loopback binding, ZHA/SMLIGHT, backup hooks and the full system closure |
 | Image and release integrity | CI evaluates every configuration, selects changed derivations, builds images on separate runners, rejects runtime state in archives and fails closed through the stable required gate |
-| Repository hygiene | Formatting, shell analysis, Python tests, secret-pattern scanning, service topology and public-doc address checks run before builds |
+| Repository hygiene | Formatting, shell analysis, Python tests, secret-pattern scanning, service topology and public-doc address checks run before builds; `health-check` supplies the NixOS system path for direct `pct exec` use |
 
 ARM macOS evaluates and lints Linux derivations; it does not build or execute Linux
 systems. GitHub builds Linux checks and images without homelab credentials or
@@ -60,11 +60,10 @@ independently verified.
 
 Nextcloud adds evaluated storage/listener/activation/secret assertions, synthetic
 backup-hook failure injection and a real Nextcloud/PostgreSQL/Borg VM restoration
-fixture. These checks must pass in the service PR; no production Nextcloud
-provisioning, device-client test or restoration rehearsal is claimed here.
-
-Before production: verify a recorded disposable Proxmox rehearsal, private
-Tailscale access from iOS/macOS, 10 GB ordinary WebDAV and chunked transfers,
-interruption/retry, quota/full-volume behavior, root replacement, full restoration,
-backup duration and independently retrieved `borg-nextcloud` escrow. `/data` HDD
-migration remains a separate approved operation with preserved recovery copies.
+fixture. Operator acceptance has additionally covered unprivileged Proxmox boot,
+private HTTPS/WebDAV enforcement, 10 GB transfer integrity, interruption/retry,
+quota/full-volume behavior, root replacement, independent escrow, native remote
+backup verification and fresh-volume logical restoration. Exact receipts remain in
+the protected operator inventory. Authenticated iOS/macOS login and sync remain a
+manual client check. `/data` HDD migration remains a separate approved operation
+with preserved recovery copies.
