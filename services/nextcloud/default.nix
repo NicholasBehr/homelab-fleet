@@ -221,10 +221,23 @@ in
           test -s ${a.state}/config/config.php || { echo 'Initialize or restore explicitly before activation' >&2; exit 1; }
           test -f ${a.data}/.ncdata || { echo 'Missing Nextcloud data marker' >&2; exit 1; }
           maintenance=$(${lib.getExe occ} config:system:get maintenance)
-          ${lib.getExe occ} upgrade
+          restore_maintenance=0
+          restore_maintenance_mode() {
+            if (( restore_maintenance )); then
+              ${lib.getExe occ} maintenance:mode --on || true
+            fi
+          }
+          trap restore_maintenance_mode EXIT
           if test "$maintenance" = true || test "$maintenance" = 1; then
-            ${lib.getExe occ} maintenance:mode --on
+            ${lib.getExe occ} maintenance:mode --off
+            restore_maintenance=1
           fi
+          ${lib.getExe occ} upgrade
+          if (( restore_maintenance )); then
+            ${lib.getExe occ} maintenance:mode --on
+            restore_maintenance=0
+          fi
+          trap - EXIT
           ${lib.getExe occ} background:cron
         '';
         serviceConfig.RemainAfterExit = true;

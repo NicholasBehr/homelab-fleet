@@ -92,6 +92,11 @@ intent after failure. Do not clear another operation's maintenance flag. Power l
 cannot run cleanup; check maintenance, service state and backup freshness after
 reboot. Existing operator maintenance is intentionally preserved.
 
+Normal startup also preserves an existing maintenance flag. It temporarily clears
+that flag only while `occ upgrade` runs, restores it afterward and attempts to
+restore it on upgrade failure; this prevents startup from failing merely because
+an operator intentionally enabled maintenance before a reboot.
+
 Run `systemctl start borgbackup-job-nextcloud` for the first backup. This starts an
 asynchronous job: wait for it to finish and verify `Result=success` with
 `systemctl show borgbackup-job-nextcloud -p ActiveState -p Result` before inspecting

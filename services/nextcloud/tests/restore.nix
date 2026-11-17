@@ -62,7 +62,7 @@ pkgs.testers.runNixOSTest {
     # Synthetic password transport is permitted in fixtures only.
     machine.succeed("nextcloud-occ maintenance:mode --off; OC_PASS=synthetic-client-password nextcloud-occ user:add --password-from-env --group=admin fixture")
     machine.succeed("nextcloud-occ user:setting fixture files quota 20MB")
-    machine.succeed("systemctl stop redis-nextcloud postgresql")
+    machine.succeed("nextcloud-occ maintenance:mode --on; systemctl stop redis-nextcloud postgresql")
     machine.succeed("mv /persist/postgresql/17/PG_VERSION /persist/postgresql/17/PG_VERSION.retained")
     machine.fail("homelab-activate")
     machine.fail("test -e /persist/postgresql/17/PG_VERSION")
@@ -72,6 +72,9 @@ pkgs.testers.runNixOSTest {
     machine.succeed("borg-job-nextcloud init --encryption=repokey-blake2; homelab-activate")
     machine.wait_for_unit("nginx.service")
     machine.wait_for_unit("nextcloud-cron.timer")
+    status = json.loads(machine.succeed("curl -fsS http://127.0.0.1:8080/status.php"))
+    assert status["installed"] and status["maintenance"]
+    machine.succeed("nextcloud-occ maintenance:mode --off")
     status = json.loads(machine.succeed("curl -fsS http://127.0.0.1:8080/status.php"))
     assert status["installed"] and not status["maintenance"]
     machine.succeed("printf 'original fixture bytes' > /tmp/original; curl --fail -u fixture:synthetic-client-password -T /tmp/original http://127.0.0.1:8080/remote.php/dav/files/fixture/restore.txt")

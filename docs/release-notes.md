@@ -1,3 +1,11 @@
+# v0.5.1 — preserve Nextcloud maintenance during startup
+
+Allow an explicitly activated Nextcloud instance to start while it is already in
+operator maintenance mode. Normal setup temporarily clears maintenance for the
+required `occ upgrade`, restores it afterward and retries restoration if upgrade
+fails. The restoration VM now activates from maintenance mode and verifies that
+HTTP remains in maintenance until the operator deliberately disables it.
+
 # v0.5.0 — private Nextcloud MVP
 
 Add the `nextcloud` single-image service with private Tailscale HTTPS, native
