@@ -21,14 +21,20 @@
       home-assistant = mkContainer {
         deployment = ./deployments/home-assistant.nix;
       };
+      nextcloud = mkContainer { deployment = ./deployments/nextcloud.nix; };
       configurations = {
-        inherit immich home-assistant;
+        inherit immich home-assistant nextcloud;
       };
       contracts = {
+        nextcloud = import ./deployments/nextcloud-contract.nix;
         immich = import ./deployments/immich-contract.nix;
         home-assistant = import ./deployments/home-assistant-contract.nix;
       };
       imageCatalog = {
+        nextcloud = {
+          service = "nextcloud";
+          variant = "single";
+        };
         immich = {
           service = "immich";
           variant = "single";
@@ -57,6 +63,7 @@
         inherit pkgs home-assistant;
       };
       serviceCheckSets = {
+        nextcloud = import ./services/nextcloud/tests/checks.nix { inherit pkgs nextcloud; };
         immich = immichChecks;
         home-assistant = homeAssistantChecks;
       };
@@ -98,11 +105,10 @@
         && host.homelab.lifecycle.units != [ ]
         && host.homelab.lifecycle.backupJob == "borgbackup-job-${host.homelab.backup.name}"
         && host.homelab.backup.enable
-        &&
-          host.homelab.secrets.requiredFiles == [
-            host.homelab.backup.passphraseFile
-            host.homelab.backup.sshKeyFile
-          ]
+        && builtins.all (file: builtins.elem file host.homelab.secrets.requiredFiles) [
+          host.homelab.backup.passphraseFile
+          host.homelab.backup.sshKeyFile
+        ]
         && builtins.any (
           volume: volume.path == contract.persist.path && volume.marker == contract.persist.marker
         ) host.homelab.storage.volumes

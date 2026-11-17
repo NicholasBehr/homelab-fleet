@@ -1,3 +1,23 @@
+# v0.5.0 — private Nextcloud MVP
+
+Add the `nextcloud` single-image service with private Tailscale HTTPS, native
+PostgreSQL/Redis, 10 GiB upload limits and the complete application data directory
+on `/data`. This is a deliberate Nextcloud exception to the bulk-originals-only
+rule; previews, versions and trash move with user files when this volume moves to
+HDD. Configuration, PostgreSQL and identity remain on `/persist`.
+
+Initialization is explicit and creates no accounts or bootstrap passwords.
+Operators create accounts through hidden terminal prompts. A protected runtime
+JSON supplies the tailnet hostname; generated images contain no live domain.
+Automatic installation, app-store updates and public links are disabled. Gated
+upstream directory creation, quiesced logical database/Borg backups and restoration
+checks are part of the service. Read `docs/nextcloud.md` before enrollment.
+
+This adds a new contract (version 1), image/check output and runtime settings file;
+existing service contracts and persistent paths do not change. No existing data is
+migrated by this release. Deployments and the first full restoration rehearsal
+remain manual, separately approved operator work.
+
 # v0.4.4 — Home Assistant readiness probe
 
 Use the unauthenticated frontend root for Home Assistant health checks. Repeated

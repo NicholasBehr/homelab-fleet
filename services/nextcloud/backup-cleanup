@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+if test -f /run/homelab-backup/restart; then
+  failed=0
+  for unit in redis-nextcloud tailscaled; do
+    systemctl start "$unit.service" || failed=1
+  done
+  if test "$(cat /run/homelab-backup/maintenance)" = off; then
+    nextcloud-occ maintenance:mode --off >/dev/null || failed=1
+  fi
+  for unit in phpfpm-nextcloud.service nginx.service nextcloud-cron.timer; do
+    systemctl start "$unit" || failed=1
+  done
+  if (( failed )); then exit 1; fi
+  rm /run/homelab-backup/restart /run/homelab-backup/maintenance
+fi

@@ -1,18 +1,20 @@
 # homelab-fleet
 
-Unprivileged NixOS LXC images for Proxmox, including Immich and Home Assistant.
+Unprivileged NixOS LXC images for Proxmox, including Immich, Home Assistant and Nextcloud.
 GitHub builds and attests images; operators pull explicit verified releases.
 CI has no homelab access. Root filesystems are replaced, while declared data and
 identities survive on external volumes. `/persist` stays on NVMe; `/data` is bulk
-originals suitable for later HDD migration. Home Assistant uses a single `/persist`
+originals suitable for later HDD migration, with an explicit Nextcloud exception
+for its complete application data directory. Home Assistant uses a single `/persist`
 volume and a LAN connected SMLIGHT Zigbee coordinator.
 
 One image per service supports enrollment, restoration and operation. New roots
 keep applications, Tailscale and backup timers inactive until explicit systemd
 activation; see [lifecycle](docs/lifecycle.md).
 
-**Status:** All services use the single-image lifecycle and independently escrowed
-runtime Borg credentials. Immich has verified QSV, remote backup, fresh-volume
+**Status:** All services implement the single-image lifecycle. Existing production
+services have independently escrowed runtime Borg credentials; Nextcloud is an
+implementation awaiting operator enrollment and acceptance. Immich has verified QSV, remote backup, fresh-volume
 restoration and managed root replacement. Home Assistant has the same inactive-root,
 storage, credential and backup boundaries; its Zigbee-specific recovery procedure
 is documented separately. See [validation](docs/validation.md) for the exact
@@ -22,6 +24,7 @@ evidence and remaining workload-specific checks.
 - [Service onboarding contract](docs/adding-a-service.md)
 - [Immich backup and restoration](docs/immich.md)
 - [Home Assistant and Zigbee](docs/home-assistant.md)
+- [Nextcloud private MVP, enrollment and recovery](docs/nextcloud.md)
 - [Enrollment, releases and replacement](docs/operations.md)
 - [Backup and disaster recovery](docs/recovery.md)
 - [Verification matrix](docs/validation.md)

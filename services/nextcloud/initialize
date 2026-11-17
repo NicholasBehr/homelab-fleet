@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Explicit fresh-instance initialization. Never called by boot or activation.
+set -euo pipefail
+umask 077
+if test -e /var/lib/homelab/operational-enabled || systemctl is-active --quiet homelab-operational.target; then
+  echo 'Deactivate before initialization' >&2; exit 1
+fi
+exec 9>/persist/operation.lock
+flock -n 9
+systemctl start storage-contract operational-ready nextcloud-directories
+if test -e /persist/nextcloud/config/config.php || test -n "$(find /data/nextcloud -mindepth 1 -print -quit)"; then
+  echo 'Refusing initialization over existing application state' >&2; exit 1
+fi
+systemctl start postgresql-setup redis-nextcloud
+if test "$(runuser -u postgres -- psql -X -At --dbname=nextcloud -c "select count(*) from information_schema.tables where table_schema='public'")" != 0; then
+  echo 'Refusing initialization over an existing database' >&2; exit 1
+fi
+# The user-scoped unit receives runtime settings via systemd credentials and
+# disables database-role creation. No real password exists during installation.
+systemctl start nextcloud-install.service
+printf '%s\n' 'Initialized without accounts; create accounts through hidden terminal prompts before activation.'

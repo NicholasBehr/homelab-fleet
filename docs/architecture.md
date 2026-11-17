@@ -92,6 +92,21 @@ CPU-only environment policy after an OpenVINO segmentation fault. Regression
 checks exercise actual installed provider selection. Remove the patch when upstream
 provides a tested equivalent; never disable upstream tests to accommodate it.
 
+## Nextcloud files
+
+Nextcloud uses the native NixOS module, PostgreSQL 17 and Redis in a separate
+unprivileged LXC. Tailscale Serve terminates private HTTPS; Nginx listens only on
+loopback. There is no public ingress. The complete application data directory is
+`/data/nextcloud`, including previews, versions and trash: this is the explicit
+exception to the fleet's bulk-only `/data` policy. Configuration and database stay
+on `/persist`; temporary uploads/buffers use `/data/nextcloud-tmp`.
+
+The service has one normal home per user and native quotas. No external storage,
+per-user mounts or impermanence. Directory creation is gated, initialization is
+explicit without bootstrap passwords, and activation refuses absent application
+state. See [Nextcloud](nextcloud.md) for the resource proposal, runtime endpoint
+schema, account creation, quiesced backups and restoration procedure.
+
 ## Add a service
 
 Follow the normative [service onboarding contract](adding-a-service.md). It defines
