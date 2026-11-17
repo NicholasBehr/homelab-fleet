@@ -22,7 +22,7 @@ described in [backup and recovery](recovery.md). Store and independently verify
 the tagged `borg-home-assistant` Document in the `Homelab` vault. Do not reuse
 another service's repository or identity.
 
-With the intended `/persist` volume mounted on the inactive replacement root,
+With the new `/persist` volume mounted on the inactive new root,
 run this once from the protected root console:
 
 ```console
@@ -56,32 +56,25 @@ disable unused Wi-Fi, VPN, DDNS and on-device MQTT/Zigbee Hub features.
 6. Leave the EFR32MG26 / 6638 radio unused. Do not enable multiprotocol firmware,
    Zigbee Hub or OTBR as part of this change.
 
-## Switching from ZHA
+## Fresh deployment
 
-This release intentionally forms a fresh Zigbee2MQTT network. It does not convert
-the ZHA device database, and every Zigbee device must be factory-reset and paired
-again. Historical ZHA backups remain protected under Home Assistant state but do
-not authorize startup or determine the new network identity.
+Deploy a new container with a new, provenance-verified `/persist` volume. Do not
+restore or attach the old Home Assistant state, Zigbee database or network
+backup. The only handoff requirement is to stop the old container and prove it
+cannot reach the coordinator before the new Zigbee2MQTT instance connects to
+port 7638. Never run both radio owners at once.
 
-Before replacing the root:
-
-1. Make and retain a final manual ZHA network backup and a successful consistent
-   Borg backup.
-2. Record affected device names, areas and automations without exporting secrets
-   or live radio identifiers into this repository.
-3. Disable or remove the ZHA integration in Home Assistant while the old system
-   is still available. The new image refuses activation while an active ZHA
-   configuration entry remains, preventing two clients from racing for port7638.
-4. Deactivate the old root and prove it cannot run before connecting the new
-   Zigbee2MQTT instance. Never run both owners against the same coordinator.
+This intentionally creates a new Home Assistant instance and Zigbee network.
+Factory-reset and pair only the Hue light and SR-ZG9002KR12-Pro switch. Configure
+their names, areas and the switch automation again in the new instance.
 
 ## First activation
 
-Boot the verified image with the exact enrolled `/persist` volume. Fresh roots
+Boot the verified image with the exact new enrolled `/persist` volume. Fresh roots
 remain inactive until `homelab-activate` creates their root-local activation
 record. Activation verifies storage, Borg credentials, the two Zigbee enrollment
-files and absence of active ZHA before starting Mosquitto, Zigbee2MQTT and Home
-Assistant in dependency order.
+files before starting Mosquitto, Zigbee2MQTT and Home Assistant in dependency
+order.
 
 1. Verify `storage-contract`, `operational-ready`, `mosquitto`, `zigbee2mqtt`,
    `tailscaled` and `home-assistant` are active.
@@ -93,10 +86,10 @@ Assistant in dependency order.
    anonymous clients only on loopback; it is unreachable from the LAN or tailnet.
 4. Add **SMLIGHT SLZB** separately using the private coordinator host and device
    credentials. This monitors the MR4U; it does not own the serial socket.
-5. Open joining for a bounded interval in Zigbee2MQTT, pair one nearby
-   mains-powered router, then pair and name devices individually. Close joining
-   after each session. Pair the SR-ZG9002KR12-Pro and verify every button and
-   rotary action before recreating its automations.
+5. Open joining for a bounded interval in Zigbee2MQTT. Factory-reset and pair the
+   mains-powered Hue light first, then the SR-ZG9002KR12-Pro switch. Name both
+   devices and close joining. Verify every button and rotary action before
+   creating the switch automation.
 6. Verify MQTT discovery, real commands, availability, automations and the mesh
    map. Take a manual Borg backup and perform an independent representative
    restore before normal use.

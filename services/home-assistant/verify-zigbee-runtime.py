@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate private Zigbee settings and reject an active ZHA owner."""
+"""Validate the private Zigbee2MQTT runtime enrollment."""
 
 import json
 from pathlib import Path
@@ -72,22 +72,11 @@ def read_network_key(path):
         raise ValueError("Zigbee network key must be a non-default 128-bit key")
 
 
-def reject_active_zha(path):
-    path = Path(path)
-    if not path.exists():
-        return
-    document = json.loads(path.read_text())
-    entries = document.get("data", {}).get("entries", [])
-    if any(entry.get("domain") == "zha" and entry.get("disabled_by") is None for entry in entries):
-        raise ValueError("disable or remove the ZHA integration before activation")
-
-
 def main():
-    if len(sys.argv) != 4:
-        raise ValueError("expected settings, network-key and Home Assistant state paths")
+    if len(sys.argv) != 3:
+        raise ValueError("expected settings and network-key paths")
     read_environment(sys.argv[1])
     read_network_key(sys.argv[2])
-    reject_active_zha(sys.argv[3])
 
 
 if __name__ == "__main__":

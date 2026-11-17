@@ -47,7 +47,7 @@ render device, Thread, OTBR or `/data`.
 
 | Path | Purpose |
 |---|---|
-| `/persist/home-assistant` | SQLite database, `.storage`, automations, dashboards and retained historical ZHA backups |
+| `/persist/home-assistant` | SQLite database, `.storage`, automations and dashboards |
 | `/persist/home-assistant/backups` | Home Assistant backup artifacts |
 | `/persist/zigbee2mqtt` | Device database, coordinator backup, groups and runtime state |
 | `/persist/mosquitto` | Retained loopback MQTT broker state |

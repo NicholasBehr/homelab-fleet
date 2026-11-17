@@ -143,8 +143,7 @@ in
         operational-ready.postStart = ''
           ${pkgs.python3}/bin/python3 ${./verify-zigbee-runtime.py} \
             ${lib.escapeShellArg c.zigbee2mqttSettingsFile} \
-            ${lib.escapeShellArg c.zigbee2mqttSecretFile} \
-            ${lib.escapeShellArg "${c.state}/.storage/core.config_entries"}
+            ${lib.escapeShellArg c.zigbee2mqttSecretFile}
         '';
         home-assistant-directories = {
           inherit (gate) requires after;

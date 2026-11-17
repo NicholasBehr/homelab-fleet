@@ -1,21 +1,21 @@
 # v0.5.3 — Home Assistant Zigbee2MQTT
 
-Replace ZHA with a fresh Zigbee2MQTT network on the MR4U CC2674P10 radio. The
-single Home Assistant image now runs loopback-only Mosquitto and Zigbee2MQTT as
+Deploy a fresh Zigbee2MQTT network on the MR4U CC2674P10 radio. The single Home
+Assistant image now runs loopback-only Mosquitto and Zigbee2MQTT as
 separate gated services, exposes the Zigbee2MQTT frontend only through Tailscale
 Serve, and retains the EFR32MG26 radio for a later Thread design.
 
 Add protected one-time runtime enrollment for the private coordinator endpoint,
-random Zigbee network key and network identifiers. Activation rejects an active
-ZHA configuration, Mosquitto and Zigbee2MQTT state live on `/persist`, and Borg
-quiesces and restarts the complete dependency chain. Configuration checks and
-synthetic tests cover listeners, credentials, ownership and backup failures.
+random Zigbee network key and network identifiers. Mosquitto and Zigbee2MQTT
+state live on `/persist`, and Borg quiesces and restarts the complete dependency
+chain. Configuration checks and synthetic tests cover listeners, credentials,
+ownership and backup failures.
 
-This is a deliberate new Zigbee network: preserve the last ZHA and Borg backups,
-disable ZHA before replacement, and factory-reset/re-pair every device. Historical
-ZHA backup files remain retained but do not activate or define the new network.
-The Home Assistant contract advances to version 3; the volume marker is unchanged.
-Production replacement and radio handoff remain a separately approved operation.
+This is a clean deployment on a new container and new persistent volume; no old
+Home Assistant or Zigbee state is imported. Factory-reset and pair only the Hue
+light and SR-ZG9002KR12-Pro switch. The Home Assistant contract advances to
+version 3; the volume marker is unchanged. Production creation and radio handoff
+remain a separately approved operation.
 
 # v0.5.2 — operational handoff hardening
 

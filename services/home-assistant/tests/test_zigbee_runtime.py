@@ -12,12 +12,11 @@ NETWORK_KEY = [42, 9, 88, 2, 17, 64, 201, 4, 91, 33, 18, 72, 5, 222, 31, 140]
 
 
 class ZigbeeRuntime(unittest.TestCase):
-    def validate(self, *, endpoint="coordinator.example:7638", key=None, entries=None):
+    def validate(self, *, endpoint="coordinator.example:7638", key=None):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             settings = root / "zigbee2mqtt.env"
             secret = root / "zigbee2mqtt.yaml"
-            home_assistant = root / "core.config_entries"
             settings.write_text(
                 "ZIGBEE2MQTT_CONFIG_SERIAL_PORT=tcp://"
                 + endpoint
@@ -26,10 +25,8 @@ class ZigbeeRuntime(unittest.TestCase):
                 + "ZIGBEE2MQTT_CONFIG_ADVANCED_EXT_PAN_ID=[9,8,7,6,5,4,3,2]\n"
             )
             secret.write_text("network_key: " + json.dumps(key or NETWORK_KEY) + "\n")
-            if entries is not None:
-                home_assistant.write_text(json.dumps({"data": {"entries": entries}}))
             return subprocess.run(
-                ["python3", str(SCRIPT), str(settings), str(secret), str(home_assistant)],
+                ["python3", str(SCRIPT), str(settings), str(secret)],
                 capture_output=True,
             )
 
@@ -42,15 +39,6 @@ class ZigbeeRuntime(unittest.TestCase):
 
     def test_rejects_wrong_radio_port(self):
         self.assertNotEqual(self.validate(endpoint="coordinator.example:6638").returncode, 0)
-
-    def test_rejects_active_zha(self):
-        entries = [{"domain": "zha", "disabled_by": None}]
-        self.assertNotEqual(self.validate(entries=entries).returncode, 0)
-
-    def test_allows_disabled_zha_record(self):
-        entries = [{"domain": "zha", "disabled_by": "user"}]
-        self.assertEqual(self.validate(entries=entries).returncode, 0)
-
 
 if __name__ == "__main__":
     unittest.main()
