@@ -47,6 +47,8 @@ if test "$1" = start && test "$2" = "$RESTART_FAILURE.service"; then exit 18; fi
             self.assertEqual(cleaned.returncode == 0, restart_failure == "")
             all_events = events.read_text()
             self.assertIn("start tailscaled.service", all_events)
+            self.assertIn("start mosquitto.service", all_events)
+            self.assertIn("start zigbee2mqtt.service", all_events)
             self.assertIn("start home-assistant.service", all_events)
 
     def test_success(self):
@@ -57,6 +59,12 @@ if test "$1" = start && test "$2" = "$RESTART_FAILURE.service"; then exit 18; fi
 
     def test_tailscale_refuses_to_stop(self):
         self.exercise(active_after_stop="tailscaled")
+
+    def test_zigbee2mqtt_refuses_to_stop(self):
+        self.exercise(active_after_stop="zigbee2mqtt")
+
+    def test_mosquitto_refuses_to_stop(self):
+        self.exercise(active_after_stop="mosquitto")
 
     def test_restart_attempts_every_service(self):
         self.exercise(restart_failure="tailscaled")

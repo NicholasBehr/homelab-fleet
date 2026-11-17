@@ -1,156 +1,139 @@
-# Home Assistant and SLZB-MR4U setup
+# Home Assistant, Zigbee2MQTT and SLZB-MR4U
 
-This deployment runs Home Assistant Core in an unprivileged NixOS LXC. It uses
-ZHA with the MR4U's CC2674P10 radio. The EFR32MG26 remains uncommissioned so it
-can be considered for Thread later. The Home Assistant LXC uses one `/persist`
-volume and is accessed through Tailscale Serve.
+This single unprivileged NixOS LXC runs Home Assistant Core, a loopback-only
+Mosquitto broker and Zigbee2MQTT. Zigbee2MQTT owns the MR4U CC2674P10 radio over
+wired TCP 7638 and publishes Home Assistant MQTT discovery. The EFR32MG26 radio
+on port 6638 remains uncommissioned for a later Thread/OTBR design.
 
-## Before building an operator release
+Home Assistant binds `127.0.0.1:8123`, Mosquitto binds `127.0.0.1:1883`, and the
+Zigbee2MQTT frontend binds `127.0.0.1:8080`. Tailscale Serve publishes Home
+Assistant at `/` and Zigbee2MQTT at `/zigbee2mqtt`; none of these listeners is
+opened on the physical LAN.
 
-The service image requires its own operator-enrolled Borg credential files. Keep
-plaintext credentials out of Git, Nix, image inputs and command-line arguments.
-Enroll the service's dedicated Borg repository, SSH key/passphrase,
-and independently authenticated SSH host key as described in
-[backup and recovery](recovery.md). Do not reuse Immich's backup identity or
-repository. Store the recovery set in the `Homelab` vault as the tagged
-`borg-home-assistant` 1Password Document using the same JSON schema, independent-download
-verification and enrollment gates as Immich. The operational readiness gate
-intentionally refuses to start HA until enrollment is complete. The single image
-boots without its root-local activation record: Home Assistant, Tailscale and backup
-timers stay stopped until explicit operator startup. See [lifecycle](lifecycle.md).
+## Release and runtime enrollment
 
-The contract proposes CT IDs 210/211, 2 cores, 4 GiB RAM, 32 GiB root, and one
-32 GiB `/persist` volume. These are proposals, not allocations. Check the private
-operator inventory and obtain the bounded deployment plan approval required by
-`AGENTS.md` before production provisioning. The LXC may use DHCP on the trusted
-LAN: its Tailscale identity provides stable operator access, while ZHA initiates
-the LAN connection to the MR4U. Record live addressing privately; do not add it
-to this repository.
+Build the one `home-assistant` image through the normal PR, required-check,
+exact-main release and attestation workflow. The proposed CT IDs and storage in
+the deployment contract are not allocations; check the private inventory and
+obtain the bounded production plan approval required by `AGENTS.md`.
 
-The code registers one `home-assistant` image in the flake. Build and release it through the
-normal PR, required checks, exact-main release workflow and attestation checks.
-Do not import a local development build into production.
+Enroll the dedicated Borg repository and its root-only credential files as
+described in [backup and recovery](recovery.md). Store and independently verify
+the tagged `borg-home-assistant` Document in the `Homelab` vault. Do not reuse
+another service's repository or identity.
 
-## MR4U initial setup
+With the intended `/persist` volume mounted on the inactive replacement root,
+run this once from the protected root console:
 
-Record the coordinator's address, SLZB-OS and radio firmware versions in the
-private operator inventory. In the steps below, `COORDINATOR_HOST` means that
-privately recorded DNS name or address. Confirm Ethernet is connected and that
-Wi-Fi, VPN, DDNS and MQTT features not required by this design are disabled.
+```console
+zigbee2mqtt-enroll
+```
 
-Before joining Zigbee devices:
+The helper verifies the storage marker, asks for the privately recorded MR4U DNS
+name or IPv4 address and a fresh channel (11, 15, 20 or 25), then generates a
+random network key, PAN ID and extended PAN ID without printing them. It creates
+`/persist/secrets/zigbee2mqtt.env` and
+`/persist/secrets/zigbee2mqtt.yaml` as root:root mode0600 and refuses to replace
+existing enrollment. These files belong in encrypted Borg; never copy their
+contents through chat, clipboard, Git, image inputs or shell arguments. The
+separate `borg-home-assistant` recovery Document retains its Borg-only schema.
 
-1. In **Settings and Tools → Firmware update**, switch off **Zigbee Automatic
-   Update** and save. Leave updates manual. Do not install firmware during setup.
-2. In **Security**, enable **web server authentication** and set a unique strong
-   device password. Store it in the private operator vault. Keep **Disable web
-   server when socket is connected** off so the SMLIGHT integration can monitor
-   the device while ZHA uses the radio socket.
-3. Enable **fallback Wi-Fi AP password** and set a distinct strong password.
-4. Leave **Enable IP whitelist for socket** off. The coordinator socket is kept
-   on the trusted LAN with no router forwarding; this avoids coupling replacement
-   containers to a reserved address or MAC. Use a dedicated IoT VLAN/firewall if
-   stronger LAN isolation is required later.
-5. Optionally disable non-sensitive analytics in **General settings**.
-6. Leave radio 1 on its current firmware and ensure no Zigbee client is pointed at
-   port 6638. Do not enable Zigbee Hub, Wi-Fi bridge, VPN, or automatic update.
-7. Confirm the radio 2 values remain coordinator, Ethernet, TCP 7638, 115200 baud,
-   and no hardware flow control. Do not use IEEE read/write tools; they interrupt
-   an active socket and can split Zigbee identity.
+## MR4U configuration
 
-The device serves management over plain HTTP on the LAN. Keep it on the trusted
-LAN, use a unique password, and do not forward its web or socket ports from the
-router. SMLIGHT documents the MR-series radio sockets as 6638 and 7638 and supports
-an IP whitelist for the coordinator socket. Home Assistant connects to
-`COORDINATOR_HOST:7638`; management uses ports 80 and 81.
+Record the coordinator address, SLZB-OS version, radio firmware and radio
+identity only in the private operator inventory. Keep Ethernet connected and
+disable unused Wi-Fi, VPN, DDNS and on-device MQTT/Zigbee Hub features.
 
-## Home Assistant first boot
+1. Disable automatic Zigbee firmware updates. Keep firmware changes manual.
+2. Enable web authentication with a unique stored password and configure a
+   separate fallback AP password.
+3. Keep the web server available while the socket is connected so the SMLIGHT
+   integration can monitor the adapter. Do not move SSE to port 80.
+4. Keep the socket IP whitelist off unless a later network plan supplies a stable
+   source identity. Do not forward management or coordinator ports at the router.
+5. Configure the CC2674P10 as a Z-Stack coordinator over Ethernet, TCP 7638,
+   115200 baud and no flow control. Only Zigbee2MQTT may own this socket.
+6. Leave the EFR32MG26 / 6638 radio unused. Do not enable multiprotocol firmware,
+   Zigbee Hub or OTBR as part of this change.
 
-1. Boot the reviewed service image with the exact `/persist` volume and marker.
-   Complete enrollment/recovery checks from the console, then use
-   `homelab-activate` to activate the workload on this disposable root.
-   Verify `storage-contract.service`, `operational-ready.service`, `tailscaled`,
-   and `home-assistant` are active. The local frontend root probe expects HTTP
-   200 without an authentication attempt. Verify login and Zigbee separately.
-2. Enroll the intended Tailscale identity and verify `https://<container-tailnet-name>`
-   works. Confirm port 8123 remains unreachable from the physical LAN.
-3. Complete the Home Assistant owner account onboarding. Use a unique password
-   and store it in the private operator vault.
-4. In **Settings → Devices & services → Add integration**, add **Zigbee Home
-   Automation (ZHA)** manually. Set radio type **Texas Instruments ZNP** and
-   serial URL `socket://COORDINATOR_HOST:7638`. Use 115200 baud and no flow control.
-   Confirm the shown adapter is CC2674P10 before creating the network. Do not
-   configure the EFR32MG26 / 6638 endpoint.
-5. Choose a Zigbee channel after checking local Wi-Fi channel use. Prefer 15, 20,
-   or 25 when compatible with the local RF environment. Treat the channel as a
-   migration choice once devices join.
-6. After ZHA creates its network, make a manual network backup from ZHA's network
-   settings. Confirm the automatic backup is also present. These backups include
-   network security material and must remain inside `/persist` and encrypted Borg.
-7. Add **SMLIGHT SLZB** separately from **Settings → Devices & services**. Enter
-   host `COORDINATOR_HOST` and the device username/password in the UI. This integration
-   monitors and manages the adapter; it does not replace ZHA's serial connection.
-   Keep firmware and restart entities manual and restricted to administrators.
-8. Pair one nearby mains-powered router first, then add devices. Verify real
-   commands, availability, and the network map before expanding the mesh.
+## Switching from ZHA
 
-Home Assistant's SMLIGHT integration needs the standard management event stream;
-do not enable the MR4U setting that moves SSE to port 80, since the device UI
-explicitly says that disables SMLIGHT integration compatibility.
+This release intentionally forms a fresh Zigbee2MQTT network. It does not convert
+the ZHA device database, and every Zigbee device must be factory-reset and paired
+again. Historical ZHA backups remain protected under Home Assistant state but do
+not authorize startup or determine the new network identity.
+
+Before replacing the root:
+
+1. Make and retain a final manual ZHA network backup and a successful consistent
+   Borg backup.
+2. Record affected device names, areas and automations without exporting secrets
+   or live radio identifiers into this repository.
+3. Disable or remove the ZHA integration in Home Assistant while the old system
+   is still available. The new image refuses activation while an active ZHA
+   configuration entry remains, preventing two clients from racing for port7638.
+4. Deactivate the old root and prove it cannot run before connecting the new
+   Zigbee2MQTT instance. Never run both owners against the same coordinator.
+
+## First activation
+
+Boot the verified image with the exact enrolled `/persist` volume. Fresh roots
+remain inactive until `homelab-activate` creates their root-local activation
+record. Activation verifies storage, Borg credentials, the two Zigbee enrollment
+files and absence of active ZHA before starting Mosquitto, Zigbee2MQTT and Home
+Assistant in dependency order.
+
+1. Verify `storage-contract`, `operational-ready`, `mosquitto`, `zigbee2mqtt`,
+   `tailscaled` and `home-assistant` are active.
+2. Open `https://<container-tailnet-name>/zigbee2mqtt`. Confirm the coordinator
+   is the CC2674P10 on port 7638, the selected channel is correct, joining is
+   closed, and a coordinator backup exists. Do not display its network key.
+3. In **Settings → Devices & services**, add **MQTT** with broker
+   `127.0.0.1`, port `1883`, and no username or password. The broker accepts
+   anonymous clients only on loopback; it is unreachable from the LAN or tailnet.
+4. Add **SMLIGHT SLZB** separately using the private coordinator host and device
+   credentials. This monitors the MR4U; it does not own the serial socket.
+5. Open joining for a bounded interval in Zigbee2MQTT, pair one nearby
+   mains-powered router, then pair and name devices individually. Close joining
+   after each session. Pair the SR-ZG9002KR12-Pro and verify every button and
+   rotary action before recreating its automations.
+6. Verify MQTT discovery, real commands, availability, automations and the mesh
+   map. Take a manual Borg backup and perform an independent representative
+   restore before normal use.
 
 ## Backup and recovery
 
-Operational Borg runs daily at 01:30 Europe/Zurich, ahead of Immich's schedule.
-It takes the operation lock, records restart intent, stops HA and Tailscale, backs
-up `/persist` directly, applies retention, then attempts to restart both services.
-If either restart fails, the backup job must retain recovery intent and alert the
-operator. HA stays offline for the full Borg operation. The job excludes only the
-reproducible Borg cache and incomplete temporary HA backup artifacts. Default
-retention is daily 7, weekly 4, monthly 6.
+The daily Borg job at 01:30 Europe/Zurich takes the operation lock and stops Home
+Assistant, Zigbee2MQTT, Mosquitto and Tailscale for the full archive operation.
+Cleanup attempts every required restart in dependency order even after a failure;
+retained recovery intent keeps a failed restart visible. The archive covers all
+of `/persist`, excluding only Borg cache and incomplete temporary Home Assistant
+backup artifacts.
 
-For disaster restoration, follow the generic [restoration
-contract](recovery.md#complete-disaster-restoration-contract). Borg's service set is
-`/persist`, excluding `/persist/borg/cache` and incomplete
-`/persist/home-assistant/backups/*.tmp` artifacts. Restore selectively into a fresh,
-marked `/persist` volume:
+Restore into a fresh, correctly marked volume while the replacement root remains
+inactive:
 
-- `persist/home-assistant`, including SQLite, `.storage` and ZHA backups;
-- Borg config, authenticated trust, repository endpoint and `persist/secrets`;
-- `persist/tailscale` only after proving the original identity cannot run;
-- completed Home Assistant backup artifacts when they are intentionally retained.
+- `/persist/home-assistant`, including SQLite and `.storage`;
+- `/persist/zigbee2mqtt`, including `database.db`, device/group configuration
+  and `coordinator_backup.json`;
+- `/persist/mosquitto` retained broker state;
+- `/persist/secrets`, Borg configuration/trust and the repository endpoint;
+- `/persist/tailscale` only after proving identity exclusivity.
 
-Preserve the new outer volume marker and omit Borg cache and incomplete temporary
-artifacts. Verify the entire Home Assistant state tree is owned by UID/GID1102 and
-runtime credentials remain root:root mode0600 under mode0700. No separate logical
-database restore or restoration helper is required: SQLite was archived while Home
-Assistant was stopped. With the operational target, Home Assistant and Tailscale
-still inactive, run SQLite's `PRAGMA integrity_check` through a protected local
-Python process without printing application rows, and verify `.storage` plus the
-latest ZHA network backup are present.
+Preserve the new outer volume marker. Verify Home Assistant state ownership
+UID/GID1102, Zigbee2MQTT UID/GID1103, Mosquitto UID/GID1104 and root-only runtime
+files before activation. Run SQLite integrity checking without printing rows.
+Confirm the Zigbee2MQTT database and coordinator backup exist and agree with the
+intended CC2674P10; do not inspect or report their secret values.
 
-After proving Tailscale and Zigbee identity exclusivity, activate the same root.
-Verify HTTPS and real login, automations, dashboards, integrations, coordinator
-connection, device commands and the ZHA network identity. Take a new successful
-Borg backup and independently restore representative HA state and the ZHA backup
-before normal use.
+After proving the original Tailscale and Zigbee owners cannot run, activate the
+replacement and verify HTTPS, login, MQTT discovery, coordinator connection,
+real device commands and the Zigbee network identity. If the coordinator is lost,
+keep the old unit powered off and restore the Zigbee2MQTT state and supported
+coordinator backup to replacement hardware. Never operate duplicate coordinator
+IEEE identities.
 
-Before MR4U firmware, radio mode, port, IEEE, or channel changes:
-
-1. Confirm the last Borg archive is recent and independently restorable.
-2. Create and verify a fresh manual ZHA network backup.
-3. Run a manual Borg backup and verify the archive/check result.
-4. Record MR4U core/radio firmware and radio identity in the private inventory.
-5. Change one thing, then verify ZHA reconnects to the same network and devices
-   respond. Do not update both radios or both firmware layers together.
-
-If HA state is lost but the MR4U remains intact, restore `/persist` into a fresh,
-verified volume and reconnect ZHA to port 7638. If the MR4U/radio is lost, keep the
-old unit powered off and use ZHA's migration flow with the latest network backup.
-If prompted, preserve the radio IEEE identity. Never operate two coordinators at
-once with the same IEEE address. Rehearse restoration to fresh disposable volumes
-and replacement hardware before calling the backup plan proven.
-
-Do not enable scheduled backups until the separate repository is initialized,
-credential escrow has been independently retrieved and tested, and a manual
-backup/restore rehearsal passes. The shared health check deliberately reports
-backup-unconfigured as unhealthy until those steps are complete.
+Before MR4U firmware, channel, radio mode, port or IEEE changes, require a recent
+independently restorable Borg archive and fresh Zigbee2MQTT coordinator backup.
+Change one layer at a time and verify the same network and real device commands
+afterward. Thread enablement is a separate architecture and production plan.

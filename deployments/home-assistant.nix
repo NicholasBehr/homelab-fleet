@@ -30,16 +30,24 @@ in
         "/persist/borg/config"
         "/persist/borg/cache"
         "/persist/home-assistant/backups"
+        c.application.zigbee2mqttState
+        c.application.mosquittoState
       ];
     };
     secrets.requiredFiles = [
       config.homelab.backup.passphraseFile
       config.homelab.backup.sshKeyFile
+      c.application.zigbee2mqttSettingsFile
+      c.application.zigbee2mqttSecretFile
     ];
     tailscale.serveTarget = "http://127.0.0.1:8123";
+    tailscale.serveRoutes."/zigbee2mqtt" =
+      "http://127.0.0.1:${toString c.application.zigbee2mqttFrontendPort}";
     lifecycle.units = [
       "tailscaled"
       "tailscale-policy"
+      "mosquitto"
+      "zigbee2mqtt"
       "home-assistant"
       "home-assistant-directories"
     ];
@@ -55,6 +63,8 @@ in
         "storage-contract"
         "operational-ready"
         "tailscaled"
+        "mosquitto"
+        "zigbee2mqtt"
         "home-assistant"
       ];
       # An unauthenticated API request counts as a failed login and can ban
