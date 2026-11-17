@@ -116,12 +116,14 @@ these are the explicitly permitted restoration helpers. They require verified
 volumes and enrolled runtime files, but do not activate HTTP or background jobs.
 They recreate the generated configuration symlink for the matching image.
 
-With the fresh empty `nextcloud` database and role created by NixOS:
+With the fresh empty `nextcloud` database and role created by NixOS, run this
+from the root console. The root shell opens the mode0600 dump and passes its file
+descriptor to `pg_restore`; keep the dump and its parent directory root-only:
 
 ```sh
 runuser -u postgres -- pg_restore --single-transaction --exit-on-error \
   --no-owner --no-privileges --role=nextcloud --dbname=nextcloud \
-  /persist/backup/nextcloud.dump
+  < /persist/backup/nextcloud.dump
 ```
 
 Stop on any error; never drop production/recovery databases as an automatic retry.

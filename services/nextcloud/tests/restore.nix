@@ -99,8 +99,11 @@ pkgs.testers.runNixOSTest {
     machine.succeed("mv /persist/nextcloud /persist/retained-nextcloud; mv /persist/postgresql /persist/retained-postgresql; mv /data/nextcloud /data/retained-nextcloud")
     machine.succeed(f"cd /; borg-job-nextcloud extract ::{archive} persist/nextcloud data/nextcloud persist/backup")
     machine.succeed("systemctl start nextcloud-directories postgresql-setup redis-nextcloud")
+    # Root opens the protected dump; postgres receives only its already-open stdin.
+    machine.succeed("test $(stat -c '%a:%U' /persist/backup/nextcloud.dump) = 600:root")
+    machine.fail("runuser -u postgres -- test -r /persist/backup/nextcloud.dump")
     # A pristine NixOS database has a public schema; restore objects under its owner.
-    machine.succeed("runuser -u postgres -- pg_restore --single-transaction --exit-on-error --no-owner --no-privileges --role=nextcloud --dbname=nextcloud /persist/backup/nextcloud.dump")
+    machine.succeed("runuser -u postgres -- pg_restore --single-transaction --exit-on-error --no-owner --no-privileges --role=nextcloud --dbname=nextcloud < /persist/backup/nextcloud.dump")
     machine.succeed("nextcloud-occ status --output=json")
     machine.succeed("nextcloud-occ maintenance:mode --off; systemctl stop redis-nextcloud postgresql; homelab-activate")
     machine.wait_for_unit("nginx.service")
