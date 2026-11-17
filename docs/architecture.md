@@ -39,27 +39,32 @@ ML bind loopback. The firewall exposes no application ports to the physical LAN.
 
 Home Assistant Core runs as the upstream NixOS service in its own unprivileged
 LXC. It binds HTTP to `127.0.0.1:8123` and is exposed only through Tailscale Serve.
-ZHA owns the Zigbee network and connects to the SLZB-MR4U over wired LAN TCP. The
-SMLIGHT integration separately provides coordinator monitoring and management.
-This deployment has no USB, render device, Thread, OTBR, MQTT broker or `/data`.
+Zigbee2MQTT owns the Zigbee network and connects to the SLZB-MR4U over wired LAN
+TCP. A loopback-only Mosquitto broker carries discovery, state and commands
+between Zigbee2MQTT and Home Assistant. The SMLIGHT integration separately
+provides coordinator monitoring and management. This deployment has no USB,
+render device, Thread, OTBR or `/data`.
 
 | Path | Purpose |
 |---|---|
-| `/persist/home-assistant` | SQLite database, `.storage`, ZHA configuration/network backups, automations and dashboards |
+| `/persist/home-assistant` | SQLite database, `.storage`, automations and dashboards |
 | `/persist/home-assistant/backups` | Home Assistant backup artifacts |
+| `/persist/zigbee2mqtt` | Device database, coordinator backup, groups and runtime state |
+| `/persist/mosquitto` | Retained loopback MQTT broker state |
 | `/persist/tailscale` | Tailnet identity and Serve state |
-| `/persist/secrets/{borg-passphrase,borg-ssh-key}` | Operator-enrolled root-only Borg credentials |
+| `/persist/secrets/{borg-passphrase,borg-ssh-key,zigbee2mqtt.env,zigbee2mqtt.yaml}` | Operator-enrolled root-only credentials and private runtime settings |
 | `/persist/borg/{config,cache,known_hosts}` | Borg configuration, disposable cache and authenticated SSH trust |
 | `/persist/borg/repository` | Private runtime repository URI |
 
-The single `/persist` volume is guarded by its exact marker before HA or Tailscale
-starts. A gated oneshot creates the HA state directory, preventing initialization
-on the disposable root. Borg quiesces HA and Tailscale while archiving `/persist`
-so SQLite and node identity remain consistent. ZHA's coordinator backups are
-stored with HA state and encrypted in the Borg repository.
+The single `/persist` volume is guarded by its exact marker before any workload
+starts. A gated oneshot creates the state directories, preventing initialization
+on the disposable root. Borg quiesces Home Assistant, Zigbee2MQTT, Mosquitto and
+Tailscale while archiving `/persist`, so SQLite, MQTT and Zigbee identity remain
+consistent. The Zigbee network key reaches Zigbee2MQTT through a systemd
+credential and never enters the image or Nix store.
 
-The initial MR4U setup uses the CC2674P10 radio on TCP 7638 for ZHA
-(`socket://SLZB_ADDRESS:7638`, ZNP, 115200 baud, no flow control). EFR32MG26 on
+The MR4U setup uses the CC2674P10 radio on TCP 7638 for Zigbee2MQTT
+(`tcp://SLZB_ADDRESS:7638`, zstack, 115200 baud, no flow control). EFR32MG26 on
 port 6638 remains unused for future Thread planning. The SMLIGHT integration uses
 the MR4U management API and event stream on ports 80/81. Its credentials are
 entered in HA and stored in permission-protected persistent state, encrypted in
