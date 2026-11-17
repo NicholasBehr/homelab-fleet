@@ -144,6 +144,14 @@ and retain the independently retrieved Document. Rotation replaces all affected
 runtime credentials and the escrow document as one reviewed
 operation; never assume an old document remains compatible.
 
+A later production-archive rehearsal on disposable volumes must not persist
+production Borg or Tailscale credentials there. Keep Document-derived files in a
+protected runtime tmpfs, extract only the service guide's application state and
+logical dump, and omit identity paths. If restoration-helper readiness requires
+the standard Borg paths, expose the tmpfs files with runtime-only read-only service
+binds over empty private placeholders; remove the binds and placeholders before
+snapshotting or stopping. Verify absence of credential and identity files afterward.
+
 ## Runtime credential contract
 
 Images declare credential paths and validation rules only. Each service keeps

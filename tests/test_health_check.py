@@ -7,6 +7,10 @@ import unittest
 import json
 
 class HealthCheck(unittest.TestCase):
+    def test_supplies_nixos_system_path(self):
+        script = (Path(__file__).resolve().parents[1]/'scripts/health-check').read_text()
+        self.assertIn('export PATH="/run/current-system/sw/bin:$PATH"', script)
+
     def test_expected_http_status(self):
         for expected, actual, reached_tailnet in [(401, 401, True), (401, 200, False), (200, 200, True), (200, 500, False)]:
             with self.subTest(expected=expected, actual=actual), tempfile.TemporaryDirectory() as tmp:

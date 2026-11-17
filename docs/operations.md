@@ -81,6 +81,9 @@ Attach every declared volume at its contract slot and path; never assume a servi
 has `/data` or a fixed number of mountpoints. Never write a marker to unidentified
 storage. Proxmox mountpoints precede guest init. Verify generated AppArmor, ID maps,
 TUN0600, every declared optional device and all guard failures before enrolling.
+Parse `pct config` mountpoints as fields: optional entries such as `backup=1` make
+whole-line equality brittle. Marker files may omit a final newline; compare their
+content rather than treating `read` reaching EOF as a failed marker.
 
 Boot the service image without its root-local operational activation record and enroll unique Borg credentials through authenticated operator
 access. Install `/persist/secrets/borg-passphrase` and `borg-ssh-key` as root:root
@@ -98,6 +101,12 @@ with the intended service tag, approve the device, and verify checked admin SSH,
 HTTPS and denied cross-service/LAN access. Policies belong to the operator; CI has
 no tailnet or Proxmox credentials. Configure remote Borg as [recovery](recovery.md)
 describes before trusting production data.
+
+Verify the enrolled node from an authorized administrator client. A deliberately
+isolated hypervisor may not see tagged service peers, so its empty peer list is not
+identity-exclusivity evidence. Prefer `pct enter`; automation using `pct exec`
+must use absolute image paths or a NixOS login shell rather than assuming its
+minimal Debian-style PATH contains image tools.
 
 Before enrollment, extend and validate the operator's tailnet policy for the new
 service. The public example must include its tag owner, administrator SSH/HTTPS
