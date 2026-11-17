@@ -10,7 +10,12 @@ Zigbee2MQTT frontend binds `127.0.0.1:8080`. Tailscale Serve publishes Home
 Assistant at `/` and Zigbee2MQTT at `/zigbee2mqtt`; none of these listeners is
 opened on the physical LAN.
 
-## Release and runtime enrollment
+Open `https://<container-tailnet-name>/` for Home Assistant and
+`https://<container-tailnet-name>/zigbee2mqtt` for Zigbee2MQTT. Mosquitto is an
+MQTT broker without a web management page; its listener stays on loopback for
+these applications.
+
+## Release and runtime settings
 
 Build the one `home-assistant` image through the normal PR, required-check,
 exact-main release and attestation workflow. The proposed CT IDs and storage in
@@ -22,21 +27,24 @@ described in [backup and recovery](recovery.md). Store and independently verify
 the tagged `borg-home-assistant` Document in the `Homelab` vault. Do not reuse
 another service's repository or identity.
 
-With the new `/persist` volume mounted on the inactive new root,
-run this once from the protected root console:
+With `/persist` mounted, enroll the privately inventoried MR4U endpoint in the
+normal root-only runtime settings file `/persist/secrets/zigbee2mqtt.env`
+(root:root, mode0600):
 
-```console
-zigbee2mqtt-enroll
+```text
+ZIGBEE2MQTT_CONFIG_SERIAL_PORT=tcp://<MR4U-tailnet-or-LAN-address>:7638
 ```
 
-The helper verifies the storage marker, asks for the privately recorded MR4U DNS
-name or IPv4 address and a fresh channel (11, 15, 20 or 25), then generates a
-random network key, PAN ID and extended PAN ID without printing them. It creates
-`/persist/secrets/zigbee2mqtt.env` and
-`/persist/secrets/zigbee2mqtt.yaml` as root:root mode0600 and refuses to replace
-existing enrollment. These files belong in encrypted Borg; never copy their
-contents through chat, clipboard, Git, image inputs or shell arguments. The
-separate `borg-home-assistant` recovery Document retains its Borg-only schema.
+Use an address reachable from this container. No custom enrollment program or
+network-key file is required. On first activated start, Zigbee2MQTT generates
+and persists the network key, PAN ID and extended PAN ID in its own configuration.
+The service preserves that file on later starts so the identity remains stable.
+Back it up with `/persist/zigbee2mqtt`; never restore it while another instance
+can own the same Zigbee network or coordinator.
+
+These settings and state belong in encrypted Borg. Never put secret values in
+chat, clipboard, Git, image inputs or shell arguments. The separate
+`borg-home-assistant` recovery Document retains its Borg-only schema.
 
 ## MR4U configuration
 
@@ -72,9 +80,9 @@ their names, areas and the switch automation again in the new instance.
 
 Boot the verified image with the exact new enrolled `/persist` volume. Fresh roots
 remain inactive until `homelab-activate` creates their root-local activation
-record. Activation verifies storage, Borg credentials, the two Zigbee enrollment
-files before starting Mosquitto, Zigbee2MQTT and Home Assistant in dependency
-order.
+record. Activation verifies storage and Borg credentials, then starts Mosquitto,
+Zigbee2MQTT and Home Assistant in dependency order. The coordinator endpoint
+file must be installed before activation.
 
 1. Verify `storage-contract`, `operational-ready`, `mosquitto`, `zigbee2mqtt`,
    `tailscaled` and `home-assistant` are active.
