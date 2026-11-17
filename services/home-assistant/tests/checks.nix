@@ -53,9 +53,7 @@ in
     );
     assert home-assistant.config.services.zigbee2mqtt.settings.homeassistant.enabled;
     assert home-assistant.config.services.zigbee2mqtt.settings.permit_join == false;
-    assert
-      home-assistant.config.services.zigbee2mqtt.settings.advanced.network_key
-      == "GENERATE";
+    assert home-assistant.config.services.zigbee2mqtt.settings.advanced.network_key == "GENERATE";
     assert home-assistant.config.services.zigbee2mqtt.settings.advanced.pan_id == "GENERATE";
     assert home-assistant.config.services.zigbee2mqtt.settings.advanced.ext_pan_id == "GENERATE";
     assert home-assistant.config.services.zigbee2mqtt.settings.frontend.base_url == "/zigbee2mqtt";
