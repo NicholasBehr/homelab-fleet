@@ -199,11 +199,13 @@ in
       };
       postgresql = gate // {
         # Only an explicit inactive-root helper session may create a new cluster.
-        preStart = lib.mkBefore ''
-          if test -f /var/lib/homelab/operational-enabled; then
-            test -f /persist/postgresql/17/PG_VERSION || { echo 'Restore PostgreSQL before activation' >&2; exit 1; }
-          fi
-        '';
+        serviceConfig.ExecStartPre = lib.mkBefore [
+          "+${pkgs.writeShellScript "nextcloud-postgresql-guard" ''
+            if test -f /var/lib/homelab/operational-enabled; then
+              test -f /persist/postgresql/17/PG_VERSION || { echo 'Restore PostgreSQL before activation' >&2; exit 1; }
+            fi
+          ''}"
+        ];
       };
       postgresql-setup = gate;
       redis-nextcloud = gate // {

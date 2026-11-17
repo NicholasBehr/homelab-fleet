@@ -92,7 +92,10 @@ intent after failure. Do not clear another operation's maintenance flag. Power l
 cannot run cleanup; check maintenance, service state and backup freshness after
 reboot. Existing operator maintenance is intentionally preserved.
 
-Run `systemctl start borgbackup-job-nextcloud` for the first backup. Use the existing
+Run `systemctl start borgbackup-job-nextcloud` for the first backup. This starts an
+asynchronous job: wait for it to finish and verify `Result=success` with
+`systemctl show borgbackup-job-nextcloud -p ActiveState -p Result` before inspecting
+the new archive or starting a restore. Use the existing
 36-hour freshness check. Run `borg-job-nextcloud check --verify-data` monthly and
 before a migration/recovery; this reads the archived data and may take considerable
 time. Do not run automatic `--repair`. Repository checks do not replace restores.

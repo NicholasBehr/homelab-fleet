@@ -66,6 +66,8 @@ pkgs.testers.runNixOSTest {
     machine.succeed("mv /persist/postgresql/17/PG_VERSION /persist/postgresql/17/PG_VERSION.retained")
     machine.fail("homelab-activate")
     machine.fail("test -e /persist/postgresql/17/PG_VERSION")
+    machine.succeed("journalctl -u postgresql --no-pager | grep -q 'Restore PostgreSQL before activation'")
+    machine.succeed("test -e /persist/postgresql/17/postgresql.conf")
     machine.succeed("mv /persist/postgresql/17/PG_VERSION.retained /persist/postgresql/17/PG_VERSION; systemctl reset-failed")
     machine.succeed("borg-job-nextcloud init --encryption=repokey-blake2; homelab-activate")
     machine.wait_for_unit("nginx.service")
@@ -77,10 +79,14 @@ pkgs.testers.runNixOSTest {
     machine.succeed("dd if=/dev/zero of=/tmp/over-quota bs=1M count=21")
     quota_status = machine.succeed("curl -s -o /dev/null -w '%{http_code}' -u fixture:synthetic-client-password -T /tmp/over-quota http://127.0.0.1:8080/remote.php/dav/files/fixture/too-large").strip()
     assert quota_status == "507", quota_status
-    machine.succeed("systemctl start borgbackup-job-nextcloud; borg-job-nextcloud check --verify-data")
+    machine.succeed("systemctl start borgbackup-job-nextcloud")
+    machine.wait_until_succeeds("test $(systemctl show borgbackup-job-nextcloud -p ActiveState --value) = inactive", timeout=180)
+    machine.succeed("test $(systemctl show borgbackup-job-nextcloud -p Result --value) = success; borg-job-nextcloud check --verify-data")
     machine.wait_for_unit("nginx.service")
     machine.succeed("test ! -e /run/homelab-backup/restart")
-    archive = machine.succeed("borg-job-nextcloud list --short").strip().splitlines()[-1]
+    archives = machine.succeed("borg-job-nextcloud list --short").strip().splitlines()
+    assert len(archives) == 1, archives
+    archive = archives[0]
     listing = machine.succeed(f"borg-job-nextcloud list --short ::{archive}")
     assert "data/nextcloud/fixture/files/restore.txt" in listing
     assert "persist/backup/nextcloud.dump" in listing
@@ -101,5 +107,7 @@ pkgs.testers.runNixOSTest {
     machine.succeed("curl --fail -u fixture:synthetic-client-password http://127.0.0.1:8080/remote.php/dav/files/fixture/restore.txt -o /tmp/restored; cmp /tmp/original /tmp/restored")
     assert machine.succeed("nextcloud-occ user:setting fixture files quota").strip() == "20MB"
     machine.succeed("systemctl start borgbackup-job-nextcloud")
+    machine.wait_until_succeeds("test $(systemctl show borgbackup-job-nextcloud -p ActiveState --value) = inactive", timeout=180)
+    machine.succeed("test $(systemctl show borgbackup-job-nextcloud -p Result --value) = success")
   '';
 }
