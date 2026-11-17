@@ -6,6 +6,9 @@
 }:
 let
   c = config.homelab.deployment.application;
+  zigbee2mqttConfig = (pkgs.formats.yaml { }).generate "zigbee2mqtt.yaml" (
+    config.services.zigbee2mqtt.settings
+  );
   gate = {
     requires = [
       "storage-contract.service"
@@ -20,18 +23,6 @@ in
 {
   config = lib.mkMerge [
     {
-      environment.systemPackages = [
-        (pkgs.writeShellApplication {
-          name = "zigbee2mqtt-enroll";
-          runtimeInputs = [ pkgs.util-linux ];
-          text = ''
-            ${pkgs.bash}/bin/bash ${../../scripts/verify-storage} \
-              ${lib.escapeShellArg config.homelab.deployment.persist.path} \
-              ${lib.escapeShellArg config.homelab.deployment.persist.marker}
-            exec ${pkgs.python3}/bin/python3 ${./enroll-zigbee2mqtt.py}
-          '';
-        })
-      ];
       environment.etc."homelab-versions.json".text = builtins.toJSON {
         "home-assistant" = config.services.home-assistant.finalPackage.version;
         mosquitto = config.services.mosquitto.package.version;
@@ -114,7 +105,9 @@ in
           };
           advanced = {
             channel = 15;
-            network_key = "!secret.yaml network_key";
+            network_key = "GENERATE";
+            pan_id = "GENERATE";
+            ext_pan_id = "GENERATE";
           };
           frontend = {
             enabled = true;
@@ -140,11 +133,6 @@ in
       # workload behind the explicit operational activation boundary.
       systemd.targets.home-assistant.wantedBy = lib.mkForce [ ];
       systemd.services = {
-        operational-ready.postStart = ''
-          ${pkgs.python3}/bin/python3 ${./verify-zigbee-runtime.py} \
-            ${lib.escapeShellArg c.zigbee2mqttSettingsFile} \
-            ${lib.escapeShellArg c.zigbee2mqttSecretFile}
-        '';
         home-assistant-directories = {
           inherit (gate) requires after;
           before = [
@@ -163,19 +151,6 @@ in
             install -d -m 0700 -o hass -g hass ${lib.escapeShellArg "${c.state}/backups"}
             install -d -m 0700 -o zigbee2mqtt -g zigbee2mqtt ${lib.escapeShellArg c.zigbee2mqttState}
             install -d -m 0700 -o mosquitto -g mosquitto ${lib.escapeShellArg c.mosquittoState}
-            secret_link=${lib.escapeShellArg "${c.zigbee2mqttState}/secret.yaml"}
-            credential=/run/credentials/zigbee2mqtt.service/network.yaml
-            if test -L "$secret_link"; then
-              test "$(readlink "$secret_link")" = "$credential" || {
-                echo 'Refusing unexpected Zigbee2MQTT secret link' >&2
-                exit 1
-              }
-            elif test -e "$secret_link"; then
-              echo 'Refusing non-symlink Zigbee2MQTT secret path' >&2
-              exit 1
-            else
-              ln -s "$credential" "$secret_link"
-            fi
           '';
         };
         mosquitto = gate;
@@ -189,7 +164,23 @@ in
           ++ gate.after;
           serviceConfig = {
             EnvironmentFile = c.zigbee2mqttSettingsFile;
-            LoadCredential = [ "network.yaml:${c.zigbee2mqttSecretFile}" ];
+            # NixOS normally replaces configuration.yaml from the Nix store on
+            # every start. Zigbee2MQTT writes generated network identity there;
+            # preserve it after first start and let upstream migrations run.
+            # Remove when upstream supports preserving mutable generated config.
+            ExecStartPre = lib.mkForce [
+              "${pkgs.writeShellScript "zigbee2mqtt-config-init" ''
+                config=${lib.escapeShellArg "${c.zigbee2mqttState}/configuration.yaml"}
+                test ! -L "$config" || { echo 'Refusing symlinked Zigbee2MQTT configuration' >&2; exit 1; }
+                test ! -e "$config" || test -f "$config" || {
+                  echo 'Refusing non-file Zigbee2MQTT configuration path' >&2
+                  exit 1
+                }
+                if test ! -e "$config"; then
+                  ${pkgs.coreutils}/bin/cp --no-preserve=mode ${zigbee2mqttConfig} "$config"
+                fi
+              ''}"
+            ];
           };
         };
         home-assistant = gate // {

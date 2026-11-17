@@ -1,3 +1,13 @@
+# v0.5.4 — simplify Home Assistant Zigbee enrollment
+
+Remove the bespoke console enrollment command and separate network-key file.
+Zigbee2MQTT now generates its key and network identifiers on first start and
+keeps the resulting configuration on `/persist` across restarts. Operators
+provide only the coordinator endpoint through the protected runtime settings
+file. Preserve the management UI behind Tailscale Serve at `/zigbee2mqtt` and
+document the distinct Home Assistant and Zigbee2MQTT pages. The Home Assistant
+storage contract advances to version 4; the volume marker and state paths remain.
+
 # v0.5.3 — Home Assistant Zigbee2MQTT
 
 Deploy a fresh Zigbee2MQTT network on the MR4U CC2674P10 radio. The single Home

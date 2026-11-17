@@ -38,7 +38,6 @@ in
       config.homelab.backup.passphraseFile
       config.homelab.backup.sshKeyFile
       c.application.zigbee2mqttSettingsFile
-      c.application.zigbee2mqttSecretFile
     ];
     tailscale.serveTarget = "http://127.0.0.1:8123";
     tailscale.serveRoutes."/zigbee2mqtt" =

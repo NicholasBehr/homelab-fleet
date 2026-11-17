@@ -48,11 +48,16 @@ in
     assert home-assistant.config.services.zigbee2mqtt.settings.serial.adapter == "zstack";
     assert
       home-assistant.config.services.zigbee2mqtt.settings.serial.port == "tcp://runtime.invalid:7638";
+    assert builtins.elem "/persist/secrets/zigbee2mqtt.env" (
+      home-assistant.config.homelab.secrets.requiredFiles
+    );
     assert home-assistant.config.services.zigbee2mqtt.settings.homeassistant.enabled;
     assert home-assistant.config.services.zigbee2mqtt.settings.permit_join == false;
     assert
       home-assistant.config.services.zigbee2mqtt.settings.advanced.network_key
-      == "!secret.yaml network_key";
+      == "GENERATE";
+    assert home-assistant.config.services.zigbee2mqtt.settings.advanced.pan_id == "GENERATE";
+    assert home-assistant.config.services.zigbee2mqtt.settings.advanced.ext_pan_id == "GENERATE";
     assert home-assistant.config.services.zigbee2mqtt.settings.frontend.base_url == "/zigbee2mqtt";
     assert
       home-assistant.config.homelab.tailscale.serveRoutes."/zigbee2mqtt" == "http://127.0.0.1:8080";
@@ -67,7 +72,7 @@ in
         ${home-assistant.config.systemd.units."zigbee2mqtt.service".unit}/zigbee2mqtt.service
       grep -q 'EnvironmentFile=/persist/secrets/zigbee2mqtt.env' \
         ${home-assistant.config.systemd.units."zigbee2mqtt.service".unit}/zigbee2mqtt.service
-      grep -q 'LoadCredential=network.yaml:/persist/secrets/zigbee2mqtt.yaml' \
+      grep -q 'zigbee2mqtt-config-init' \
         ${home-assistant.config.systemd.units."zigbee2mqtt.service".unit}/zigbee2mqtt.service
       grep -q '127.0.0.1' \
         ${pkgs.writeText "home-assistant-config" (

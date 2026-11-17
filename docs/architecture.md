@@ -52,7 +52,7 @@ render device, Thread, OTBR or `/data`.
 | `/persist/zigbee2mqtt` | Device database, coordinator backup, groups and runtime state |
 | `/persist/mosquitto` | Retained loopback MQTT broker state |
 | `/persist/tailscale` | Tailnet identity and Serve state |
-| `/persist/secrets/{borg-passphrase,borg-ssh-key,zigbee2mqtt.env,zigbee2mqtt.yaml}` | Operator-enrolled root-only credentials and private runtime settings |
+| `/persist/secrets/{borg-passphrase,borg-ssh-key,zigbee2mqtt.env}` | Operator-enrolled root-only credentials and coordinator endpoint setting |
 | `/persist/borg/{config,cache,known_hosts}` | Borg configuration, disposable cache and authenticated SSH trust |
 | `/persist/borg/repository` | Private runtime repository URI |
 
@@ -60,8 +60,8 @@ The single `/persist` volume is guarded by its exact marker before any workload
 starts. A gated oneshot creates the state directories, preventing initialization
 on the disposable root. Borg quiesces Home Assistant, Zigbee2MQTT, Mosquitto and
 Tailscale while archiving `/persist`, so SQLite, MQTT and Zigbee identity remain
-consistent. The Zigbee network key reaches Zigbee2MQTT through a systemd
-credential and never enters the image or Nix store.
+consistent. Zigbee2MQTT generates its network identity on first startup and
+stores it only in its persistent state directory.
 
 The MR4U setup uses the CC2674P10 radio on TCP 7638 for Zigbee2MQTT
 (`tcp://SLZB_ADDRESS:7638`, zstack, 115200 baud, no flow control). EFR32MG26 on
