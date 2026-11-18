@@ -15,6 +15,7 @@ past release evidence; historical records never authorize a new mutation.
 | Backup recovery | Synthetic failure injection covers quiescing, Borg/dump failure, restart attempts and retained recovery intent; encrypted Borg/PostgreSQL fixtures exercise archive and logical restore |
 | Application configuration | Immich checks exercise CPU-only ML selection, QSV wiring and backup runtime endpoints; Home Assistant checks cover loopback Mosquitto, matching Tailscale/Zigbee2MQTT base paths, onboarding-safe readiness, independent service lifetime, first-start identity generation, backup hooks and the full system closure |
 | Image and release integrity | CI evaluates every configuration, selects changed derivations, builds images on separate runners, rejects runtime state in archives and fails closed through the stable required gate |
+| Home Assistant core profile | Evaluation requires the onboarding-owned timezone, Recorder/History/Activity/Sun, native UI automation/script/scene includes, `isal`, and the explicit absence of unused media, cloud, weather, radio, shopping-list and ESPHome components; directory setup refuses symlink and non-file UI state |
 | Repository hygiene | Formatting, shell analysis, Python tests, secret-pattern scanning, service topology and public-doc address checks run before builds; `health-check` supplies the NixOS system path for direct `pct exec` use |
 
 ARM macOS evaluates and lints Linux derivations; it does not build or execute Linux

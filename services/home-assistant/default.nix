@@ -46,13 +46,28 @@ in
         configDir = c.state;
         openFirewall = false;
         openFirewallForComponents = false;
+        # Keep the image deliberately smaller than Home Assistant's
+        # default_config profile. Components named in config are packaged
+        # automatically; these additional integrations are configured through
+        # the UI or provide a runtime acceleration rather than YAML.
         extraComponents = lib.mkForce [
+          "isal"
           "mobile_app"
           "mqtt"
           "smlight"
         ];
         config = {
+          automation = "!include automations.yaml";
+          history = { };
+          # The shared container clock stays UTC. Do not let the NixOS module's
+          # generated YAML override the timezone selected during onboarding.
+          homeassistant.time_zone = lib.mkForce null;
+          logbook = { };
           mobile_app = { };
+          recorder = { };
+          scene = "!include scenes.yaml";
+          script = "!include scripts.yaml";
+          sun = { };
           http = {
             server_host = "127.0.0.1";
             server_port = c.port;
@@ -149,6 +164,20 @@ in
           script = ''
             install -d -m 0700 -o hass -g hass ${lib.escapeShellArg c.state}
             install -d -m 0700 -o hass -g hass ${lib.escapeShellArg "${c.state}/backups"}
+            for file in automations.yaml scripts.yaml scenes.yaml; do
+              path=${lib.escapeShellArg c.state}/$file
+              test ! -L "$path" || {
+                echo "Refusing symlinked Home Assistant UI configuration: $path" >&2
+                exit 1
+              }
+              test ! -e "$path" || test -f "$path" || {
+                echo "Refusing non-file Home Assistant UI configuration: $path" >&2
+                exit 1
+              }
+              if test ! -e "$path"; then
+                install -m 0644 -o hass -g hass /dev/null "$path"
+              fi
+            done
             install -d -m 0700 -o zigbee2mqtt -g zigbee2mqtt ${lib.escapeShellArg c.zigbee2mqttState}
             install -d -m 0700 -o mosquitto -g mosquitto ${lib.escapeShellArg c.mosquittoState}
           '';
