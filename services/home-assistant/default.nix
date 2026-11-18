@@ -184,8 +184,10 @@ in
           };
         };
         home-assistant = gate // {
-          wants = [ "network-online.target" ];
-          requires = [ "zigbee2mqtt.service" ] ++ gate.requires;
+          wants = [
+            "network-online.target"
+            "zigbee2mqtt.service"
+          ];
           after = [
             "network-online.target"
             "zigbee2mqtt.service"

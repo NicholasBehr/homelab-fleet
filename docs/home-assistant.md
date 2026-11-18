@@ -10,6 +10,11 @@ Zigbee2MQTT frontend binds `127.0.0.1:8080`. Tailscale Serve publishes Home
 Assistant at `/` and Zigbee2MQTT at `/zigbee2mqtt`; none of these listeners is
 opened on the physical LAN.
 
+The Serve route targets Zigbee2MQTT's matching backend base path rather than its
+listener root. Tailscale removes the mounted prefix before proxying; keeping the
+target path aligned lets the frontend's relative assets remain below
+`/zigbee2mqtt` without an extra reverse proxy or rewrite layer.
+
 Open `https://<container-tailnet-name>/` for Home Assistant and
 `https://<container-tailnet-name>/zigbee2mqtt` for Zigbee2MQTT. Mosquitto is an
 MQTT broker without a web management page; its listener stays on loopback for
@@ -35,8 +40,10 @@ normal root-only runtime settings file `/persist/secrets/zigbee2mqtt.env`
 ZIGBEE2MQTT_CONFIG_SERIAL_PORT=tcp://<MR4U-tailnet-or-LAN-address>:7638
 ```
 
-Use an address reachable from this container. No custom enrollment program or
-network-key file is required. On first activated start, Zigbee2MQTT generates
+Use a stable IPv4 address or fully qualified DNS name resolvable inside the
+container. Do not assume a single-label LAN hostname resolves: LLMNR and mDNS are
+disabled by confinement. No custom enrollment program or network-key file is
+required. On first activated start, Zigbee2MQTT generates
 and persists the network key, PAN ID and extended PAN ID in its own configuration.
 The service preserves that file on later starts so the identity remains stable.
 Back it up with `/persist/zigbee2mqtt`; never restore it while another instance
@@ -99,8 +106,9 @@ file must be installed before activation.
    devices and close joining. Verify every button and rotary action before
    creating the switch automation.
 6. Verify MQTT discovery, real commands, availability, automations and the mesh
-   map. Take a manual Borg backup and perform an independent representative
-   restore before normal use.
+   map. Take a manual Borg backup, wait until the asynchronous systemd job is
+   inactive with `Result=success` and `ExecMainStatus=0`, then independently
+   restore representative state before normal use.
 
 ## Backup and recovery
 
@@ -110,6 +118,11 @@ Cleanup attempts every required restart in dependency order even after a failure
 retained recovery intent keeps a failed restart visible. The archive covers all
 of `/persist`, excluding only Borg cache and incomplete temporary Home Assistant
 backup artifacts.
+
+Home Assistant orders its initial start after Zigbee2MQTT but only wants that
+service. An operator restart or temporary Zigbee outage therefore does not stop
+the Home Assistant UI; Zigbee2MQTT remains independently supervised and MQTT
+availability reports the device outage.
 
 Restore into a fresh, correctly marked volume while the replacement root remains
 inactive:
