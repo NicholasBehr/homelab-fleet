@@ -13,7 +13,7 @@ past release evidence; historical records never authorize a new mutation.
 | Runtime credentials | Metadata tests reject missing, empty, symlinked, non-regular, incorrectly owned or overly permissive files; image inputs contain paths and validation only |
 | Storage guards | Disposable mount tests reject absent, root-backed and marker-mismatched volumes; Immich layout tests keep originals on `/data` and generated media on `/persist` |
 | Backup recovery | Synthetic failure injection covers quiescing, Borg/dump failure, restart attempts and retained recovery intent; encrypted Borg/PostgreSQL fixtures exercise archive and logical restore |
-| Application configuration | Immich checks exercise CPU-only ML selection, QSV wiring and backup runtime endpoints; Home Assistant checks cover loopback Mosquitto, tailnet-only Zigbee2MQTT management, first-start identity generation, backup hooks and the full system closure |
+| Application configuration | Immich checks exercise CPU-only ML selection, QSV wiring and backup runtime endpoints; Home Assistant checks cover loopback Mosquitto, matching Tailscale/Zigbee2MQTT base paths, onboarding-safe readiness, independent service lifetime, first-start identity generation, backup hooks and the full system closure |
 | Image and release integrity | CI evaluates every configuration, selects changed derivations, builds images on separate runners, rejects runtime state in archives and fails closed through the stable required gate |
 | Repository hygiene | Formatting, shell analysis, Python tests, secret-pattern scanning, service topology and public-doc address checks run before builds; `health-check` supplies the NixOS system path for direct `pct exec` use |
 

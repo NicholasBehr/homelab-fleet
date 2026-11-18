@@ -41,7 +41,7 @@ in
     ];
     tailscale.serveTarget = "http://127.0.0.1:8123";
     tailscale.serveRoutes."/zigbee2mqtt" =
-      "http://127.0.0.1:${toString c.application.zigbee2mqttFrontendPort}";
+      "http://127.0.0.1:${toString c.application.zigbee2mqttFrontendPort}/zigbee2mqtt/";
     lifecycle.units = [
       "tailscaled"
       "tailscale-policy"
@@ -66,9 +66,9 @@ in
         "zigbee2mqtt"
         "home-assistant"
       ];
-      # An unauthenticated API request counts as a failed login and can ban
-      # loopback; the frontend root is a non-authenticating readiness probe.
-      url = "http://127.0.0.1:8123/";
+      # The root redirects during onboarding. The manifest remains public and
+      # stable before and after onboarding without counting as a failed login.
+      url = "http://127.0.0.1:8123/manifest.json";
       httpStatus = 200;
     };
   };

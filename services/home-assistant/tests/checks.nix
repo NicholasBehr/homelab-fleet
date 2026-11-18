@@ -58,13 +58,16 @@ in
     assert home-assistant.config.services.zigbee2mqtt.settings.advanced.ext_pan_id == "GENERATE";
     assert home-assistant.config.services.zigbee2mqtt.settings.frontend.base_url == "/zigbee2mqtt";
     assert
-      home-assistant.config.homelab.tailscale.serveRoutes."/zigbee2mqtt" == "http://127.0.0.1:8080";
-    assert home-assistant.config.homelab.health.url == "http://127.0.0.1:8123/";
+      home-assistant.config.homelab.tailscale.serveRoutes."/zigbee2mqtt"
+      == "http://127.0.0.1:8080/zigbee2mqtt/";
+    assert home-assistant.config.homelab.health.url == "http://127.0.0.1:8123/manifest.json";
     assert home-assistant.config.homelab.health.httpStatus == 200;
     pkgs.runCommand "home-assistant-service-config" { } ''
       grep -q 'Requires=.*operational-ready.service' \
         ${home-assistant.config.systemd.units."home-assistant.service".unit}/home-assistant.service
-      grep -q 'Requires=.*zigbee2mqtt.service' \
+      grep -q 'Wants=.*zigbee2mqtt.service' \
+        ${home-assistant.config.systemd.units."home-assistant.service".unit}/home-assistant.service
+      ! grep -q 'Requires=.*zigbee2mqtt.service' \
         ${home-assistant.config.systemd.units."home-assistant.service".unit}/home-assistant.service
       grep -q 'Requires=.*mosquitto.service' \
         ${home-assistant.config.systemd.units."zigbee2mqtt.service".unit}/zigbee2mqtt.service

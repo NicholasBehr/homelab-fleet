@@ -1,3 +1,17 @@
+# v0.5.5 — harden Home Assistant service routing
+
+Proxy the tailnet-only `/zigbee2mqtt` route to Zigbee2MQTT's matching backend
+base path. Live acceptance verified the page and its relative JavaScript/CSS
+asset through Tailscale Serve; no extra proxy, rewrite layer, public listener or
+root-local workaround is introduced.
+
+Use Home Assistant's public manifest as the stable readiness probe so fresh
+instances remain healthy while the frontend root redirects to onboarding. Order
+Home Assistant after Zigbee2MQTT without making its lifetime depend on manual
+Zigbee2MQTT restarts. Document that coordinator settings need a stable IPv4 or
+container-resolvable FQDN and that native backup startup is asynchronous. No
+persistent path, marker, ownership, secret requirement or storage contract changes.
+
 # v0.5.4 — simplify Home Assistant Zigbee enrollment
 
 Remove the bespoke console enrollment command and separate network-key file.
