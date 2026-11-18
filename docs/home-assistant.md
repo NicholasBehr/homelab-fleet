@@ -20,6 +20,20 @@ Open `https://<container-tailnet-name>/` for Home Assistant and
 MQTT broker without a web management page; its listener stays on loopback for
 these applications.
 
+The image uses a curated local Home Assistant core profile rather than
+`default_config`. UI-managed automations, scripts and scenes, Recorder, History,
+Activity, Map history, Sun, MQTT, mobile app support and SMLIGHT monitoring are
+available. Google Translate TTS, Met.no, Radio Browser, Shopping List, general
+media sources, analytics, Home Assistant Cloud and ESPHome are intentionally not
+packaged. Add a component through a reviewed image release when it becomes an
+actual requirement; runtime package installation is disabled.
+
+Home Assistant state history uses its SQLite recorder database below
+`/persist/home-assistant`. The same directory contains `automations.yaml`,
+`scripts.yaml` and `scenes.yaml`; the image creates absent files without
+overwriting existing UI state and refuses symlinked or non-file paths. All are
+covered by the normal quiesced Borg backup.
+
 ## Release and runtime settings
 
 Build the one `home-assistant` image through the normal PR, required-check,
@@ -109,6 +123,12 @@ file must be installed before activation.
    map. Take a manual Borg backup, wait until the asynchronous systemd job is
    inactive with `Result=success` and `ExecMainStatus=0`, then independently
    restore representative state before normal use.
+
+The container clock remains UTC while Home Assistant uses the timezone selected
+during onboarding. Confirm the UI timezone, Recorder/History, Map, and
+creation/reload of one UI automation, script and scene before acceptance. If an
+earlier image timed out while saving automations, inspect the persisted file for
+duplicate entries and preserve a recovery copy before any deduplication.
 
 ## Backup and recovery
 

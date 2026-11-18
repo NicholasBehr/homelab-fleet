@@ -15,6 +15,9 @@ let
         }
       ];
     }).config;
+  directoryScript = pkgs.writeText "home-assistant-directories-script" (
+    home-assistant.config.systemd.services.home-assistant-directories.script
+  );
 in
 {
   backup-config = backupFixture.system.build.toplevel;
@@ -24,11 +27,35 @@ in
     assert home-assistant.config.services.home-assistant.openFirewallForComponents == false;
     assert
       home-assistant.config.services.home-assistant.extraComponents == [
+        "isal"
         "mobile_app"
         "mqtt"
         "smlight"
       ];
+    assert home-assistant.config.time.timeZone == "UTC";
+    assert home-assistant.config.services.home-assistant.config.homeassistant.time_zone == null;
+    assert
+      home-assistant.config.services.home-assistant.config.automation == "!include automations.yaml";
+    assert home-assistant.config.services.home-assistant.config.history == { };
+    assert home-assistant.config.services.home-assistant.config.logbook == { };
     assert home-assistant.config.services.home-assistant.config.mobile_app == { };
+    assert home-assistant.config.services.home-assistant.config.recorder == { };
+    assert home-assistant.config.services.home-assistant.config.scene == "!include scenes.yaml";
+    assert home-assistant.config.services.home-assistant.config.script == "!include scripts.yaml";
+    assert home-assistant.config.services.home-assistant.config.sun == { };
+    assert builtins.all
+      (
+        component: !(builtins.elem component home-assistant.config.services.home-assistant.extraComponents)
+      )
+      [
+        "analytics"
+        "default_config"
+        "esphome"
+        "google_translate"
+        "met"
+        "radio_browser"
+        "shopping_list"
+      ];
     assert home-assistant.config.services.mosquitto.enable;
     assert home-assistant.config.services.mosquitto.dataDir == "/persist/mosquitto";
     assert
@@ -75,6 +102,10 @@ in
         ${home-assistant.config.systemd.units."zigbee2mqtt.service".unit}/zigbee2mqtt.service
       grep -q 'zigbee2mqtt-config-init' \
         ${home-assistant.config.systemd.units."zigbee2mqtt.service".unit}/zigbee2mqtt.service
+      grep -q 'automations.yaml scripts.yaml scenes.yaml' \
+        ${directoryScript}
+      grep -q 'Refusing symlinked Home Assistant UI configuration' \
+        ${directoryScript}
       grep -q '127.0.0.1' \
         ${pkgs.writeText "home-assistant-config" (
           builtins.toJSON home-assistant.config.services.home-assistant.config

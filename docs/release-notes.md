@@ -1,3 +1,20 @@
+# v0.5.6 — complete the lean Home Assistant core profile
+
+Enable persistent UI-managed automations, scripts and scenes, plus Recorder,
+History, Activity and Sun without adopting Home Assistant's media-, cloud- and
+discovery-heavy `default_config` bundle. Add the `isal` runtime acceleration and
+let Home Assistant use the timezone selected during onboarding instead of
+overriding it from the container's UTC clock. This restores the Map dashboard's
+history backend and normal state recording while deliberately
+excluding Google Translate TTS, Met.no, Radio Browser, Shopping List, media
+sources, analytics, Home Assistant Cloud and ESPHome.
+
+Create missing UI YAML files as owned regular files under the existing
+`/persist/home-assistant` state path and refuse symlink or non-file targets. The
+existing storage marker, ownership IDs, secret requirements and contract version
+remain unchanged. Operators replacing an affected root must review saved
+`automations.yaml` for duplicate entries created by earlier timed-out UI saves.
+
 # v0.5.5 — harden Home Assistant service routing
 
 Proxy the tailnet-only `/zigbee2mqtt` route to Zigbee2MQTT's matching backend
