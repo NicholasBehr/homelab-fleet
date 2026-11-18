@@ -15,6 +15,9 @@ let
         }
       ];
     }).config;
+  directoryScript = pkgs.writeText "home-assistant-directories-script" (
+    home-assistant.config.systemd.services.home-assistant-directories.script
+  );
 in
 {
   backup-config = backupFixture.system.build.toplevel;
@@ -100,13 +103,9 @@ in
       grep -q 'zigbee2mqtt-config-init' \
         ${home-assistant.config.systemd.units."zigbee2mqtt.service".unit}/zigbee2mqtt.service
       grep -q 'automations.yaml scripts.yaml scenes.yaml' \
-        ${
-          home-assistant.config.systemd.units."home-assistant-directories.service".unit
-        }/home-assistant-directories.service
+        ${directoryScript}
       grep -q 'Refusing symlinked Home Assistant UI configuration' \
-        ${
-          home-assistant.config.systemd.units."home-assistant-directories.service".unit
-        }/home-assistant-directories.service
+        ${directoryScript}
       grep -q '127.0.0.1' \
         ${pkgs.writeText "home-assistant-config" (
           builtins.toJSON home-assistant.config.services.home-assistant.config
