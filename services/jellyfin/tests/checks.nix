@@ -51,7 +51,7 @@ in
     pkgs.runCommand "jellyfin-service-config" { } ''
       grep -q '<string>127.0.0.1</string>' ${networkTemplate}
       grep -q '<EnableIPv6>false</EnableIPv6>' ${networkTemplate}
-      grep -q '/dev/dri/renderD128 rw' ${jellyfinUnit}
+      grep -q '/dev/dri/renderD128 rw' ${jellyfinUnit}/jellyfin.service
       grep -q '0750' ${directoriesScript}
       grep -q 'ensure_directory .*data/media/movies.*root jellyfin 0750' ${directoriesScript}
       grep -q 'rclone copy' ${importScript}
@@ -60,7 +60,7 @@ in
       grep -q 'source:movies' ${importScript}
       grep -q 'source:tv' ${importScript}
       ! grep -Eq 'rclone (sync|move)|--delete|--remove-source-files' ${importScript}
-      grep -q 'OnUnitInactiveSec=5m' ${importTimerUnit}
+      grep -q 'OnUnitInactiveSec=5m' ${importTimerUnit}/rclone-import.timer
       test ! -e ${
         jellyfin.config.environment.etc."systemd/system".source
       }/multi-user.target.wants/rclone-import.timer
