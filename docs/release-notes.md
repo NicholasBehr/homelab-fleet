@@ -1,3 +1,26 @@
+# v0.5.7 — private Jellyfin media service
+
+Add Jellyfin as a single-image, unprivileged LXC service with its database,
+configuration, metadata, thumbnails, cache and transcodes on guarded `/persist`.
+Bulk movies and TV originals plus rclone staging use a separate proposed 10 TiB
+`/data` HDD volume, which is deliberately excluded from Borg backups.
+
+Expose Jellyfin only through its loopback listener and dedicated Tailscale Serve
+identity. Configure Intel QSV for the planned i5-14500 UHD Graphics 770 through
+the standard render-device sharing module, enabling AV1 decode but not assuming
+AV1 encoding.
+Use rclone's SFTP subsystem to poll remote `movies` and `tv` trees every five
+minutes, copy into staging, and publish without overwriting existing files or
+propagating source deletions. Require pinned SFTP host keys and protected runtime
+credentials; `shell_type = none` and disabled hash probing avoid remote shell
+commands.
+
+Add Jellyfin-specific network binding, import promotion, backup failure-recovery
+and configuration checks. The new image requires a patch SemVer bump. Existing
+service contracts and data paths do not change. Provisioning, credential
+enrollment, first activation, QSV acceptance, backup and restoration remain
+separate operator operations.
+
 # v0.5.6 — complete the lean Home Assistant core profile
 
 Enable persistent UI-managed automations, scripts and scenes, plus Recorder,

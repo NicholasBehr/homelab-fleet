@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+runtime_directory=${1:-/run/homelab-backup}
+if test -f "$runtime_directory/restart"; then
+  failed=0
+  for unit in tailscaled tailscale-policy jellyfin rclone-import.timer rclone-import; do
+    systemctl start "$unit" || failed=1
+  done
+  if (( failed )); then exit 1; fi
+  rm "$runtime_directory/restart"
+fi
