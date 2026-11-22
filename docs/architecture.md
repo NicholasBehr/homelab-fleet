@@ -72,6 +72,34 @@ Borg backups, never in Nix. Record
 radio identity, firmware, socket mappings and access credentials in the private
 operator inventory, not the public deployment contract.
 
+## Jellyfin media
+
+Jellyfin runs as a separate unprivileged service. Its network configuration binds
+HTTP only to loopback; a dedicated Tailscale identity publishes HTTPS Serve.
+Intel QSV uses the shared `/dev/dri/renderD128` render device and the common
+`render` group. The proposed i5-14500 UHD Graphics 770 provides H.264/HEVC
+encoding and AV1 decoding; verify actual acceleration on representative media.
+The SFTP importer runs rclone without remote shell commands and only promotes
+successful copies into the media library.
+
+| Path | Purpose |
+|---|---|
+| `/persist/jellyfin` | Jellyfin configuration, database, users, watch state, metadata, thumbnails and logs |
+| `/persist/jellyfin/cache` | Jellyfin cache |
+| `/persist/jellyfin/transcodes` | Transcode temporary files |
+| `/data/media/movies` | Bulk movie originals |
+| `/data/media/tv` | Bulk television originals |
+| `/data/staging/movies` | Movie transfer staging |
+| `/data/staging/tv` | Television transfer staging |
+| `/persist/secrets/rclone.conf` | Root-only SFTP endpoint/authentication |
+| `/persist/secrets/rclone_known_hosts` | Verified SFTP host key |
+
+The Jellyfin Borg archive covers `/persist` only. `/data` is a proposed 10 TiB HDD
+volume containing regenerable originals and is deliberately excluded from backup.
+The importer polls every five minutes, uses copy-only behavior, and never applies
+remote deletions. See [Jellyfin](jellyfin.md) for SFTP enrollment, import
+assumptions, acceptance and restoration.
+
 ## Immich files
 
 | Path | Purpose |

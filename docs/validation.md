@@ -1,6 +1,6 @@
 # Verification matrix
 
-Status as of 2026-11-17. Exact live GUIDs, identities, credentials and recovery
+Status as of 2026-11-22. Exact live GUIDs, identities, credentials and recovery
 receipts remain in the protected operator inventory. Repository history contains
 past release evidence; historical records never authorize a new mutation.
 
@@ -13,9 +13,10 @@ past release evidence; historical records never authorize a new mutation.
 | Runtime credentials | Metadata tests reject missing, empty, symlinked, non-regular, incorrectly owned or overly permissive files; image inputs contain paths and validation only |
 | Storage guards | Disposable mount tests reject absent, root-backed and marker-mismatched volumes; Immich layout tests keep originals on `/data` and generated media on `/persist` |
 | Backup recovery | Synthetic failure injection covers quiescing, Borg/dump failure, restart attempts and retained recovery intent; encrypted Borg/PostgreSQL fixtures exercise archive and logical restore |
-| Application configuration | Immich checks exercise CPU-only ML selection, QSV wiring and backup runtime endpoints; Home Assistant checks cover loopback Mosquitto, matching Tailscale/Zigbee2MQTT base paths, onboarding-safe readiness, independent service lifetime, first-start identity generation, backup hooks and the full system closure |
+| Application configuration | Immich checks exercise CPU-only ML selection, QSV wiring and backup runtime endpoints; Home Assistant checks cover loopback Mosquitto, matching Tailscale/Zigbee2MQTT base paths, onboarding-safe readiness, independent service lifetime, first-start identity generation and backup hooks; Jellyfin checks cover loopback-only binding, QSV, SFTP-only rclone import, no-delete/collision behavior and `/persist`-only backup |
 | Image and release integrity | CI evaluates every configuration, selects changed derivations, builds images on separate runners, rejects runtime state in archives and fails closed through the stable required gate |
 | Home Assistant core profile | Evaluation requires the onboarding-owned timezone, Recorder/History/Activity/Sun, native UI automation/script/scene includes, `isal`, and the explicit absence of unused media, cloud, weather, radio, shopping-list and ESPHome components; directory setup refuses symlink and non-file UI state |
+| Jellyfin media boundary | Configuration pins the HTTP listener to loopback, keeps generated state on `/persist`, imports into `/data` without mirroring deletions, refuses library overwrites, and a synthetic Borg/SQLite restore verifies `/data` is excluded |
 | Repository hygiene | Formatting, shell analysis, Python tests, secret-pattern scanning, service topology and public-doc address checks run before builds; `health-check` supplies the NixOS system path for direct `pct exec` use |
 
 ARM macOS evaluates and lints Linux derivations; it does not build or execute Linux
@@ -34,6 +35,7 @@ absent.
 | Immich placement and workload | Originals/generated media placement, representative synthetic uploads, search/face/OCR processing and Intel QSV transcode/playback verified |
 | Backup and disaster recovery | Quiesced remote Borg backup, data verification, independent escrow retrieval, isolated PostgreSQL/media restore and fresh-volume/container recovery verified |
 | Home Assistant and Zigbee | Single-image lifecycle, guarded state paths, loopback HTTP/MQTT, separate backup identity and first-start Zigbee2MQTT identity generation established; live coordinator details stay private |
+| Jellyfin and SFTP | Image configuration and synthetic import checks are automated; real QSV, tailnet-only client playback, SFTP authentication/host-key enrollment, remote retention behavior, Borg enrollment and fresh-volume restoration remain operator acceptance gates |
 | Secure Boot | Signed Proxmox boot, kernel lockdown, pools, service HTTPS and QSV verified after enablement |
 
 An inactive replacement root does not clear Serve state stored with a restored

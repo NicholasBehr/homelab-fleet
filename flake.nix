@@ -22,13 +22,20 @@
         deployment = ./deployments/home-assistant.nix;
       };
       nextcloud = mkContainer { deployment = ./deployments/nextcloud.nix; };
+      jellyfin = mkContainer { deployment = ./deployments/jellyfin.nix; };
       configurations = {
-        inherit immich home-assistant nextcloud;
+        inherit
+          immich
+          home-assistant
+          nextcloud
+          jellyfin
+          ;
       };
       contracts = {
         nextcloud = import ./deployments/nextcloud-contract.nix;
         immich = import ./deployments/immich-contract.nix;
         home-assistant = import ./deployments/home-assistant-contract.nix;
+        jellyfin = import ./deployments/jellyfin-contract.nix;
       };
       imageCatalog = {
         nextcloud = {
@@ -41,6 +48,10 @@
         };
         home-assistant = {
           service = "home-assistant";
+          variant = "single";
+        };
+        jellyfin = {
+          service = "jellyfin";
           variant = "single";
         };
       };
@@ -62,10 +73,14 @@
       homeAssistantChecks = import ./services/home-assistant/tests/checks.nix {
         inherit pkgs home-assistant;
       };
+      jellyfinChecks = import ./services/jellyfin/tests/checks.nix {
+        inherit pkgs jellyfin;
+      };
       serviceCheckSets = {
         nextcloud = import ./services/nextcloud/tests/checks.nix { inherit pkgs nextcloud; };
         immich = immichChecks;
         home-assistant = homeAssistantChecks;
+        jellyfin = jellyfinChecks;
       };
       serviceNames = builtins.attrNames configurations;
       validContract =
