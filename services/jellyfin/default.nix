@@ -127,6 +127,22 @@ in
       ];
       systemd.tmpfiles.settings.jellyfinDirs = lib.mkForce { };
       systemd.services = {
+        rclone-ready = {
+          requires = [ "operational-ready.service" ];
+          after = [ "operational-ready.service" ];
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+          };
+          script = ''
+            ${pkgs.python3}/bin/python3 ${../../scripts/verify-secret} ${
+              lib.escapeShellArgs [
+                a.rcloneConfigFile
+                a.rcloneKnownHostsFile
+              ]
+            }
+          '';
+        };
         jellyfin-directories = {
           inherit (gate) requires after;
           before = [
@@ -183,9 +199,11 @@ in
           '';
         };
         rclone-import = gate // {
+          requires = gate.requires ++ [ "rclone-ready.service" ];
           wantedBy = lib.mkForce [ ];
           wants = [ "network-online.target" ];
           after = gate.after ++ [
+            "rclone-ready.service"
             "network-online.target"
             "jellyfin.service"
           ];
@@ -222,9 +240,13 @@ in
       systemd.timers.rclone-import = {
         wantedBy = [ "homelab-operational.target" ];
         partOf = [ "homelab-operational.target" ];
-        requires = [ "operational-ready.service" ];
+        requires = [
+          "operational-ready.service"
+          "rclone-ready.service"
+        ];
         after = [
           "operational-ready.service"
+          "rclone-ready.service"
           "jellyfin.service"
         ];
         timerConfig = {

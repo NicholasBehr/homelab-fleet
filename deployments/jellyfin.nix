@@ -39,8 +39,6 @@ in
     secrets.requiredFiles = [
       config.homelab.backup.passphraseFile
       config.homelab.backup.sshKeyFile
-      c.application.rcloneConfigFile
-      c.application.rcloneKnownHostsFile
     ];
     tailscale.serveTarget = "http://127.0.0.1:${toString c.application.port}";
     lifecycle.units = [
@@ -64,7 +62,6 @@ in
         "operational-ready"
         "tailscaled"
         "jellyfin"
-        "rclone-import.timer"
       ];
       url = "http://127.0.0.1:${toString c.application.port}/health";
     };

@@ -85,14 +85,16 @@ the exact `/persist` and `/data` volume creation records, attachments and marker
 before any storage mutation. Never attach a production or retained recovery
 volume to a rehearsal.
 
-Enroll Jellyfin's dedicated Tailscale identity, Borg repository, Borg credentials,
-and SFTP settings independently. Store and independently verify the
+Enroll Jellyfin's dedicated Tailscale identity and Borg repository/credentials as
+the core operational block. Store and independently verify the
 `borg-jellyfin` recovery Document in the `Homelab` vault. The rclone settings are
-runtime credentials, included only in encrypted `/persist` backups; images contain
-their file paths, not their contents.
+an independent import block, included only in encrypted `/persist` backups; images
+contain their file paths, not their contents. Missing SFTP enrollment keeps the
+import service and timer inactive without blocking Jellyfin, Tailscale or Borg.
 
-On a fresh root, verify both marked volumes and all root-only runtime files before
-`homelab-activate`. Then verify:
+On a fresh root, verify both marked volumes and the core root-only runtime files
+before `homelab-activate`. Enroll rclone before expecting its import timer to run.
+Then verify:
 
 1. Tailscale Serve works over HTTPS, Jellyfin health responds locally, and the
    listener is bound only to `127.0.0.1`; no Jellyfin port is reachable on the

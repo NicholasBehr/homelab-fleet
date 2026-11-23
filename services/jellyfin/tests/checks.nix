@@ -19,6 +19,12 @@ let
   directoriesScript = pkgs.writeText "jellyfin-directories-script" (
     jellyfin.config.systemd.services.jellyfin-directories.script
   );
+  rcloneReadyScript = pkgs.writeText "jellyfin-rclone-ready-script" (
+    jellyfin.config.systemd.services.rclone-ready.script
+  );
+  operationalReadyScript = pkgs.writeText "jellyfin-operational-ready-script" (
+    jellyfin.config.systemd.services.operational-ready.script
+  );
   jellyfinUnit = jellyfin.config.systemd.units."jellyfin.service".unit;
   importTimerUnit = jellyfin.config.systemd.units."rclone-import.timer".unit;
   networkTemplate = jellyfin.config.environment.etc."jellyfin/network-template.xml".source;
@@ -43,11 +49,25 @@ in
     assert builtins.any (
       volume: volume.path == "/data" && volume.marker == "homelab-jellyfin-media-v1"
     ) jellyfin.config.homelab.storage.volumes;
-    assert builtins.elem "/persist/secrets/rclone.conf" (jellyfin.config.homelab.secrets.requiredFiles);
-    assert builtins.elem "/persist/secrets/rclone_known_hosts" (
+    assert !builtins.elem "/persist/secrets/rclone.conf" jellyfin.config.homelab.secrets.requiredFiles;
+    assert
+      !builtins.elem "/persist/secrets/rclone_known_hosts" jellyfin.config.homelab.secrets.requiredFiles;
+    assert builtins.elem jellyfin.config.homelab.backup.passphraseFile (
+      jellyfin.config.homelab.secrets.requiredFiles
+    );
+    assert builtins.elem jellyfin.config.homelab.backup.sshKeyFile (
       jellyfin.config.homelab.secrets.requiredFiles
     );
     assert jellyfin.config.homelab.tailscale.serveTarget == "http://127.0.0.1:8096";
+    assert !builtins.elem "rclone-import.timer" jellyfin.config.homelab.health.units;
+    assert builtins.elem "rclone-ready.service" jellyfin.config.systemd.services.rclone-import.requires;
+    assert builtins.elem "rclone-ready.service" jellyfin.config.systemd.timers.rclone-import.requires;
+    assert !builtins.elem "rclone-ready.service" jellyfin.config.systemd.services.jellyfin.requires;
+    assert !builtins.elem "rclone-ready.service" jellyfin.config.systemd.services.tailscaled.requires;
+    assert
+      !builtins.elem "rclone-ready.service" (
+        jellyfin.config.systemd.services."borgbackup-job-jellyfin".requires
+      );
     pkgs.runCommand "jellyfin-service-config" { } ''
       grep -q '<string>127.0.0.1</string>' ${networkTemplate}
       grep -q '<EnableIPv6>false</EnableIPv6>' ${networkTemplate}
@@ -61,6 +81,9 @@ in
       grep -q 'source:tv' ${importScript}
       ! grep -Eq 'rclone (sync|move)|--delete|--remove-source-files' ${importScript}
       grep -q 'OnUnitInactiveSec=5m' ${importTimerUnit}/rclone-import.timer
+      grep -q '/persist/secrets/rclone.conf' ${rcloneReadyScript}
+      grep -q '/persist/secrets/rclone_known_hosts' ${rcloneReadyScript}
+      ! grep -q '/persist/secrets/rclone' ${operationalReadyScript}
       test ! -e ${
         jellyfin.config.environment.etc."systemd/system".source
       }/multi-user.target.wants/rclone-import.timer
