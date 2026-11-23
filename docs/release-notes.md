@@ -1,3 +1,19 @@
+# v0.6.2 — isolate Jellyfin core and rclone readiness
+
+Keep Jellyfin, Tailscale and Borg behind the existing core operational-readiness
+gate, which now checks only the Borg runtime credentials. Add a separate rclone
+readiness gate for the protected SFTP configuration and pinned host key. Missing
+or invalid SFTP enrollment therefore leaves the importer and its timer inactive
+without preventing the core Jellyfin service, private HTTPS identity or Borg
+timer from starting.
+
+The image and repository version advance because the generated Jellyfin system
+changes. Persistent paths, markers, ownership IDs and contract version remain
+unchanged; replacement may reuse the existing verified volumes. Fresh and
+replacement roots still require explicit activation after core enrollment and
+identity-exclusivity checks. rclone begins only after its independent enrollment
+also passes.
+
 # v0.6.1 — increase Immich CPU allocation
 
 Raise the proposed Immich container allocation from two to four CPU cores to
