@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+if test -f /run/homelab-backup/restart; then
+  failed=0
+  for unit in postgresql redis-paperless tailscaled paperless-secret-key paperless-scheduler paperless-task-queue paperless-consumer paperless-web; do
+    systemctl start "$unit.service" || failed=1
+  done
+  if (( failed )); then exit 1; fi
+  rm /run/homelab-backup/restart
+fi

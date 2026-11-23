@@ -13,9 +13,11 @@ constructs systems; the flake explicitly registers configurations, images,
 contracts and prefixed service checks.
 
 NixOS 26.05 is pinned in `flake.lock`. Immich's module/package use a separate
-pinned unstable input because the stable package was marked insecure. PostgreSQL
-17 remains stable. `system.stateVersion` stays 26.05; it is not an upgrade switch.
-Review both pins, migration notes and extension versions before updates.
+pinned unstable input because the stable package was marked insecure. Paperless-ngx
+likewise uses its own pinned unstable module/package so application updates do not
+advance either the fleet base or Immich. PostgreSQL 17 remains stable.
+`system.stateVersion` stays 26.05; it is not an upgrade switch. Review every pin,
+migration note and extension version before updates.
 
 ## Image and runtime
 
@@ -139,6 +141,29 @@ per-user mounts or impermanence. Directory creation is gated, initialization is
 explicit without bootstrap passwords, and activation refuses absent application
 state. See [Nextcloud](nextcloud.md) for the resource proposal, runtime endpoint
 schema, account creation, quiesced backups and restoration procedure.
+
+## Paperless-ngx files
+
+Paperless-ngx 3.5.0 runs natively with PostgreSQL 17 and Redis. It accepts PDFs,
+performs German and English OCR, and binds only to loopback behind Tailscale Serve.
+Tika, Gotenberg, Office/email conversion, AI integrations and automatic update
+checks are disabled. The deployment deliberately uses one guarded NVMe volume;
+there is no `/data` split or render device.
+
+| Path | Purpose |
+|---|---|
+| `/persist/paperless/data` | Tantivy index, classifier data, logs and application secret key |
+| `/persist/paperless/media` | Original PDFs, generated PDF/A archives and thumbnails |
+| `/persist/paperless/consume` | Pending PDF consumption |
+| `/persist/postgresql/17` | Live PostgreSQL; excluded from Borg in favor of a logical dump |
+| `/persist/redis` | Disposable task broker state |
+| `/persist/backup/paperless.dump` | Atomic logical PostgreSQL backup input |
+| `/persist/secrets/paperless.env` | Private tailnet HTTPS origin used for host/CORS/CSRF validation |
+
+Upstream directory initialization and automatic multi-user startup are suppressed.
+The manual initializer creates the schema and first administrator before writing a
+persistent application marker; the disposable root's separate activation record is
+still required to start normal operation. See [Paperless-ngx](paperless-ngx.md).
 
 ## Add a service
 

@@ -5,7 +5,7 @@
   hostname = "immich";
   initialId = 200;
   replacementId = 201;
-  cores = 2;
+  cores = 4;
   memoryMiB = 6144;
   swapMiB = 0;
   bridge = "vmbr0";

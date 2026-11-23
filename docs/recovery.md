@@ -239,7 +239,9 @@ identity rules and acceptance tests required by this sequence.
 
 Immich's exact paths, PostgreSQL procedure, ownership and acceptance checks are in
 the [Immich service guide](immich.md). Home Assistant's SQLite/Zigbee procedure is
-in the [Home Assistant service guide](home-assistant.md).
+in the [Home Assistant service guide](home-assistant.md). Paperless-ngx's logical
+database and PDF-media procedure is in the
+[Paperless-ngx service guide](paperless-ngx.md).
 
 ## Other failures
 

@@ -1,3 +1,30 @@
+# v0.6.1 — increase Immich CPU allocation
+
+Raise the proposed Immich container allocation from two to four CPU cores to
+match the live host configuration. No application, storage, identity, credential,
+network or backup contract changes are included.
+
+# v0.6.0 — private Paperless-ngx PDF archive
+
+Add a native Paperless-ngx 3.5.0 single-image service from its own pinned
+`nixos-unstable` input. The application, PostgreSQL 17, Redis, original PDFs,
+generated PDF/A archives, thumbnails, search index and identities use one guarded
+NVMe `/persist` volume; there is no `/data` split, container runtime, public
+listener, Tika/Gotenberg or AI integration.
+
+Fresh instances require the manual `paperless-initialize` workflow and interactive
+administrator creation. Normal activation refuses missing application or database
+state, suppresses upstream multi-user startup and runs migrations only behind the
+root-local operational activation boundary. A protected runtime file supplies the
+private HTTPS origin required for proxy host and CSRF validation. Quiesced Borg backups use an atomic
+logical PostgreSQL dump and retain the application offline for the entire archive
+operation. Evaluated configuration, failure-injection hooks and a synthetic
+Paperless/PostgreSQL/Borg restoration fixture cover the service contract.
+
+This adds the `paperless-ngx` image and contract version 1. Existing services and
+volumes are unchanged. Production allocation, credential enrollment, release
+verification and full Proxmox restoration remain separate operator-approved work.
+
 # v0.5.7 — private Jellyfin media service
 
 Add Jellyfin as a single-image, unprivileged LXC service with its database,

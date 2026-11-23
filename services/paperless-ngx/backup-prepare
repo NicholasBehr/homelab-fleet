@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Keep every writer stopped until Borg completes.
+set -euo pipefail
+umask 077
+install -d -m 0700 /persist/backup /run/homelab-backup
+: > /run/homelab-backup/restart
+systemctl stop paperless-consumer.service paperless-task-queue.service paperless-web.service paperless-scheduler.service
+for unit in paperless-consumer paperless-task-queue paperless-web paperless-scheduler; do
+  if systemctl is-active --quiet "$unit.service"; then
+    echo 'Paperless writer did not stop' >&2; exit 1
+  fi
+done
+runuser -u postgres -- pg_dump --format=custom paperless > /persist/backup/paperless.dump.tmp
+mv /persist/backup/paperless.dump.tmp /persist/backup/paperless.dump
+cp /etc/homelab-versions.json /persist/backup/versions.json
+systemctl stop redis-paperless.service postgresql.service tailscaled.service

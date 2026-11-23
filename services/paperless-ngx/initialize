@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Explicit fresh-instance initialization. Never called by boot or activation.
+set -euo pipefail
+umask 077
+if test -e /var/lib/homelab/operational-enabled || systemctl is-active --quiet homelab-operational.target; then
+  echo 'Deactivate before initialization' >&2; exit 1
+fi
+exec 9>/persist/operation.lock
+flock -n 9
+systemctl start storage-contract operational-ready paperless-directories
+if test -e /persist/paperless/.initialized; then
+  echo 'Refusing initialization over existing application state' >&2; exit 1
+fi
+if test -n "$(find /persist/paperless/media /persist/paperless/consume -mindepth 1 -print -quit)"; then
+  echo 'Refusing initialization over existing documents' >&2; exit 1
+fi
+if test -n "$(find /persist/paperless/data -mindepth 1 -maxdepth 1 \
+  ! -name index ! -name nixos-paperless-secret-key.env -print -quit)" || \
+  test -n "$(find /persist/paperless/data/index -mindepth 1 -print -quit)"; then
+  echo 'Refusing initialization over existing Paperless data' >&2; exit 1
+fi
+cleanup_helpers() {
+  systemctl stop redis-paperless.service postgresql.service >/dev/null 2>&1 || true
+}
+trap cleanup_helpers EXIT
+systemctl start postgresql-setup redis-paperless paperless-secret-key
+tables=$(runuser -u paperless -- psql -X -At --dbname=paperless -c \
+  "select count(*) from information_schema.tables where table_schema='public'")
+if test "$tables" != 0; then
+  test "$(runuser -u paperless -- psql -X -At --dbname=paperless -c \
+    "select to_regclass('public.auth_user') is not null")" = t || {
+      echo 'Refusing an unrecognized partial database' >&2; exit 1;
+    }
+  test "$(runuser -u paperless -- psql -X -At --dbname=paperless -c \
+    'select count(*) from auth_user')" = 0 || {
+      echo 'Existing accounts require restoration, not initialization' >&2; exit 1;
+    }
+fi
+paperless-manage migrate
+# With no arguments this uses hidden terminal prompts. Tests may pass --noinput
+# with synthetic DJANGO_SUPERUSER_* values.
+paperless-manage createsuperuser "$@"
+test "$(runuser -u paperless -- psql -X -At --dbname=paperless -c \
+  'select count(*) from auth_user where is_superuser')" -gt 0
+install -m 0600 -o root -g root /dev/null /persist/paperless/.initialized
+printf '%s\n' 'Paperless initialized; activate explicitly after backup enrollment and restoration checks.'
