@@ -71,6 +71,12 @@ let
       rm -f ${marker}
       systemctl daemon-reload
       systemctl stop homelab-operational.target
+      ${lib.optionalString (startup != [ ]) ''
+        # PartOf stop jobs may be queued after the target itself has stopped.
+        # Wait for every declared workload unit before returning so an operator
+        # can safely move or replace persistent state immediately afterwards.
+        systemctl stop ${lib.escapeShellArgs (map (name: "${name}.service") startup)}
+      ''}
     '';
   };
 in

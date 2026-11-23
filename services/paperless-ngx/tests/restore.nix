@@ -67,7 +67,7 @@ pkgs.testers.runNixOSTest {
     machine.succeed("cp /tmp/fixture.pdf /persist/paperless/consume/restore-fixture.pdf")
     machine.wait_until_succeeds("paperless-manage shell -c 'from documents.models import Document; assert Document.objects.count() == 1'", timeout=300)
     machine.succeed("systemctl start borgbackup-job-paperless-ngx")
-    machine.wait_until_succeeds("test $(systemctl show borgbackup-job-paperless-ngx -p ActiveState --value) = inactive", timeout=300)
+    machine.wait_until_succeeds("! systemctl is-active --quiet borgbackup-job-paperless-ngx", timeout=300)
     machine.succeed("test $(systemctl show borgbackup-job-paperless-ngx -p Result --value) = success; borg-job-paperless-ngx check --verify-data")
     archive = machine.succeed("borg-job-paperless-ngx list --short").strip()
     listing = machine.succeed(f"borg-job-paperless-ngx list --short ::{archive}")
@@ -87,7 +87,7 @@ pkgs.testers.runNixOSTest {
     machine.wait_for_unit("paperless-web.service", timeout=300)
     machine.succeed("paperless-manage shell -c 'from documents.models import Document; d=Document.objects.get(); assert d.original_filename == \"restore-fixture.pdf\"'")
     machine.succeed("systemctl start borgbackup-job-paperless-ngx")
-    machine.wait_until_succeeds("test $(systemctl show borgbackup-job-paperless-ngx -p ActiveState --value) = inactive", timeout=300)
+    machine.wait_until_succeeds("! systemctl is-active --quiet borgbackup-job-paperless-ngx", timeout=300)
     machine.succeed("test $(systemctl show borgbackup-job-paperless-ngx -p Result --value) = success")
   '';
 }
