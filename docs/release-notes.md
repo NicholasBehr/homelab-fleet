@@ -1,3 +1,9 @@
+# v0.6.1 — increase Immich CPU allocation
+
+Raise the proposed Immich container allocation from two to four CPU cores to
+match the live host configuration. No application, storage, identity, credential,
+network or backup contract changes are included.
+
 # v0.6.0 — private Paperless-ngx PDF archive
 
 Add a native Paperless-ngx 3.5.0 single-image service from its own pinned
