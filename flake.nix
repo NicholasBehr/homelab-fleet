@@ -3,12 +3,14 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     immich-nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    paperless-nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
   outputs =
     {
       self,
       nixpkgs,
       immich-nixpkgs,
+      paperless-nixpkgs,
     }:
     let
       system = "x86_64-linux";
@@ -23,12 +25,17 @@
       };
       nextcloud = mkContainer { deployment = ./deployments/nextcloud.nix; };
       jellyfin = mkContainer { deployment = ./deployments/jellyfin.nix; };
+      paperless-ngx = mkContainer {
+        deployment = ./deployments/paperless-ngx.nix;
+        specialArgs.paperlessNixpkgs = paperless-nixpkgs;
+      };
       configurations = {
         inherit
           immich
           home-assistant
           nextcloud
           jellyfin
+          paperless-ngx
           ;
       };
       contracts = {
@@ -36,6 +43,7 @@
         immich = import ./deployments/immich-contract.nix;
         home-assistant = import ./deployments/home-assistant-contract.nix;
         jellyfin = import ./deployments/jellyfin-contract.nix;
+        paperless-ngx = import ./deployments/paperless-ngx-contract.nix;
       };
       imageCatalog = {
         nextcloud = {
@@ -52,6 +60,10 @@
         };
         jellyfin = {
           service = "jellyfin";
+          variant = "single";
+        };
+        paperless-ngx = {
+          service = "paperless-ngx";
           variant = "single";
         };
       };
@@ -81,6 +93,10 @@
         immich = immichChecks;
         home-assistant = homeAssistantChecks;
         jellyfin = jellyfinChecks;
+        paperless-ngx = import ./services/paperless-ngx/tests/checks.nix {
+          inherit pkgs paperless-ngx;
+          paperlessNixpkgs = paperless-nixpkgs;
+        };
       };
       serviceNames = builtins.attrNames configurations;
       validContract =

@@ -1,7 +1,7 @@
 # homelab-fleet
 
 Unprivileged NixOS LXC images for Proxmox, including Immich, Home Assistant,
-Nextcloud and Jellyfin.
+Nextcloud, Jellyfin and Paperless-ngx.
 GitHub builds and attests images; operators pull explicit verified releases.
 CI has no homelab access. Root filesystems are replaced, while declared data and
 identities survive on external volumes. `/persist` stays on NVMe; `/data` is bulk
@@ -15,8 +15,8 @@ keep applications, Tailscale and backup timers inactive until explicit systemd
 activation; see [lifecycle](docs/lifecycle.md).
 
 **Status:** All services implement the single-image lifecycle. Existing production
-services have independently escrowed runtime Borg credentials; Nextcloud and
-Jellyfin are implementations awaiting operator enrollment and acceptance. Immich
+services have independently escrowed runtime Borg credentials; Nextcloud, Jellyfin
+and Paperless-ngx are implementations awaiting operator enrollment and acceptance. Immich
 has verified QSV, remote backup, fresh-volume restoration and managed root
 replacement. Home Assistant has the same inactive-root, storage, credential and
 backup boundaries; its Zigbee-specific recovery procedure is documented
@@ -29,6 +29,7 @@ evidence and remaining workload-specific checks.
 - [Home Assistant and Zigbee](docs/home-assistant.md)
 - [Nextcloud private MVP, enrollment and recovery](docs/nextcloud.md)
 - [Jellyfin, SFTP import and recovery](docs/jellyfin.md)
+- [Paperless-ngx private PDF archive and recovery](docs/paperless-ngx.md)
 - [Enrollment, releases and replacement](docs/operations.md)
 - [Backup and disaster recovery](docs/recovery.md)
 - [Verification matrix](docs/validation.md)
