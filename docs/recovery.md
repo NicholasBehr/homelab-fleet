@@ -124,6 +124,39 @@ contents or hashes. Create runtime credentials through protected staging and
 atomic installation that refuses existing targets. Changes to existing credentials
 follow the reviewed rotation plan. Use synthetic material for CI and tests.
 
+### Interactive initial enrollment
+
+For a new service, copy `scripts/enroll-borg` onto the disposable root of the
+inactive container and run it there as root with the service slug:
+
+```sh
+/root/enroll-borg <service-slug>
+```
+
+The helper refuses existing runtime targets, creates per-service credentials in
+protected staging on `/persist`, asks only for the dedicated Storage Box
+subaccount username, hostname and enrollment password, and verifies the ED25519
+host key against Hetzner's independently published fingerprint. It uses
+`install-ssh-key`, verifies key-only access, installs the four runtime files with
+the declared ownership and modes, initializes the repository with the service's
+Borg wrapper, and creates a protected recovery JSON with
+`status: pending-verification`. A failure after the helper reports that runtime
+files were installed requires operator review; do not delete files or retry as a
+fresh enrollment because the remote repository may already exist.
+
+The helper deliberately does not access 1Password, mark the document enrolled,
+activate the deployment or remove staging. Transfer the pending JSON directly
+from its mode0700 staging directory into a protected local file without printing
+it. Create the exact `borg-<service-slug>` Document in the `Homelab` vault, then
+retrieve that exact Document into a different protected directory. Perform the
+status-only credential, public-key, host-key, repository-ID, encrypted-key-export
+and schedule checks listed below. Only after all checks pass, replace the status
+with `enrolled`, update the same Document, retrieve it independently again and
+repeat the status-only comparison. Keep staging until escrow and the required
+restore rehearsal are verified; then remove temporary plaintext through the
+approved operator workflow. Never store or escrow the resettable Storage Box
+password.
+
 Write the final document only after the intended repository is initialized and its
 ID and encrypted key export are available. Download the saved Document again into
 a fresh protected directory and verify, without trusting the working copy, that:

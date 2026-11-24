@@ -32,6 +32,7 @@ in
         "/persist/secrets"
         "/persist/tailscale"
         "/persist/backup"
+        "/persist/borg"
         "/persist/borg/config"
         "/persist/borg/cache"
       ];

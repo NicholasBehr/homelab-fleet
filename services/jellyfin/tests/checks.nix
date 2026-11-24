@@ -48,6 +48,7 @@ in
     assert jellyfin.config.homelab.backup.paths == [ "/persist" ];
     assert jellyfin.config.homelab.backup.writablePaths == [ "/persist" ];
     assert builtins.length jellyfin.config.homelab.storage.volumes == 2;
+    assert builtins.elem "/persist/borg" jellyfin.config.homelab.storage.directories;
     assert builtins.any (
       volume: volume.path == "/data" && volume.marker == "homelab-jellyfin-media-v1"
     ) jellyfin.config.homelab.storage.volumes;
