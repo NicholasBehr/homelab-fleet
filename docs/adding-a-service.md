@@ -192,8 +192,9 @@ serviceCheckSets.example-service = import ./services/example-service/tests/check
 ```
 
 Extend `provision/tailscale-policy.example.hujson` with the service tag owner,
-administrator SSH/HTTPS access, intended user HTTPS access and positive/negative
-policy tests. Keep real identities and addressing out of Git.
+administrator and intended-user HTTPS access, explicit service TCP/22/root-SSH
+denials and positive/negative policy tests. Keep Tailscale SSH and TCP/22 exclusive
+to the hypervisor tag. Keep real identities and addressing out of Git.
 
 Add the service guide to the README, update architecture/operations documentation,
 and add its current validation boundary. If image inputs change, bump `VERSION`
