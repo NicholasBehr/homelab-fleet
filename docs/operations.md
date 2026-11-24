@@ -1,5 +1,14 @@
 # Operator workflow
 
+## Container console access
+
+Use Tailscale SSH only for the Proxmox host, then enter the target container with
+`pct enter <id>`. Service containers retain Tailscale identities for private
+Serve endpoints but have both OpenSSH and Tailscale SSH disabled. The shared base
+provides `/bin/bash` so `pct enter` loads the NixOS profile PATH and its basic
+operator commands. Do not add per-container SSH access as a routine maintenance
+path.
+
 ## Build and release
 
 Use a short-lived branch and PR; require `Required checks` before merging. GitHub

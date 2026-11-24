@@ -32,6 +32,8 @@ in
 {
   service-config =
     assert jellyfin.config.services.jellyfin.enable;
+    assert jellyfin.config.homelab.deployment.cores == 4;
+    assert jellyfin.config.homelab.deployment.memoryMiB == 8192;
     assert jellyfin.config.services.jellyfin.openFirewall == false;
     assert jellyfin.config.services.jellyfin.dataDir == "/persist/jellyfin";
     assert jellyfin.config.services.jellyfin.configDir == "/persist/jellyfin/config";
@@ -46,6 +48,7 @@ in
     assert jellyfin.config.homelab.backup.paths == [ "/persist" ];
     assert jellyfin.config.homelab.backup.writablePaths == [ "/persist" ];
     assert builtins.length jellyfin.config.homelab.storage.volumes == 2;
+    assert builtins.elem "/persist/borg" jellyfin.config.homelab.storage.directories;
     assert builtins.any (
       volume: volume.path == "/data" && volume.marker == "homelab-jellyfin-media-v1"
     ) jellyfin.config.homelab.storage.volumes;
@@ -84,6 +87,10 @@ in
       grep -q '/persist/secrets/rclone.conf' ${rcloneReadyScript}
       grep -q '/persist/secrets/rclone_known_hosts' ${rcloneReadyScript}
       ! grep -q '/persist/secrets/rclone' ${operationalReadyScript}
+      grep -q '/persist/secrets/borg-passphrase' ${operationalReadyScript}
+      grep -q '/persist/secrets/borg-ssh-key' ${operationalReadyScript}
+      grep -q '/persist/borg/repository' ${operationalReadyScript}
+      grep -q '/persist/borg/known_hosts' ${operationalReadyScript}
       test ! -e ${
         jellyfin.config.environment.etc."systemd/system".source
       }/multi-user.target.wants/rclone-import.timer

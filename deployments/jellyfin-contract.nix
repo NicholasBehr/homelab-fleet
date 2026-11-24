@@ -5,8 +5,8 @@
   hostname = "jellyfin";
   initialId = 230;
   replacementId = 231;
-  cores = 2;
-  memoryMiB = 4096;
+  cores = 4;
+  memoryMiB = 8192;
   swapMiB = 0;
   bridge = "vmbr0";
   network = "name=eth0,bridge=vmbr0,ip=dhcp,ip6=manual,firewall=1";

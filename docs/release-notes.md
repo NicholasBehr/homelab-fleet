@@ -1,3 +1,32 @@
+# v0.6.3 — increase Jellyfin 4K HDR headroom
+
+Raise the proposed Jellyfin container allocation from two to four vCPUs and from
+4 GiB to 8 GiB RAM. Intel QSV remains the video acceleration path; the additional
+CPU and memory capacity covers audio conversion, library work, subtitle handling
+and partial-acceleration fallback during representative 4K HDR playback.
+Complete the existing Jellyfin/Tailscale/Borg core gate by validating the protected
+Borg repository URI and pinned Storage Box host key in addition to its passphrase
+and SSH key. The independent rclone gate remains unchanged.
+
+The generated image and manifest embed the resource contract, so the repository
+version advances even though application packages, persistent paths, markers,
+ownership IDs, credential requirements and storage contract version are unchanged.
+Existing verified `/persist` and `/data` volumes remain compatible with a root
+replacement.
+
+Provide `/bin/bash` from the shared base module in every service image so the
+authenticated Proxmox `pct enter` recovery console selects Bash, loads the NixOS
+profile PATH and exposes the already linked basic operator commands. This avoids
+service-specific shell workarounds; it does not enable SSH, add Python or broaden
+network access. Because the shared image base changes, CI must rebuild every
+service image for v0.6.3.
+
+Disable Tailscale SSH explicitly on every service identity while retaining
+Tailscale Serve. Operators authenticate to the Proxmox host with Tailscale SSH
+and enter a container with `pct enter`; service containers expose no independent
+SSH control plane. OpenSSH remains disabled, restored Tailscale state is forced
+away from the former SSH setting, and private HTTPS routes are unchanged.
+
 # v0.6.2 — isolate Jellyfin core and rclone readiness
 
 Keep Jellyfin, Tailscale and Borg behind the existing core operational-readiness

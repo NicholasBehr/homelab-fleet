@@ -46,7 +46,10 @@
       };
       script = ''
         test "$(tailscale status --json | jq -r .BackendState)" = Running
-        tailscale set --ssh=true --accept-routes=false
+        # Service identities provide Serve endpoints, not operator shells.
+        # Recovery enters through Tailscale SSH on Proxmox followed by pct enter.
+        # Set false explicitly so restored state cannot retain the old capability.
+        tailscale set --ssh=false --accept-routes=false
         # Own the complete Serve configuration, removing obsolete forwards.
         tailscale serve reset
         ${lib.optionalString (

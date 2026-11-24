@@ -9,6 +9,12 @@ VP9 and AV1 decoding. Do not assume AV1 hardware encoding on this desktop iGPU.
 Keep integrated graphics enabled in firmware and verify the host's render-device
 mapping before provisioning.
 
+Allocate four vCPUs and 8 GiB RAM for 4K HDR operation. QSV remains responsible
+for supported video decode, encode and tone mapping; the CPU and memory headroom
+covers audio conversion, library work, subtitles and partial-acceleration fallback.
+These values are capacity allocations, not a substitute for representative playback
+and concurrent-stream acceptance tests.
+
 | Path | Purpose |
 |---|---|
 | `/persist/jellyfin` | Configuration, database, users, watch state, metadata, thumbnails and logs |
@@ -91,6 +97,8 @@ the core operational block. Store and independently verify the
 an independent import block, included only in encrypted `/persist` backups; images
 contain their file paths, not their contents. Missing SFTP enrollment keeps the
 import service and timer inactive without blocking Jellyfin, Tailscale or Borg.
+Core readiness validates the Borg passphrase, SSH key, repository URI and pinned
+Storage Box host key before any of those core services start.
 
 On a fresh root, verify both marked volumes and the core root-only runtime files
 before `homelab-activate`. Enroll rclone before expecting its import timer to run.

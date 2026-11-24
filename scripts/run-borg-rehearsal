@@ -1,0 +1,89 @@
+#!/run/current-system/sw/bin/bash
+set -euo pipefail
+
+service=${1:-}
+run_id=${2:-}
+[[ $service =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] || {
+  echo "Usage: run-borg-rehearsal SERVICE-SLUG RUN-ID" >&2
+  exit 2
+}
+[[ $run_id =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] || {
+  echo "Usage: run-borg-rehearsal SERVICE-SLUG RUN-ID" >&2
+  exit 2
+}
+
+export PATH=/run/current-system/sw/bin
+umask 077
+set +x
+
+stage=/run/${service}-borg-rehearsal
+archive=rehearsal-${run_id}
+# shellcheck source=/dev/null
+source /root/borg-repository "$stage/repository"
+export BORG_PASSCOMMAND="cat $stage/passphrase"
+export BORG_RSH="ssh -o AddressFamily=inet -i $stage/ssh-key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$stage/known_hosts"
+export BORG_CONFIG_DIR=$stage/config
+export BORG_CACHE_DIR=$stage/cache
+
+for file in repository passphrase ssh-key known_hosts; do
+  test "$(stat -c '%u:%g:%a' "$stage/$file")" = 0:0:600
+done
+test "$(cat /persist/.homelab-volume)" = homelab-jellyfin-persist-v1
+test "$(cat /data/.homelab-volume)" = homelab-jellyfin-media-v1
+if test -e "$stage/repository-info.json"; then
+  test -d /persist/jellyfin
+  borg --remote-path=borg-1.4 info --json > "$stage/live-repository-info.json"
+  test "$(jq -r .repository.id "$stage/repository-info.json")" = \
+    "$(jq -r .repository.id "$stage/live-repository-info.json")"
+else
+  test ! -e /persist/jellyfin
+  if borg --remote-path=borg-1.4 info >/dev/null 2>&1; then
+    echo "Refusing existing rehearsal repository" >&2
+    exit 1
+  fi
+  borg --remote-path=borg-1.4 init --encryption=repokey-blake2
+  borg --remote-path=borg-1.4 info --json > "$stage/repository-info.json"
+  jq -e '.repository.id | type == "string" and length > 0' "$stage/repository-info.json" >/dev/null
+  install -d -m 0750 -o jellyfin -g jellyfin /persist/jellyfin/config /persist/jellyfin/data
+  printf '%s\n' synthetic-jellyfin-configuration > /persist/jellyfin/config/system.xml
+  dd if=/dev/urandom of=/persist/jellyfin/data/library.db bs=4096 count=4 status=none
+  chown -R jellyfin:jellyfin /persist/jellyfin
+fi
+find /persist/jellyfin -type f -print0 | sort -z | xargs -0 sha256sum > "$stage/source-manifest"
+
+if ! borg --remote-path=borg-1.4 info "::${archive}" >/dev/null 2>&1; then
+  borg --remote-path=borg-1.4 create "::${archive}" /persist/jellyfin
+fi
+borg --remote-path=borg-1.4 list --short "::${archive}" > "$stage/archive-paths"
+test -s "$stage/archive-paths"
+if grep -Ev '^persist/jellyfin(/|$)' "$stage/archive-paths" | grep -q .; then
+  echo "Archive contains a path outside synthetic Jellyfin state" >&2
+  exit 1
+fi
+if grep -Eq '^data(/|$)' "$stage/archive-paths"; then
+  echo "Archive unexpectedly contains /data" >&2
+  exit 1
+fi
+borg --remote-path=borg-1.4 check
+
+rm -rf -- /persist/jellyfin
+cd /
+borg --remote-path=borg-1.4 extract "::${archive}" persist/jellyfin
+find /persist/jellyfin -type f -print0 | sort -z | xargs -0 sha256sum > "$stage/restored-manifest"
+cmp -s "$stage/source-manifest" "$stage/restored-manifest"
+test "$(cat /persist/.homelab-volume)" = homelab-jellyfin-persist-v1
+test "$(cat /data/.homelab-volume)" = homelab-jellyfin-media-v1
+test ! -e /data/jellyfin
+
+jq -n \
+  --rawfile repository "$stage/repository" \
+  --slurpfile info "$stage/repository-info.json" \
+  --arg archive "$archive" \
+  '{
+    repository: ($repository | rtrimstr("\n")),
+    repositoryID: $info[0].repository.id,
+    archive: $archive,
+    verified: true
+  }' > "$stage/result.json"
+chmod 0600 "$stage/result.json"
+echo "Disposable Borg backup, integrity check, selective restore, and data exclusion passed"

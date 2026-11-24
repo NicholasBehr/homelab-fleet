@@ -1,0 +1,38 @@
+#!/run/current-system/sw/bin/bash
+set -euo pipefail
+
+service=${1:-}
+[[ $service =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] || {
+  echo "Usage: cleanup-borg-rehearsal SERVICE-SLUG" >&2
+  exit 2
+}
+
+export PATH=/run/current-system/sw/bin
+umask 077
+set +x
+
+stage=/run/${service}-borg-rehearsal
+# shellcheck source=/dev/null
+source /root/borg-repository "$stage/repository"
+export BORG_PASSCOMMAND="cat $stage/passphrase"
+export BORG_RSH="ssh -o AddressFamily=inet -i $stage/ssh-key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$stage/known_hosts"
+export BORG_CONFIG_DIR=$stage/config
+export BORG_CACHE_DIR=$stage/cache
+
+test "$(jq -r .verified "$stage/result.json")" = true
+expected_id=$(jq -r .repositoryID "$stage/result.json")
+live_id=$(borg --remote-path=borg-1.4 info --json | jq -r .repository.id)
+test -n "$expected_id"
+test "$live_id" = "$expected_id"
+printf 'YES\n' | borg --remote-path=borg-1.4 delete --dry-run --list >/dev/null 2>&1
+printf 'YES\n' | borg --remote-path=borg-1.4 delete >/dev/null 2>&1
+if borg --remote-path=borg-1.4 info >/dev/null 2>&1; then
+  echo "Disposable repository still exists after deletion" >&2
+  exit 1
+fi
+
+test "$(cat /persist/.homelab-volume)" = homelab-jellyfin-persist-v1
+rm -rf -- /persist/jellyfin
+find "$stage" -mindepth 1 -delete
+rmdir "$stage"
+echo "Recorded disposable Borg repository, tmpfs credentials, and synthetic state removed"

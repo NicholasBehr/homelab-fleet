@@ -1,0 +1,137 @@
+#!/run/current-system/sw/bin/bash
+set -euo pipefail
+
+service=${1:-}
+[[ $service =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] || {
+  echo "Usage: enroll-borg SERVICE-SLUG" >&2
+  exit 2
+}
+(( EUID == 0 )) || { echo "Run as root inside the inactive service container" >&2; exit 1; }
+
+export PATH=/run/current-system/sw/bin
+umask 077
+set +x
+
+expected_fingerprint=SHA256:XqONwb1S0zuj5A1CDxpOSuD2hnAArV1A3wKY7Z3sdgM
+secrets=/persist/secrets
+borg_dir=/persist/borg
+passphrase=$secrets/borg-passphrase
+private_key=$secrets/borg-ssh-key
+known_hosts=$borg_dir/known_hosts
+repository=$borg_dir/repository
+
+mountpoint -q /persist
+test "$(stat -c '%u:%g:%a' "$secrets")" = 0:0:700
+install -d -m 0700 -o root -g root "$borg_dir"
+for target in "$passphrase" "$private_key" "$known_hosts" "$repository"; do
+  test ! -e "$target" || { echo "Refusing existing Borg enrollment target: $target" >&2; exit 1; }
+done
+
+stage=$(mktemp -d "/persist/.borg-${service}-enroll.XXXXXX")
+chmod 0700 "$stage"
+printf '%s\n' "Protected staging directory: $stage"
+test ! -e "$stage/borg-passphrase"
+dd if=/dev/urandom bs=48 count=1 status=none | base64 > "$stage/borg-passphrase"
+ssh-keygen -q -t ed25519 -N '' -C "borg-$service" -f "$stage/borg-ssh-key"
+
+read -r -p "Storage Box subaccount username: " borg_user
+read -r -p "Storage Box subaccount hostname: " borg_host
+[[ $borg_user =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]] || {
+  echo "Invalid Storage Box username" >&2
+  exit 1
+}
+[[ $borg_host =~ ^[A-Za-z0-9][A-Za-z0-9.-]*[A-Za-z0-9]$ ]] || {
+  echo "Invalid Storage Box hostname" >&2
+  exit 1
+}
+printf '%s\n' "$borg_user" > "$stage/storagebox-username"
+printf '%s\n' "$borg_host" > "$stage/storagebox-hostname"
+
+ssh-keyscan -p 23 -t ed25519 "$borg_host" > "$stage/known_hosts"
+actual_fingerprint=$(ssh-keygen -lf "$stage/known_hosts" | awk 'NR == 1 { print $2 }')
+test "$actual_fingerprint" = "$expected_fingerprint" || {
+  echo "Storage Box ED25519 host fingerprint mismatch" >&2
+  exit 1
+}
+echo "Storage Box ED25519 host fingerprint verified"
+
+cat "$stage/borg-ssh-key.pub" |
+  ssh -p 23 \
+    -o UserKnownHostsFile="$stage/known_hosts" \
+    -o StrictHostKeyChecking=yes \
+    -o IdentitiesOnly=yes \
+    -o PubkeyAuthentication=no \
+    -o PreferredAuthentications=password \
+    "$borg_user@$borg_host" install-ssh-key
+
+ssh -p 23 \
+  -i "$stage/borg-ssh-key" \
+  -o UserKnownHostsFile="$stage/known_hosts" \
+  -o StrictHostKeyChecking=yes \
+  -o IdentitiesOnly=yes \
+  -o PasswordAuthentication=no \
+  "$borg_user@$borg_host" pwd >/dev/null
+echo "Storage Box key-only authentication verified"
+
+printf 'ssh://%s@%s:23/./borg-%s\n' "$borg_user" "$borg_host" "$service" > "$stage/repository"
+for pair in \
+  "$stage/borg-passphrase:$passphrase" \
+  "$stage/borg-ssh-key:$private_key" \
+  "$stage/known_hosts:$known_hosts" \
+  "$stage/repository:$repository"; do
+  source_file=${pair%%:*}
+  target_file=${pair#*:}
+  temporary="$target_file.enrolling"
+  test ! -e "$temporary"
+  install -m 0600 -o root -g root "$source_file" "$temporary"
+  mv -T "$temporary" "$target_file"
+done
+
+echo "Runtime files installed; a later failure requires operator review before retrying"
+"borg-job-$service" init --encryption=repokey-blake2
+# Borg 1.4 treats a lone positional argument as REPOSITORY, even when BORG_REPO
+# is set by the wrapper. With no positional arguments it uses BORG_REPO and
+# writes the paper export to stdout.
+"borg-job-$service" key export --paper > "$stage/borg-key-export"
+"borg-job-$service" info --json > "$stage/borg-info.json"
+systemctl show "borgbackup-job-$service.timer" --property=TimersCalendar --value > "$stage/schedule"
+test -s "$stage/schedule"
+
+output="$stage/$service-production-recovery-pending.json"
+test ! -e "$output"
+jq -n \
+  --arg service "$service" \
+  --rawfile passphrase "$stage/borg-passphrase" \
+  --rawfile private_key "$stage/borg-ssh-key" \
+  --rawfile public_key "$stage/borg-ssh-key.pub" \
+  --rawfile hostname "$stage/storagebox-hostname" \
+  --rawfile username "$stage/storagebox-username" \
+  --rawfile known_hosts_value "$stage/known_hosts" \
+  --rawfile repository_value "$stage/repository" \
+  --rawfile key_export "$stage/borg-key-export" \
+  --rawfile schedule_value "$stage/schedule" \
+  --slurpfile info "$stage/borg-info.json" \
+  '{
+    purpose: ($service + " production backup recovery"),
+    borgPassphrase: ($passphrase | rtrimstr("\n")),
+    borgSshPrivateKey: $private_key,
+    borgSshPublicKey: ($public_key | rtrimstr("\n")),
+    storageBox: {
+      hostname: ($hostname | rtrimstr("\n")),
+      username: ($username | rtrimstr("\n")),
+      port: 23,
+      knownHosts: ($known_hosts_value | rtrimstr("\n")),
+      repositoryInitialized: true,
+      repository: ($repository_value | rtrimstr("\n")),
+      repositoryID: $info[0].repository.id,
+      remotePath: "borg-1.4",
+      encryptedBorgKeyExport: $key_export,
+      schedule: ($schedule_value | rtrimstr("\n"))
+    },
+    status: "pending-verification"
+  }' > "$output"
+chmod 0600 "$output"
+jq -e '.storageBox.repositoryID | type == "string" and length > 0' "$output" >/dev/null
+
+echo "Borg repository initialized; recovery document pending independent escrow verification"
+echo "Do not remove the protected staging directory yet"
