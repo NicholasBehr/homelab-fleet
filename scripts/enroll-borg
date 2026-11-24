@@ -30,15 +30,8 @@ done
 stage=$(mktemp -d "/persist/.borg-${service}-enroll.XXXXXX")
 chmod 0700 "$stage"
 printf '%s\n' "Protected staging directory: $stage"
-python3 - "$stage/borg-passphrase" <<'PY'
-import pathlib
-import secrets
-import sys
-
-path = pathlib.Path(sys.argv[1])
-with path.open("x", encoding="ascii") as stream:
-    stream.write(secrets.token_urlsafe(48) + "\n")
-PY
+test ! -e "$stage/borg-passphrase"
+dd if=/dev/urandom bs=48 count=1 status=none | base64 > "$stage/borg-passphrase"
 ssh-keygen -q -t ed25519 -N '' -C "borg-$service" -f "$stage/borg-ssh-key"
 
 read -r -p "Storage Box subaccount username: " borg_user
@@ -101,39 +94,41 @@ echo "Runtime files installed; a later failure requires operator review before r
 systemctl show "borgbackup-job-$service.timer" --property=TimersCalendar --value > "$stage/schedule"
 test -s "$stage/schedule"
 
-python3 - "$stage" "$service" <<'PY'
-import json
-import pathlib
-import sys
-
-stage = pathlib.Path(sys.argv[1])
-service = sys.argv[2]
-info = json.loads((stage / "borg-info.json").read_text())
-document = {
-    "purpose": f"{service} production backup recovery",
-    "borgPassphrase": (stage / "borg-passphrase").read_text().rstrip("\n"),
-    "borgSshPrivateKey": (stage / "borg-ssh-key").read_text(),
-    "borgSshPublicKey": (stage / "borg-ssh-key.pub").read_text().rstrip("\n"),
-    "storageBox": {
-        "hostname": (stage / "storagebox-hostname").read_text().rstrip("\n"),
-        "username": (stage / "storagebox-username").read_text().rstrip("\n"),
-        "port": 23,
-        "knownHosts": (stage / "known_hosts").read_text().rstrip("\n"),
-        "repositoryInitialized": True,
-        "repository": (stage / "repository").read_text().rstrip("\n"),
-        "repositoryID": info["repository"]["id"],
-        "remotePath": "borg-1.4",
-        "encryptedBorgKeyExport": (stage / "borg-key-export").read_text(),
-        "schedule": (stage / "schedule").read_text().strip(),
+output="$stage/$service-production-recovery-pending.json"
+test ! -e "$output"
+jq -n \
+  --arg service "$service" \
+  --rawfile passphrase "$stage/borg-passphrase" \
+  --rawfile private_key "$stage/borg-ssh-key" \
+  --rawfile public_key "$stage/borg-ssh-key.pub" \
+  --rawfile hostname "$stage/storagebox-hostname" \
+  --rawfile username "$stage/storagebox-username" \
+  --rawfile known_hosts_value "$stage/known_hosts" \
+  --rawfile repository_value "$stage/repository" \
+  --rawfile key_export "$stage/borg-key-export" \
+  --rawfile schedule_value "$stage/schedule" \
+  --slurpfile info "$stage/borg-info.json" \
+  '{
+    purpose: ($service + " production backup recovery"),
+    borgPassphrase: ($passphrase | rtrimstr("\n")),
+    borgSshPrivateKey: $private_key,
+    borgSshPublicKey: ($public_key | rtrimstr("\n")),
+    storageBox: {
+      hostname: ($hostname | rtrimstr("\n")),
+      username: ($username | rtrimstr("\n")),
+      port: 23,
+      knownHosts: ($known_hosts_value | rtrimstr("\n")),
+      repositoryInitialized: true,
+      repository: ($repository_value | rtrimstr("\n")),
+      repositoryID: $info[0].repository.id,
+      remotePath: "borg-1.4",
+      encryptedBorgKeyExport: $key_export,
+      schedule: ($schedule_value | rtrimstr("\n"))
     },
-    "status": "pending-verification",
-}
-output = stage / f"{service}-production-recovery-pending.json"
-with output.open("x", encoding="utf-8") as stream:
-    json.dump(document, stream, indent=2)
-    stream.write("\n")
-output.chmod(0o600)
-PY
+    status: "pending-verification"
+  }' > "$output"
+chmod 0600 "$output"
+jq -e '.storageBox.repositoryID | type == "string" and length > 0' "$output" >/dev/null
 
 echo "Borg repository initialized; recovery document pending independent escrow verification"
 echo "Do not remove the protected staging directory yet"
