@@ -89,7 +89,10 @@ done
 
 echo "Runtime files installed; a later failure requires operator review before retrying"
 "borg-job-$service" init --encryption=repokey-blake2
-"borg-job-$service" key export --paper "$stage/borg-key-export"
+# Borg 1.4 treats a lone positional argument as REPOSITORY, even when BORG_REPO
+# is set by the wrapper. With no positional arguments it uses BORG_REPO and
+# writes the paper export to stdout.
+"borg-job-$service" key export --paper > "$stage/borg-key-export"
 "borg-job-$service" info --json > "$stage/borg-info.json"
 systemctl show "borgbackup-job-$service.timer" --property=TimersCalendar --value > "$stage/schedule"
 test -s "$stage/schedule"
