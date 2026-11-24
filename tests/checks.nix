@@ -4,6 +4,7 @@
   fixture,
 }:
 let
+  tailscalePolicy = pkgs.writeText "tailscale-policy" fixture.config.systemd.services.tailscale-policy.script;
   secretFixture =
     (fixture.extendModules {
       modules = [
@@ -34,6 +35,19 @@ in
         touch "$out"
       '';
   shared-modules = fixture.config.system.build.toplevel;
+  operator-shell = pkgs.runCommand "operator-shell-wiring" { } ''
+    grep -Fq 'L+ /bin/bash - - - - ${pkgs.bashInteractive}/bin/bash' \
+      ${pkgs.writeText "tmpfiles-rules" (
+        nixpkgs.lib.concatStringsSep "\n" fixture.config.systemd.tmpfiles.rules
+      )}
+    test -x ${pkgs.bashInteractive}/bin/bash
+    touch "$out"
+  '';
+  container-access = pkgs.runCommand "container-access-policy" { } ''
+    grep -Fq 'tailscale set --ssh=false --accept-routes=false' ${tailscalePolicy}
+    ! grep -Fq -- '--ssh=true' ${tailscalePolicy}
+    touch "$out"
+  '';
   runtime-secret-service = pkgs.runCommand "runtime-secret-service-wiring" { } ''
     grep -q 'Requires=.*storage-contract.service' \
       ${secretFixture.systemd.units."operational-ready.service".unit}/operational-ready.service

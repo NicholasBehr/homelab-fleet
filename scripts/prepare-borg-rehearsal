@@ -1,0 +1,39 @@
+#!/run/current-system/sw/bin/bash
+set -euo pipefail
+
+service=${1:-}
+run_id=${2:-}
+[[ $service =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] || {
+  echo "Usage: prepare-borg-rehearsal SERVICE-SLUG RUN-ID" >&2
+  exit 2
+}
+[[ $run_id =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] || {
+  echo "Usage: prepare-borg-rehearsal SERVICE-SLUG RUN-ID" >&2
+  exit 2
+}
+
+export PATH=/run/current-system/sw/bin
+umask 077
+set +x
+
+stage=/run/${service}-borg-rehearsal
+document=$stage/document.json
+test "$(stat -c '%u:%g:%a' "$stage")" = 0:0:700
+test "$(stat -c '%u:%g:%a' "$document")" = 0:0:600
+jq -e '.status == "enrolled"' "$document" >/dev/null
+for target in ssh-key known_hosts repository passphrase; do
+  test ! -e "$stage/$target"
+done
+
+jq -jr .borgSshPrivateKey "$document" > "$stage/ssh-key"
+jq -r .storageBox.knownHosts "$document" > "$stage/known_hosts"
+jq -r .storageBox.repository "$document" |
+  sed "s#/borg-${service}\$#/borg-${service}-rehearsal-${run_id}#" > "$stage/repository"
+dd if=/dev/urandom bs=48 count=1 status=none | base64 > "$stage/passphrase"
+chmod 0600 "$stage/ssh-key" "$stage/known_hosts" "$stage/repository" "$stage/passphrase"
+for target in ssh-key known_hosts repository passphrase; do
+  test -s "$stage/$target"
+done
+
+rm "$document"
+echo "Recovery Document transport material isolated in tmpfs; full Document removed"

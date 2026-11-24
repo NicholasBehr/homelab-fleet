@@ -160,6 +160,22 @@ restore rehearsal are verified; then remove temporary plaintext through the
 approved operator workflow. Never store or escrow the resettable Storage Box
 password.
 
+For the pre-activation rehearsal, create and record a disposable container plus
+fresh volumes before writing markers or synthetic state. Retrieve only the exact
+enrolled Document, place it temporarily at
+`/run/<service-slug>-borg-rehearsal/document.json`, and copy the repository's
+operator helpers onto the disposable root. Run
+`prepare-borg-rehearsal <service-slug> <run-id>` to retain only SSH transport
+material in tmpfs, assign a separate repository path and generate a synthetic
+passphrase. Then run `run-borg-rehearsal <service-slug> <run-id>`. Record its
+repository URI, repository ID and successful result privately before cleanup.
+Finally run `cleanup-borg-rehearsal <service-slug>`; it refuses a repository-ID
+mismatch, deletes the recorded disposable repository, and removes tmpfs
+credentials and synthetic restored state. Reverify volume GUIDs and attachments
+against their creation record before deleting only the disposable container and
+volumes. Never use these helpers against a production repository or an
+unverified volume.
+
 Write the final document only after the intended repository is initialized and its
 ID and encrypted key export are available. Download the saved Document again into
 a fresh protected directory and verify, without trusting the working copy, that:
