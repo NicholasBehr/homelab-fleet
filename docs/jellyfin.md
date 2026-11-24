@@ -97,6 +97,8 @@ the core operational block. Store and independently verify the
 an independent import block, included only in encrypted `/persist` backups; images
 contain their file paths, not their contents. Missing SFTP enrollment keeps the
 import service and timer inactive without blocking Jellyfin, Tailscale or Borg.
+Core readiness validates the Borg passphrase, SSH key, repository URI and pinned
+Storage Box host key before any of those core services start.
 
 On a fresh root, verify both marked volumes and the core root-only runtime files
 before `homelab-activate`. Enroll rclone before expecting its import timer to run.

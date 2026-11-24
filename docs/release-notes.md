@@ -4,6 +4,9 @@ Raise the proposed Jellyfin container allocation from two to four vCPUs and from
 4 GiB to 8 GiB RAM. Intel QSV remains the video acceleration path; the additional
 CPU and memory capacity covers audio conversion, library work, subtitle handling
 and partial-acceleration fallback during representative 4K HDR playback.
+Complete the existing Jellyfin/Tailscale/Borg core gate by validating the protected
+Borg repository URI and pinned Storage Box host key in addition to its passphrase
+and SSH key. The independent rclone gate remains unchanged.
 
 The generated image and manifest embed the resource contract, so the repository
 version advances even though application packages, persistent paths, markers,

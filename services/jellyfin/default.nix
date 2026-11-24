@@ -127,6 +127,14 @@ in
       ];
       systemd.tmpfiles.settings.jellyfinDirs = lib.mkForce { };
       systemd.services = {
+        operational-ready.script = lib.mkAfter ''
+          ${pkgs.python3}/bin/python3 ${../../scripts/verify-secret} ${
+            lib.escapeShellArgs [
+              config.homelab.backup.repositoryFile
+              config.homelab.backup.knownHostsFile
+            ]
+          }
+        '';
         rclone-ready = {
           requires = [ "operational-ready.service" ];
           after = [ "operational-ready.service" ];

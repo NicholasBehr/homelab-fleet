@@ -86,6 +86,10 @@ in
       grep -q '/persist/secrets/rclone.conf' ${rcloneReadyScript}
       grep -q '/persist/secrets/rclone_known_hosts' ${rcloneReadyScript}
       ! grep -q '/persist/secrets/rclone' ${operationalReadyScript}
+      grep -q '/persist/secrets/borg-passphrase' ${operationalReadyScript}
+      grep -q '/persist/secrets/borg-ssh-key' ${operationalReadyScript}
+      grep -q '/persist/borg/repository' ${operationalReadyScript}
+      grep -q '/persist/borg/known_hosts' ${operationalReadyScript}
       test ! -e ${
         jellyfin.config.environment.etc."systemd/system".source
       }/multi-user.target.wants/rclone-import.timer
