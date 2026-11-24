@@ -1,3 +1,16 @@
+# v0.6.3 — increase Jellyfin 4K HDR headroom
+
+Raise the proposed Jellyfin container allocation from two to four vCPUs and from
+4 GiB to 8 GiB RAM. Intel QSV remains the video acceleration path; the additional
+CPU and memory capacity covers audio conversion, library work, subtitle handling
+and partial-acceleration fallback during representative 4K HDR playback.
+
+The generated image and manifest embed the resource contract, so the repository
+version advances even though application packages, persistent paths, markers,
+ownership IDs, credential requirements and storage contract version are unchanged.
+Existing verified `/persist` and `/data` volumes remain compatible with a root
+replacement.
+
 # v0.6.2 — isolate Jellyfin core and rclone readiness
 
 Keep Jellyfin, Tailscale and Borg behind the existing core operational-readiness

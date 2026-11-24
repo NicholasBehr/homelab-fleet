@@ -9,6 +9,12 @@ VP9 and AV1 decoding. Do not assume AV1 hardware encoding on this desktop iGPU.
 Keep integrated graphics enabled in firmware and verify the host's render-device
 mapping before provisioning.
 
+Allocate four vCPUs and 8 GiB RAM for 4K HDR operation. QSV remains responsible
+for supported video decode, encode and tone mapping; the CPU and memory headroom
+covers audio conversion, library work, subtitles and partial-acceleration fallback.
+These values are capacity allocations, not a substitute for representative playback
+and concurrent-stream acceptance tests.
+
 | Path | Purpose |
 |---|---|
 | `/persist/jellyfin` | Configuration, database, users, watch state, metadata, thumbnails and logs |

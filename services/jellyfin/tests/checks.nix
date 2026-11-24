@@ -32,6 +32,8 @@ in
 {
   service-config =
     assert jellyfin.config.services.jellyfin.enable;
+    assert jellyfin.config.homelab.deployment.cores == 4;
+    assert jellyfin.config.homelab.deployment.memoryMiB == 8192;
     assert jellyfin.config.services.jellyfin.openFirewall == false;
     assert jellyfin.config.services.jellyfin.dataDir == "/persist/jellyfin";
     assert jellyfin.config.services.jellyfin.configDir == "/persist/jellyfin/config";
