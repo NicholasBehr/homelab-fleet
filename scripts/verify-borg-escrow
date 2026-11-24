@@ -1,0 +1,66 @@
+#!/run/current-system/sw/bin/bash
+set -euo pipefail
+
+service=${1:-}
+[[ $service =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] || {
+  echo "Usage: verify-borg-escrow SERVICE-SLUG" >&2
+  exit 2
+}
+
+export PATH=/run/current-system/sw/bin
+umask 077
+set +x
+
+expected_fingerprint=SHA256:XqONwb1S0zuj5A1CDxpOSuD2hnAArV1A3wKY7Z3sdgM
+verify=/run/borg-escrow-verify
+document=$verify/document.json
+test "$(stat -c '%u:%g:%a' "$verify")" = 0:0:700
+test "$(stat -c '%u:%g:%a' "$document")" = 0:0:600
+
+cleanup() {
+  find "$verify" -mindepth 1 -maxdepth 1 -type f -delete
+  rmdir "$verify"
+}
+trap cleanup EXIT
+
+jq -e '
+  .status == "pending-verification"
+  and .storageBox.repositoryInitialized == true
+  and (.borgPassphrase | type == "string" and length > 0)
+  and (.borgSshPrivateKey | type == "string" and length > 0)
+  and (.borgSshPublicKey | type == "string" and length > 0)
+  and (.storageBox.repositoryID | type == "string" and length > 0)
+  and (.storageBox.encryptedBorgKeyExport | type == "string" and length > 0)
+' "$document" >/dev/null
+
+jq -jr .borgSshPrivateKey "$document" > "$verify/private"
+jq -r .borgSshPublicKey "$document" > "$verify/public"
+jq -r .borgPassphrase "$document" > "$verify/passphrase"
+jq -r .storageBox.knownHosts "$document" > "$verify/known_hosts"
+jq -r .storageBox.repository "$document" > "$verify/repository"
+jq -jr .storageBox.encryptedBorgKeyExport "$document" > "$verify/key-export"
+jq -r .storageBox.repositoryID "$document" > "$verify/document-repository-id"
+jq -r .storageBox.schedule "$document" > "$verify/document-schedule"
+chmod 0600 "$verify"/*
+
+ssh-keygen -y -f "$verify/private" |
+  awk '{ print $1 " " $2 }' > "$verify/derived-public"
+awk '{ print $1 " " $2 }' "$verify/public" > "$verify/document-public"
+cmp -s "$verify/derived-public" "$verify/document-public"
+cmp -s "$verify/private" /persist/secrets/borg-ssh-key
+cmp -s "$verify/passphrase" /persist/secrets/borg-passphrase
+cmp -s "$verify/known_hosts" /persist/borg/known_hosts
+cmp -s "$verify/repository" /persist/borg/repository
+
+actual_fingerprint=$(ssh-keygen -lf "$verify/known_hosts" | awk 'NR == 1 { print $2 }')
+test "$actual_fingerprint" = "$expected_fingerprint"
+
+"borg-job-$service" info --json |
+  jq -r .repository.id > "$verify/live-repository-id"
+cmp -s "$verify/document-repository-id" "$verify/live-repository-id"
+systemctl show "borgbackup-job-$service.timer" \
+  --property=TimersCalendar --value > "$verify/live-schedule"
+cmp -s "$verify/document-schedule" "$verify/live-schedule"
+grep -q "BORG PAPER KEY" "$verify/key-export"
+
+echo "Independent escrow schema, credentials, host trust, repository ID, key export, and schedule verification passed"

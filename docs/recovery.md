@@ -150,7 +150,10 @@ from its mode0700 staging directory into a protected local file without printing
 it. Create the exact `borg-<service-slug>` Document in the `Homelab` vault, then
 retrieve that exact Document into a different protected directory. Perform the
 status-only credential, public-key, host-key, repository-ID, encrypted-key-export
-and schedule checks listed below. Only after all checks pass, replace the status
+and schedule checks listed below. Stream the independently retrieved Document to
+`/run/borg-escrow-verify/document.json` in the inactive container and run
+`scripts/verify-borg-escrow <service-slug>` there; the verifier prints only a
+status result and removes its tmpfs working copy on exit. Only after all checks pass, replace the status
 with `enrolled`, update the same Document, retrieve it independently again and
 repeat the status-only comparison. Keep staging until escrow and the required
 restore rehearsal are verified; then remove temporary plaintext through the
