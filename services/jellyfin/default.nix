@@ -138,6 +138,11 @@ in
         rclone-ready = {
           requires = [ "operational-ready.service" ];
           after = [ "operational-ready.service" ];
+          partOf = [ "homelab-operational.target" ];
+          unitConfig.ConditionPathExists = [
+            a.rcloneConfigFile
+            a.rcloneKnownHostsFile
+          ];
           serviceConfig = {
             Type = "oneshot";
             RemainAfterExit = true;
@@ -210,6 +215,11 @@ in
         rclone-import = gate // {
           requires = gate.requires ++ [ "rclone-ready.service" ];
           wantedBy = lib.mkForce [ ];
+          partOf = [ "homelab-operational.target" ];
+          unitConfig.ConditionPathExists = [
+            a.rcloneConfigFile
+            a.rcloneKnownHostsFile
+          ];
           wants = [ "network-online.target" ];
           after = gate.after ++ [
             "rclone-ready.service"
@@ -247,6 +257,10 @@ in
         };
       };
       systemd.timers.rclone-import = {
+        unitConfig.ConditionPathExists = [
+          a.rcloneConfigFile
+          a.rcloneKnownHostsFile
+        ];
         wantedBy = [ "homelab-operational.target" ];
         partOf = [ "homelab-operational.target" ];
         requires = [

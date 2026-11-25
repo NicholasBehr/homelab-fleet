@@ -47,7 +47,6 @@ in
       "tailscale-policy"
       "jellyfin-directories"
       "jellyfin"
-      "rclone-import"
     ];
     lifecycle.backupJob = "borgbackup-job-${config.homelab.backup.name}";
     intelMedia.renderGid = c.renderGid;

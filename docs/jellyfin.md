@@ -102,6 +102,10 @@ Storage Box host key before any of those core services start.
 
 On a fresh root, verify both marked volumes and the core root-only runtime files
 before `homelab-activate`. Enroll rclone before expecting its import timer to run.
+If the core was activated without the optional SFTP credentials, complete their
+later protected enrollment and start only that independent block with
+`systemctl start rclone-import.timer`; verify the readiness service and timer
+before relying on imports. A missing enrollment remains cleanly inactive.
 Then verify:
 
 1. Tailscale Serve works over HTTPS, Jellyfin health responds locally, and the
