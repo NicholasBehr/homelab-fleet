@@ -5,6 +5,10 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
+from types import SimpleNamespace
+
+import importlib.util
 
 SCRIPT = Path(__file__).resolve().parents[1] / "network-config.py"
 TEMPLATE = """<?xml version="1.0"?>
@@ -20,6 +24,10 @@ TEMPLATE = """<?xml version="1.0"?>
   <LocalNetworkAddresses><string>127.0.0.1</string></LocalNetworkAddresses>
 </NetworkConfiguration>
 """
+
+SPEC = importlib.util.spec_from_file_location("network_config", SCRIPT)
+NETWORK_CONFIG = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(NETWORK_CONFIG)
 
 
 class NetworkConfigTests(unittest.TestCase):
@@ -50,6 +58,31 @@ class NetworkConfigTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn("<string>127.0.0.1</string>", path.read_text())
             self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+
+    def test_same_identity_install_does_not_require_chown(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = root / "network.xml"
+            template = root / "template.xml"
+            template.write_text(TEMPLATE)
+
+            with (
+                mock.patch.object(
+                    NETWORK_CONFIG.os,
+                    "fstat",
+                    return_value=SimpleNamespace(
+                        st_uid=os.geteuid(), st_gid=os.getegid()
+                    ),
+                ),
+                mock.patch.object(
+                    NETWORK_CONFIG.os,
+                    "fchown",
+                    side_effect=PermissionError("fchown is unavailable"),
+                ) as fchown,
+            ):
+                NETWORK_CONFIG.install_if_missing(path, template, os.geteuid(), os.getegid())
+
+            fchown.assert_not_called()
 
     def test_preserves_valid_existing_configuration(self):
         with tempfile.TemporaryDirectory() as temporary:

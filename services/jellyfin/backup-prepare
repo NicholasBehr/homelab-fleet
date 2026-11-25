@@ -2,7 +2,13 @@
 set -euo pipefail
 runtime_directory=${1:-/run/homelab-backup}
 install -d -m 0700 "$runtime_directory"
-: > "$runtime_directory/restart"
+install -m 0600 /dev/null "$runtime_directory/restart"
+if systemctl is-active --quiet rclone-import.timer; then
+  install -m 0600 /dev/null "$runtime_directory/restart-rclone-timer"
+fi
+if systemctl is-active --quiet rclone-import.service; then
+  install -m 0600 /dev/null "$runtime_directory/restart-rclone-service"
+fi
 systemctl stop rclone-import.timer
 systemctl stop rclone-import.service
 systemctl stop jellyfin.service
