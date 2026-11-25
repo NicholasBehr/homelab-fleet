@@ -1,3 +1,20 @@
+# v0.6.4 — repair Jellyfin first start and backup recovery
+
+Allow Jellyfin's confined pre-start helper to seed its loopback-only network
+configuration without requesting an unnecessary ownership change when it already
+runs as the target user and group. This restores unattended first start under the
+service's existing `PrivateUsers` and capability restrictions.
+
+Keep the Jellyfin/Tailscale/Borg and rclone readiness blocks independent during
+backup recovery. The quiesce hook now records whether the rclone timer or service
+was running and the cleanup hook restarts only those recorded units, while always
+attempting every required Jellyfin/Tailscale restart. A core-only installation can
+therefore complete Borg backups before rclone credentials are enrolled.
+
+The image and repository version advance because the generated Jellyfin system
+changes. Persistent paths, storage markers, ownership IDs, credentials and
+contract version remain compatible with replacement of the disposable root.
+
 # v0.6.3 — increase Jellyfin 4K HDR headroom
 
 Raise the proposed Jellyfin container allocation from two to four vCPUs and from
