@@ -46,6 +46,7 @@ in
     assert jellyfin.config.services.jellyfin.transcoding.hardwareDecodingCodecs.av1;
     assert jellyfin.config.services.jellyfin.transcoding.hardwareEncodingCodecs.hevc;
     assert !jellyfin.config.services.jellyfin.transcoding.hardwareEncodingCodecs.av1;
+    assert builtins.elem pkgs.intel-compute-runtime jellyfin.config.hardware.graphics.extraPackages;
     assert jellyfin.config.systemd.tmpfiles.settings.jellyfinDirs == { };
     assert jellyfin.config.homelab.backup.paths == [ "/persist" ];
     assert jellyfin.config.homelab.backup.writablePaths == [ "/persist" ];

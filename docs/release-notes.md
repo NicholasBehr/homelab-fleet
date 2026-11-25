@@ -1,3 +1,21 @@
+# v0.6.6 — enable Intel HDR tone mapping
+
+Add Intel's compute runtime to the shared media module so Jellyfin can use its
+OpenCL HDR tone-mapping filter between QSV hardware decode and encode. The
+previous image exposed the render device and supported QSV transcoding, but 4K
+HDR-to-SDR playback failed when FFmpeg could not discover an OpenCL platform.
+
+Accept an absent `EnableUPnP` element in an existing Jellyfin network
+configuration as the application's disabled default. Jellyfin 10.11 can omit
+that element after saving configuration in the UI. Explicitly enabled UPnP is
+still rejected, and the loopback-only listener, disabled discovery, HTTPS and
+IP-version checks remain unchanged.
+
+The shared Intel module changes the Immich and Jellyfin images. Persistent
+paths, storage markers, identities, credentials and contract versions remain
+compatible with disposable-root replacement. The repository version advances
+and CI must rebuild both affected images.
+
 # v0.6.5 — wait for restored identity readiness
 
 Wait up to 30 seconds for a restored Tailscale identity to reach its Running

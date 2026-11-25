@@ -24,13 +24,19 @@ def validate(path: Path, uid: int, gid: int, port: int) -> None:
         "EnableHttps": "false",
         "RequireHttps": "false",
         "AutoDiscovery": "false",
-        "EnableUPnP": "false",
         "EnableIPv4": "true",
         "EnableIPv6": "false",
     }
     for name, value in required.items():
         if root.findtext(name, "").lower() != value:
             raise ValueError(f"Jellyfin network setting must be {name}={value}")
+
+    # Jellyfin 10.11 may omit this element when its UI saves the disabled
+    # default. Absence is therefore equivalent to false, but an explicit true
+    # must still fail closed.
+    upnp = root.findtext("EnableUPnP")
+    if upnp is not None and upnp.lower() != "false":
+        raise ValueError("Jellyfin network setting must be EnableUPnP=false")
 
     addresses = root.find("LocalNetworkAddresses")
     if addresses is None or [entry.text for entry in addresses.findall("string")] != [

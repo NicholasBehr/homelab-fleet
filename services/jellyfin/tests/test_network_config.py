@@ -99,6 +99,42 @@ class NetworkConfigTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(path.read_text(), TEMPLATE)
 
+    def test_accepts_missing_upnp_as_disabled(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = root / "network.xml"
+            template = root / "template.xml"
+            template.write_text(TEMPLATE)
+            changed = TEMPLATE.replace("  <EnableUPnP>false</EnableUPnP>\n", "")
+            path.write_text(changed)
+            os.chown(path, os.getuid(), os.getgid())
+            path.chmod(0o600)
+
+            result = self.run_config(path, template)
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(path.read_text(), changed)
+
+    def test_rejects_enabled_upnp(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = root / "network.xml"
+            template = root / "template.xml"
+            template.write_text(TEMPLATE)
+            changed = TEMPLATE.replace(
+                "<EnableUPnP>false</EnableUPnP>",
+                "<EnableUPnP>true</EnableUPnP>",
+            )
+            path.write_text(changed)
+            os.chown(path, os.getuid(), os.getgid())
+            path.chmod(0o600)
+
+            result = self.run_config(path, template)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("EnableUPnP=false", result.stderr)
+            self.assertEqual(path.read_text(), changed)
+
     def test_rejects_non_loopback_listener_without_overwriting_state(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
