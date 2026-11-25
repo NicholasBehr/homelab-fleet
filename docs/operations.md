@@ -60,6 +60,25 @@ classification, runtime credential paths, disabled activation default and expect
 archive. Preserve a private verification receipt. Each service publishes one image;
 see [explicit activation](lifecycle.md) for all lifecycle phases.
 
+Download release assets directly from GitHub on the target Proxmox host. Its wired
+connection is the preferred transport; do not download an image to an operator
+laptop and relay it over Wi-Fi when the host can fetch it. Create a new protected
+staging directory for the explicit release and service, record its path in the
+approved operator plan, and download the archive, manifest and checksum assets
+there. Keep this untrusted staging location outside the Proxmox template cache.
+Run the commit, attestation, checksum and manifest checks above on the host, using
+the staged archive itself. Only after every check passes may the archive move into
+the template cache or be supplied to `pct create`.
+
+If any verification fails, stop before import and record only the failed check and
+non-secret asset identity. When the approved plan includes failed-download cleanup,
+re-resolve the staging directory, prove it is the newly created per-release path,
+prove none of its files is attached or an existing verified template, and remove
+only the exact files downloaded by that attempt. If provenance, path resolution or
+attachment state is uncertain, make the files non-usable/quarantined and request
+direction instead of deleting them. Never use globs, broad cache cleanup or a
+release-name match as deletion authority.
+
 ## Initial enrollment
 
 Production allocations, host mutations and shared infrastructure changes require
