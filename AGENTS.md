@@ -4,7 +4,16 @@
 - Publish one image per service. Fresh roots lack the root-local operational activation record; activate explicitly after enrollment/restoration and identity-exclusivity checks. Keep activation state on the disposable root, outside persistent backups; never infer permission to start from restored files or version markers.
 - Persist data and identity only on declared volumes. /persist stays on NVMe; /data contains only bulk originals suitable for HDD migration. Keep DBs, thumbnails, previews and encoded video on /persist. Nextcloud is the explicit exception: its entire application data directory, including previews, versions and trash, lives on /data; PostgreSQL, configuration and operational identity remain on /persist.
 - GitHub builds/releases only; no homelab credentials or administrative access.
-- Operators pull explicit verified releases. MVP provisioning/replacement is manual.
+- Operators pull explicit releases directly from GitHub to a protected per-release
+  staging directory on the target Proxmox host; do not relay image archives through
+  an operator workstation when the host can fetch them. Treat every download as
+  untrusted until that host verifies the exact-main tag/commit, GitHub attestation,
+  checksum and manifest. Import or move an archive into the template cache only
+  after all checks pass. A failed verification may remove only the exact files
+  created by that download when their staging provenance and non-attachment are
+  proven and the approved plan includes failed-download cleanup; otherwise
+  quarantine them and ask. Never include an existing verified template, retained
+  release or ambiguous path in that cleanup. MVP provisioning/replacement is manual.
 - Tailscale-only access; preserve confinement and Secure Boot.
 - Read-only host discovery is allowed. Mutations confined to designated test containers and verified disposable test volumes are permitted without further approval. Storage authorization requires a creation record identifying the exact volume; container IDs, names and current attachment alone are insufficient. Before storage mutations, verify provenance and attachments. Never include production volumes, retained recovery data or sole backups. If verification is incomplete or inconsistent, ask for approval. Changes to the underlying Debian/Proxmox host, shared infrastructure or production resources require explicit approval of a detailed, bounded execution plan, not individual commands.
 - Before requesting approval, complete available read-only discovery and prepare a concrete plan. Identify the exact target resources and provenance, intended outcome, ordered changes, data/credential/publication effects, downtime, material risks, preserved recovery copies, failure/recovery steps, stop conditions and verification criteria. Keep live identifiers in the private operator plan, not this public file. Broad goals such as "go productive" do not substitute for approval of this plan.
