@@ -6,17 +6,13 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-UNITS = [
-    "rclone-import.timer",
-    "rclone-import",
-    "jellyfin",
-    "tailscale-policy",
-    "tailscaled",
-]
+CORE_UNITS = ["jellyfin", "tailscale-policy", "tailscaled"]
 
 
 class BackupHooks(unittest.TestCase):
-    def exercise(self, active_after_stop="", restart_failure=""):
+    def exercise(
+        self, initially_active="", active_after_stop="", restart_failure=""
+    ):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             binary = root / "bin"
@@ -26,7 +22,14 @@ class BackupHooks(unittest.TestCase):
                 r"""#!/usr/bin/env bash
 set -eu
 printf '%s\n' "$*" >> "$EVENTS"
-if test "$1" = is-active && { test "$3" = "$ACTIVE_AFTER_STOP" || test "$3" = "$ACTIVE_AFTER_STOP.service" || test "$3" = "$ACTIVE_AFTER_STOP.timer"; }; then exit 0; fi
+unit=${3:-${2:-}}
+base=${unit%.service}
+base=${base%.timer}
+if test "$1" = stop; then touch "$STATE/$base-stopped"; exit 0; fi
+if test "$1" = is-active && test -e "$STATE/$base-stopped" && { test "$unit" = "$ACTIVE_AFTER_STOP" || test "$base" = "$ACTIVE_AFTER_STOP"; }; then exit 0; fi
+if test "$1" = is-active && test ! -e "$STATE/$base-stopped"; then
+  case " $INITIALLY_ACTIVE " in *" $unit "*) exit 0;; esac
+fi
 if test "$1" = is-active; then exit 3; fi
 if test "$1" = start && { test "$2" = "$RESTART_FAILURE" || test "$2" = "$RESTART_FAILURE.service"; }; then exit 18; fi
 """
@@ -38,6 +41,8 @@ if test "$1" = start && { test "$2" = "$RESTART_FAILURE" || test "$2" = "$RESTAR
                 os.environ,
                 PATH=str(binary) + ":" + os.environ["PATH"],
                 EVENTS=str(events),
+                STATE=str(root),
+                INITIALLY_ACTIVE=initially_active,
                 ACTIVE_AFTER_STOP=active_after_stop,
                 RESTART_FAILURE=restart_failure,
             )
@@ -50,6 +55,14 @@ if test "$1" = start && { test "$2" = "$RESTART_FAILURE" || test "$2" = "$RESTAR
             self.assertEqual(prepared.returncode == 0, active_after_stop == "")
             before_cleanup = events.read_text()
             self.assertTrue((runtime_directory / "restart").exists())
+            self.assertEqual(
+                (runtime_directory / "restart-rclone-timer").exists(),
+                "rclone-import.timer" in initially_active.split(),
+            )
+            self.assertEqual(
+                (runtime_directory / "restart-rclone-service").exists(),
+                "rclone-import.service" in initially_active.split(),
+            )
             self.assertIn("stop rclone-import.timer", before_cleanup)
             self.assertIn("stop jellyfin.service", before_cleanup)
             self.assertNotIn("start ", before_cleanup)
@@ -64,11 +77,22 @@ if test "$1" = start && { test "$2" = "$RESTART_FAILURE" || test "$2" = "$RESTAR
                 (runtime_directory / "restart").exists(), restart_failure != ""
             )
             all_events = events.read_text()
-            for unit in UNITS:
+            for unit in CORE_UNITS:
                 self.assertIn(f"start {unit}", all_events)
+            self.assertEqual(
+                "start rclone-import.timer" in all_events,
+                "rclone-import.timer" in initially_active.split(),
+            )
+            self.assertEqual(
+                "start rclone-import\n" in all_events,
+                "rclone-import.service" in initially_active.split(),
+            )
 
     def test_success(self):
         self.exercise()
+
+    def test_restarts_previously_active_rclone_units(self):
+        self.exercise(initially_active="rclone-import.timer rclone-import.service")
 
     def test_jellyfin_refuses_to_stop(self):
         self.exercise(active_after_stop="jellyfin")

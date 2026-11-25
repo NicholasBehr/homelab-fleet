@@ -51,7 +51,9 @@ def install_if_missing(path: Path, template: Path, uid: int, gid: int) -> None:
             stream.write(template.read_bytes())
             stream.flush()
             os.fsync(stream.fileno())
-            os.fchown(stream.fileno(), uid, gid)
+            info = os.fstat(stream.fileno())
+            if info.st_uid != uid or info.st_gid != gid:
+                os.fchown(stream.fileno(), uid, gid)
             os.fchmod(stream.fileno(), 0o600)
         os.link(temporary, path, follow_symlinks=False)
     finally:
