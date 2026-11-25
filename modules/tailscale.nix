@@ -5,6 +5,7 @@
   ...
 }:
 {
+  imports = [ ./tailnet-https.nix ];
   options.homelab.tailscale.serveTarget = lib.mkOption {
     type = lib.types.nullOr lib.types.str;
     default = null;
@@ -63,15 +64,6 @@
         tailscale set --ssh=false --accept-routes=false
         # Own the complete Serve configuration, removing obsolete forwards.
         tailscale serve reset
-        ${lib.optionalString (
-          config.homelab.tailscale.serveTarget != null
-        ) "tailscale serve --bg --https=443 ${lib.escapeShellArg config.homelab.tailscale.serveTarget}"}
-        ${lib.concatStringsSep "\n" (
-          lib.mapAttrsToList (
-            path: target:
-            "tailscale serve --bg --https=443 --set-path=${lib.escapeShellArg path} ${lib.escapeShellArg target}"
-          ) config.homelab.tailscale.serveRoutes
-        )}
       '';
     };
   };

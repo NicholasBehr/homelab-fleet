@@ -65,12 +65,11 @@ in
     assert builtins.elem jellyfin.config.homelab.backup.sshKeyFile (
       jellyfin.config.homelab.secrets.requiredFiles
     );
-    assert jellyfin.config.homelab.tailscale.serveTarget == null;
+    assert jellyfin.config.homelab.tailscale.serveTarget == "http://127.0.0.1:8096";
     assert jellyfin.config.services.caddy.enable;
     assert jellyfin.config.services.caddy.openFirewall == false;
     assert jellyfin.config.systemd.services.tailscaled.environment.TS_PERMIT_CERT_UID == "caddy";
     assert builtins.elem "tailscale-policy.service" jellyfin.config.systemd.services.caddy.requires;
-    assert builtins.elem "jellyfin.service" jellyfin.config.systemd.services.caddy.requires;
     assert builtins.elem "caddy" jellyfin.config.homelab.lifecycle.units;
     assert builtins.elem "caddy" jellyfin.config.homelab.health.units;
     assert !builtins.elem "rclone-import.timer" jellyfin.config.homelab.health.units;
@@ -96,7 +95,7 @@ in
       grep -q 'auto_https disable_redirects' ${caddyStart}
       grep -q 'protocols h1 h2' ${caddyStart}
       grep -q 'bind %s' ${caddyStart}
-      grep -q 'reverse_proxy 127.0.0.1:8096' ${caddyStart}
+      grep -q 'reverse_proxy http://127.0.0.1:8096' ${caddyStart}
       ! grep -q 'dorper-shade' ${caddyStart}
       grep -q '/dev/dri/renderD128 rw' ${jellyfinUnit}/jellyfin.service
       grep -q '0750' ${directoriesScript}

@@ -34,13 +34,14 @@ Unprivileged default UID mapping, generated AppArmor confinement and test-valida
 `nesting=1` remain. No privileged LXC, unconfined profile, DKMS, VF or kernel changes.
 Render sharing uses `/dev/dri/renderD128` with fixed guest render GID303; TUN is0600.
 Native `ostype=nixos` and `manageNetwork=false` let Proxmox supply networking.
-Tailscale provides checked SSH and HTTPS Serve; ordinary sshd is disabled. App and
+Tailscale provides WireGuard and certificates; the shared Caddy module serves
+HTTPS on the Tailscale address. Container SSH is disabled. App and
 ML bind loopback. The firewall exposes no application ports to the physical LAN.
 
 ## Home Assistant files
 
 Home Assistant Core runs as the upstream NixOS service in its own unprivileged
-LXC. It binds HTTP to `127.0.0.1:8123` and is exposed only through Tailscale Serve.
+LXC. It binds HTTP to `127.0.0.1:8123` and is exposed only through the shared tailnet HTTPS proxy.
 Zigbee2MQTT owns the Zigbee network and connects to the SLZB-MR4U over wired LAN
 TCP. A loopback-only Mosquitto broker carries discovery, state and commands
 between Zigbee2MQTT and Home Assistant. The SMLIGHT integration separately
@@ -130,7 +131,7 @@ provides a tested equivalent; never disable upstream tests to accommodate it.
 ## Nextcloud files
 
 Nextcloud uses the native NixOS module, PostgreSQL 17 and Redis in a separate
-unprivileged LXC. Tailscale Serve terminates private HTTPS; Nginx listens only on
+unprivileged LXC. the shared tailnet HTTPS proxy terminates private HTTPS; Nginx listens only on
 loopback. There is no public ingress. The complete application data directory is
 `/data/nextcloud`, including previews, versions and trash: this is the explicit
 exception to the fleet's bulk-only `/data` policy. Configuration and database stay
@@ -145,7 +146,7 @@ schema, account creation, quiesced backups and restoration procedure.
 ## Paperless-ngx files
 
 Paperless-ngx 3.5.0 runs natively with PostgreSQL 17 and Redis. It accepts PDFs,
-performs German and English OCR, and binds only to loopback behind Tailscale Serve.
+performs German and English OCR, and binds only to loopback behind the shared tailnet HTTPS proxy.
 Tika, Gotenberg, Office/email conversion, AI integrations and automatic update
 checks are disabled. The deployment deliberately uses one guarded NVMe volume;
 there is no `/data` split or render device.

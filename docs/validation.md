@@ -1,5 +1,12 @@
 # Verification matrix
 
+Shared tailnet HTTPS acceptance requires final-image checks of the unprivileged
+Caddy listener, trusted certificates, WebSockets, uploads, downloads and path
+prefixes. Verify inactive fresh roots, cold boot, Tailscale restart, backup
+recovery and root replacement. Exercise certificate renewal without exposing
+keys. Compare HTTPS throughput against kernel TCP over the same tailnet path.
+The temporary Caddy speed test does not substitute for final-image acceptance.
+
 Status as of 2026-11-23. Exact live GUIDs, identities, credentials and recovery
 receipts remain in the protected operator inventory. Repository history contains
 past release evidence; historical records never authorize a new mutation.

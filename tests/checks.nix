@@ -4,6 +4,15 @@
   fixture,
 }:
 let
+  httpsFixture =
+    (fixture.extendModules {
+      modules = [
+        {
+          homelab.tailscale.serveTarget = "http://127.0.0.1:8080";
+          homelab.tailscale.serveRoutes."/example" = "http://127.0.0.1:8081/example/";
+        }
+      ];
+    }).config;
   tailscalePolicy = pkgs.writeText "tailscale-policy" fixture.config.systemd.services.tailscale-policy.script;
   secretFixture =
     (fixture.extendModules {
@@ -15,6 +24,16 @@ let
     }).config;
 in
 {
+  tailnet-https =
+    assert httpsFixture.services.caddy.openFirewall == false;
+    assert builtins.elem "operational-ready.service" httpsFixture.systemd.services.caddy.requires;
+    assert builtins.elem "tailscaled.service" httpsFixture.systemd.services.caddy.bindsTo;
+    assert builtins.elem "caddy.service" httpsFixture.systemd.services.tailscaled.wants;
+    assert httpsFixture.systemd.services.caddy.wantedBy == [ ];
+    pkgs.runCommand "tailnet-https-config" { nativeBuildInputs = [ pkgs.shellcheck ]; } ''
+      shellcheck ${httpsFixture.systemd.services.caddy.serviceConfig.ExecStart}
+      touch "$out"
+    '';
   # Exercise all matching tmpfiles z rules: they accumulate, rather than
   # selecting only the first file's rule for a path.
   tun-permissions =

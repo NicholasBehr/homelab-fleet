@@ -41,6 +41,7 @@ in
       config.homelab.backup.passphraseFile
       config.homelab.backup.sshKeyFile
     ];
+    tailscale.serveTarget = "http://127.0.0.1:${toString c.application.port}";
     lifecycle.units = [
       "tailscaled"
       "tailscale-policy"
