@@ -35,6 +35,39 @@ let
       </LocalNetworkAddresses>
     </NetworkConfiguration>
   '';
+  caddyStart = pkgs.writeShellScript "jellyfin-caddy-start" ''
+    set -euo pipefail
+
+    dns_name="$(${pkgs.tailscale}/bin/tailscale status --json | \
+      ${pkgs.jq}/bin/jq -er '.Self.DNSName // empty | rtrimstr(".")')"
+    tailscale_ip="$(${pkgs.tailscale}/bin/tailscale ip -4)"
+    if [[ ! $dns_name =~ ^[a-z0-9-]+(\.[a-z0-9-]+)+$ ]]; then
+      echo "Tailscale DNS name is unavailable or invalid" >&2
+      exit 1
+    fi
+    if [[ ! $tailscale_ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+      echo "Tailscale IPv4 address is unavailable or invalid" >&2
+      exit 1
+    fi
+
+    config_file=/run/jellyfin-caddy/Caddyfile
+    temporary="$(${pkgs.coreutils}/bin/mktemp /run/jellyfin-caddy/.Caddyfile.XXXXXX)"
+    cleanup() {
+      rm -f "$temporary"
+    }
+    trap cleanup EXIT
+    {
+      printf '{\n  auto_https disable_redirects\n  admin off\n  servers {\n    protocols h1 h2\n  }\n}\n'
+      printf '%s {\n' "$dns_name"
+      printf '  bind %s\n' "$tailscale_ip"
+      printf '  reverse_proxy 127.0.0.1:${toString a.port}\n'
+      printf '}\n'
+    } >"$temporary"
+    chmod 0600 "$temporary"
+    mv -T "$temporary" "$config_file"
+    trap - EXIT
+    exec ${pkgs.caddy}/bin/caddy run --config "$config_file" --adapter caddyfile
+  '';
   importScript = pkgs.writeShellScript "jellyfin-rclone-import" ''
     set -euo pipefail
     exec 9>/run/jellyfin-import/lock
@@ -80,6 +113,7 @@ in
   config = lib.mkMerge [
     {
       environment.etc."homelab-versions.json".text = builtins.toJSON {
+        caddy = pkgs.caddy.version;
         jellyfin = config.services.jellyfin.package.version;
         rclone = pkgs.rclone.version;
         contractVersion = c.contractVersion;
@@ -116,6 +150,11 @@ in
           hardwareEncodingCodecs.hevc = true;
         };
       };
+      services.caddy = {
+        enable = true;
+        enableReload = false;
+        openFirewall = false;
+      };
       users.users.jellyfin = {
         uid = lib.mkForce a.uid;
         extraGroups = [ "render" ];
@@ -127,6 +166,7 @@ in
       ];
       systemd.tmpfiles.settings.jellyfinDirs = lib.mkForce { };
       systemd.services = {
+        tailscaled.environment.TS_PERMIT_CERT_UID = "caddy";
         operational-ready.script = lib.mkAfter ''
           ${pkgs.python3}/bin/python3 ${../../scripts/verify-secret} ${
             lib.escapeShellArgs [
@@ -211,6 +251,33 @@ in
               ${lib.escapeShellArg "${a.state}/config/network.xml"} \
               ${networkXml} ${toString a.uid} ${toString a.gid} ${toString a.port}
           '';
+        };
+        caddy = gate // {
+          requires = gate.requires ++ [
+            "tailscale-policy.service"
+            "jellyfin.service"
+          ];
+          after = gate.after ++ [
+            "tailscale-policy.service"
+            "jellyfin.service"
+          ];
+          serviceConfig = {
+            ExecStart = lib.mkForce caddyStart;
+            RuntimeDirectory = "jellyfin-caddy";
+            RuntimeDirectoryMode = "0700";
+            ReadWritePaths = [ "/run/jellyfin-caddy" ];
+            AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" ];
+            CapabilityBoundingSet = [ "CAP_NET_BIND_SERVICE" ];
+            ProtectSystem = "strict";
+            ProtectKernelTunables = true;
+            ProtectKernelModules = true;
+            ProtectControlGroups = true;
+            RestrictAddressFamilies = [
+              "AF_UNIX"
+              "AF_INET"
+              "AF_INET6"
+            ];
+          };
         };
         rclone-import = gate // {
           requires = gate.requires ++ [ "rclone-ready.service" ];

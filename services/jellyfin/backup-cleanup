@@ -3,7 +3,7 @@ set -euo pipefail
 runtime_directory=${1:-/run/homelab-backup}
 if test -f "$runtime_directory/restart"; then
   failed=0
-  units=(tailscaled tailscale-policy jellyfin)
+  units=(tailscaled tailscale-policy jellyfin caddy)
   if test -f "$runtime_directory/restart-rclone-timer"; then
     units+=(rclone-import.timer)
   fi

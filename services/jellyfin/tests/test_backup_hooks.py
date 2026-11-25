@@ -6,7 +6,7 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-CORE_UNITS = ["jellyfin", "tailscale-policy", "tailscaled"]
+CORE_UNITS = ["caddy", "jellyfin", "tailscale-policy", "tailscaled"]
 
 
 class BackupHooks(unittest.TestCase):
@@ -64,6 +64,7 @@ if test "$1" = start && { test "$2" = "$RESTART_FAILURE" || test "$2" = "$RESTAR
                 "rclone-import.service" in initially_active.split(),
             )
             self.assertIn("stop rclone-import.timer", before_cleanup)
+            self.assertIn("stop caddy.service", before_cleanup)
             self.assertIn("stop jellyfin.service", before_cleanup)
             self.assertNotIn("start ", before_cleanup)
 

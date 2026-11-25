@@ -11,10 +11,11 @@ if systemctl is-active --quiet rclone-import.service; then
 fi
 systemctl stop rclone-import.timer
 systemctl stop rclone-import.service
+systemctl stop caddy.service
 systemctl stop jellyfin.service
 systemctl stop tailscale-policy.service
 systemctl stop tailscaled.service
-for unit in rclone-import.timer rclone-import.service jellyfin tailscale-policy tailscaled; do
+for unit in rclone-import.timer rclone-import.service caddy jellyfin tailscale-policy tailscaled; do
   if systemctl is-active --quiet "$unit"; then
     echo "Failed to quiesce $unit for backup" >&2
     exit 1
