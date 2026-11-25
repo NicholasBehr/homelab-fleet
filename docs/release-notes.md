@@ -1,3 +1,36 @@
+# v0.6.5 — wait for restored identity readiness
+
+Wait up to 30 seconds for a restored Tailscale identity to reach its Running
+backend state before applying the service's no-SSH and Serve policy. This closes
+the boot and backup-recovery race where `tailscaled.service` was active before
+its local API was ready, causing an otherwise successful workload or Borg job to
+fail and rely on a later policy retry.
+
+Declare glibc's `getent` output in the Jellyfin directory guard's service path.
+The guard can now validate existing persistent ownership after root replacement
+instead of failing before Jellyfin starts.
+
+Treat absent optional rclone enrollment as a cleanly inactive block by applying
+credential-existence conditions to its readiness check and timer. Present but
+invalid credentials still fail closed through the existing protected-file and
+configuration validators, while an intentionally unenrolled service no longer
+leaves a failed systemd unit.
+
+Remove the rclone importer from the core lifecycle startup list so only its
+independent, enrollment-gated timer initiates imports. Keep both importer and
+readiness units attached to the operational target for orderly shutdown and
+fresh credential validation on each later activation.
+
+Correct the recovery-console contract: Proxmox `pct enter` invokes `/bin/sh`
+regardless of root's configured login shell. Retain the shared `/bin/bash` link,
+but use `pct exec ID -- /bin/bash -l` or explicitly replace the entered shell to
+load the NixOS profile and operator command PATH.
+
+The shared Tailscale module changes every service image, while the directory
+guard change is Jellyfin-specific. Persistent paths, storage markers, identities,
+credentials and contract versions remain compatible with disposable-root
+replacement. The repository version advances and CI must rebuild affected images.
+
 # v0.6.4 — repair Jellyfin first start and backup recovery
 
 Allow Jellyfin's confined pre-start helper to seed its loopback-only network
@@ -31,10 +64,9 @@ ownership IDs, credential requirements and storage contract version are unchange
 Existing verified `/persist` and `/data` volumes remain compatible with a root
 replacement.
 
-Provide `/bin/bash` from the shared base module in every service image so the
-authenticated Proxmox `pct enter` recovery console selects Bash, loads the NixOS
-profile PATH and exposes the already linked basic operator commands. This avoids
-service-specific shell workarounds; it does not enable SSH, add Python or broaden
+Provide `/bin/bash` from the shared base module in every service image so an
+operator can explicitly open a Bash login shell with a conventional path. This
+avoids service-specific shell paths; it does not enable SSH, add Python or broaden
 network access. Because the shared image base changes, CI must rebuild every
 service image for v0.6.3.
 

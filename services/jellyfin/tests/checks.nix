@@ -26,6 +26,8 @@ let
     jellyfin.config.systemd.services.operational-ready.script
   );
   jellyfinUnit = jellyfin.config.systemd.units."jellyfin.service".unit;
+  rcloneReadyUnit = jellyfin.config.systemd.units."rclone-ready.service".unit;
+  importUnit = jellyfin.config.systemd.units."rclone-import.service".unit;
   importTimerUnit = jellyfin.config.systemd.units."rclone-import.timer".unit;
   networkTemplate = jellyfin.config.environment.etc."jellyfin/network-template.xml".source;
 in
@@ -65,8 +67,14 @@ in
     assert !builtins.elem "rclone-import.timer" jellyfin.config.homelab.health.units;
     assert builtins.elem "rclone-ready.service" jellyfin.config.systemd.services.rclone-import.requires;
     assert builtins.elem "rclone-ready.service" jellyfin.config.systemd.timers.rclone-import.requires;
+    assert builtins.elem pkgs.glibc.getent jellyfin.config.systemd.services.jellyfin-directories.path;
     assert !builtins.elem "rclone-ready.service" jellyfin.config.systemd.services.jellyfin.requires;
     assert !builtins.elem "rclone-ready.service" jellyfin.config.systemd.services.tailscaled.requires;
+    assert !builtins.elem "rclone-import" jellyfin.config.homelab.lifecycle.units;
+    assert builtins.elem "homelab-operational.target"
+      jellyfin.config.systemd.services.rclone-ready.partOf;
+    assert builtins.elem "homelab-operational.target"
+      jellyfin.config.systemd.services.rclone-import.partOf;
     assert
       !builtins.elem "rclone-ready.service" (
         jellyfin.config.systemd.services."borgbackup-job-jellyfin".requires
@@ -84,6 +92,18 @@ in
       grep -q 'source:tv' ${importScript}
       ! grep -Eq 'rclone (sync|move)|--delete|--remove-source-files' ${importScript}
       grep -q 'OnUnitInactiveSec=5m' ${importTimerUnit}/rclone-import.timer
+      grep -q 'ConditionPathExists=/persist/secrets/rclone.conf' \
+        ${rcloneReadyUnit}/rclone-ready.service
+      grep -q 'ConditionPathExists=/persist/secrets/rclone_known_hosts' \
+        ${rcloneReadyUnit}/rclone-ready.service
+      grep -q 'ConditionPathExists=/persist/secrets/rclone.conf' \
+        ${importUnit}/rclone-import.service
+      grep -q 'ConditionPathExists=/persist/secrets/rclone_known_hosts' \
+        ${importUnit}/rclone-import.service
+      grep -q 'ConditionPathExists=/persist/secrets/rclone.conf' \
+        ${importTimerUnit}/rclone-import.timer
+      grep -q 'ConditionPathExists=/persist/secrets/rclone_known_hosts' \
+        ${importTimerUnit}/rclone-import.timer
       grep -q '/persist/secrets/rclone.conf' ${rcloneReadyScript}
       grep -q '/persist/secrets/rclone_known_hosts' ${rcloneReadyScript}
       ! grep -q '/persist/secrets/rclone' ${operationalReadyScript}

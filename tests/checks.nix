@@ -44,6 +44,8 @@ in
     touch "$out"
   '';
   container-access = pkgs.runCommand "container-access-policy" { } ''
+    grep -Fq 'for _attempt in {1..30}' ${tailscalePolicy}
+    grep -Fq 'Tailscale did not reach Running state' ${tailscalePolicy}
     grep -Fq 'tailscale set --ssh=false --accept-routes=false' ${tailscalePolicy}
     ! grep -Fq -- '--ssh=true' ${tailscalePolicy}
     touch "$out"

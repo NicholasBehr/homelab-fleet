@@ -15,13 +15,15 @@ database compatibility still require operator review.
 
 ## Standard controls
 
-Use the authenticated Proxmox console (`pct enter ID`) during enrollment and
-restoration. The target groups the application, database dependencies, Tailscale
-and backup timer. Each member has `PartOf=homelab-operational.target`, so stopping
-the target stops its members. Database helpers remain available for explicit
-`systemctl start` during restoration; this is an operator action, not an automatic
-mode transition. Do not independently enable member units or start applications
-while restoring their state.
+Use the authenticated Proxmox console
+(`pct exec ID -- /bin/bash -l`) during enrollment and restoration. If plain
+`pct enter ID` was used, first run `exec /bin/bash -l` to load the NixOS profile.
+The target groups the application, database dependencies, Tailscale and backup
+timer. Each member has `PartOf=homelab-operational.target`, so stopping the target
+stops its members. Database helpers remain available for explicit `systemctl
+start` during restoration; this is an operator action, not an automatic mode
+transition. Do not independently enable member units or start applications while
+restoring their state.
 
 The target requires storage and credential readiness, and wants its workload
 members. A temporary member stop during a quiesced backup must not stop the target

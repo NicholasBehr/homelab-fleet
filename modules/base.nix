@@ -48,12 +48,11 @@
       MulticastDNS = false;
     };
     users.mutableUsers = false;
-    users.allowNoPasswordLogin = true; # root remains locked; recovery is pct enter
+    users.allowNoPasswordLogin = true; # root remains locked; recovery is via Proxmox
     users.users.root.hashedPassword = "!";
-    # Recovery uses the authenticated Proxmox root console: pct enter ID.
-    # Proxmox selects /bin/bash when it exists; otherwise pct enter falls back
-    # to /bin/sh without the NixOS profile PATH, leaving even basic commands
-    # undiscoverable. Keep this recovery-console link shared by every image.
+    # Proxmox pct enter invokes /bin/sh and does not load the NixOS profile.
+    # Keep a conventional Bash path so operators can instead run
+    # `pct exec ID -- /bin/bash -l`, or enter first and `exec /bin/bash -l`.
     systemd.tmpfiles.rules = [
       "L+ /bin/bash - - - - ${pkgs.bashInteractive}/bin/bash"
     ];

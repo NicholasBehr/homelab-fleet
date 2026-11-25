@@ -297,9 +297,11 @@ database and PDF-media procedure is in the
 
 ## Other failures
 
-Use authenticated Proxmox `pct enter ID` if Tailscale fails. Inspect mounts/markers,
-free space, individual units and bounded logs without exposing secrets. Do not open
-LAN ports. Never repair unknown storage by writing a marker or creating an empty DB.
+Use authenticated Proxmox `pct exec ID -- /bin/bash -l` if Tailscale fails. Plain
+`pct enter ID` starts `/bin/sh`; run `exec /bin/bash -l` before inspection if it
+was used. Inspect mounts/markers, free space, individual units and bounded logs
+without exposing secrets. Do not open LAN ports. Never repair unknown storage by
+writing a marker or creating an empty DB.
 For lost root with intact volumes, verify and replace root using the normal stopped
 transfer procedure. After migrations, software rollback is not data rollback:
 restore the pre-update backup with matching software onto fresh mounts.
