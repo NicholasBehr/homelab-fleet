@@ -19,20 +19,27 @@
   },
   "grants": [
     {"src": ["group:nextcloud-users"], "dst": ["tag:nextcloud"], "ip": ["tcp:443"]},
-    {"src": ["group:homelab-admins"], "dst": ["tag:homelab-host", "tag:immich", "tag:home-assistant", "tag:nextcloud", "tag:jellyfin", "tag:paperless-ngx"], "ip": ["tcp:22", "tcp:443"]},
+    {"src": ["group:homelab-admins"], "dst": ["tag:homelab-host"], "ip": ["tcp:22", "tcp:443"]},
+    {"src": ["group:homelab-admins"], "dst": ["tag:immich", "tag:home-assistant", "tag:nextcloud", "tag:jellyfin", "tag:paperless-ngx"], "ip": ["tcp:443"]},
     {"src": ["group:immich-users"], "dst": ["tag:immich"], "ip": ["tcp:443"]},
     {"src": ["group:home-assistant-users"], "dst": ["tag:home-assistant"], "ip": ["tcp:443"]},
     {"src": ["group:jellyfin-users"], "dst": ["tag:jellyfin"], "ip": ["tcp:443"]},
     {"src": ["group:paperless-ngx-users"], "dst": ["tag:paperless-ngx"], "ip": ["tcp:443"]},
   ],
   "ssh": [
-    {"action": "check", "src": ["group:homelab-admins"], "dst": ["tag:homelab-host", "tag:immich", "tag:home-assistant", "tag:nextcloud", "tag:jellyfin", "tag:paperless-ngx"], "users": ["root"]},
+    {"action": "check", "src": ["group:homelab-admins"], "dst": ["tag:homelab-host"], "users": ["root"]},
   ],
   "tests": [
+    {"src": "admin@example.com", "accept": ["tag:homelab-host:22", "tag:homelab-host:443", "tag:immich:443", "tag:home-assistant:443", "tag:nextcloud:443", "tag:jellyfin:443", "tag:paperless-ngx:443"], "deny": ["tag:immich:22", "tag:home-assistant:22", "tag:nextcloud:22", "tag:jellyfin:22", "tag:jellyfin:8096", "tag:paperless-ngx:22"]},
     {"src": "files@example.com", "accept": ["tag:nextcloud:443"], "deny": ["tag:nextcloud:22", "tag:immich:443", "tag:home-assistant:443"]},
     {"src": "user@example.com", "accept": ["tag:immich:443"], "deny": ["tag:immich:22", "tag:homelab-host:443"]},
     {"src": "home@example.com", "accept": ["tag:home-assistant:443"], "deny": ["tag:home-assistant:22", "tag:immich:443"]},
     {"src": "media@example.com", "accept": ["tag:jellyfin:443"], "deny": ["tag:jellyfin:22", "tag:immich:443", "tag:home-assistant:443"]},
     {"src": "documents@example.com", "accept": ["tag:paperless-ngx:443"], "deny": ["tag:paperless-ngx:22", "tag:immich:443", "tag:nextcloud:443"]},
+  ],
+  "sshTests": [
+    {"src": "admin@example.com", "dst": ["tag:homelab-host"], "check": ["root"]},
+    {"src": "admin@example.com", "dst": ["tag:immich", "tag:home-assistant", "tag:nextcloud", "tag:jellyfin", "tag:paperless-ngx"], "deny": ["root"]},
+    {"src": "tag:homelab-host", "dst": ["tag:immich", "tag:home-assistant", "tag:nextcloud", "tag:jellyfin", "tag:paperless-ngx"], "deny": ["root"]},
   ],
 }

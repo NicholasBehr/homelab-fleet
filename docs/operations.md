@@ -124,11 +124,14 @@ in the `Homelab` vault with the `homelab` tag;
 retrieve it and prove repository access and restoration before removing temporary
 local copies. Never put recovery secrets on automatically disposable test volumes.
 Treat the resettable Storage Box password as enrollment-only and omit it from
-escrow. Enroll Tailscale interactively
-with the intended service tag, approve the device, and verify checked admin SSH,
-HTTPS and denied cross-service/LAN access. Policies belong to the operator; CI has
-no tailnet or Proxmox credentials. Configure remote Borg as [recovery](recovery.md)
-describes before trusting production data.
+escrow. Before Tailscale enrollment, add the service tag owner, administrator and
+intended-user HTTPS grants, and positive/negative policy tests. TCP/22 and checked
+root Tailscale SSH belong only to the hypervisor tag; never add a service tag to
+the SSH rule or grant it TCP/22. Enroll Tailscale interactively with the intended
+service tag, approve the device, and verify service HTTPS, denied service SSH and
+denied cross-service/LAN access. Policies belong to the operator; CI has no tailnet
+or Proxmox credentials. Configure remote Borg as [recovery](recovery.md) describes
+before trusting production data.
 
 Verify the enrolled node from an authorized administrator client. A deliberately
 isolated hypervisor may not see tagged service peers, so its empty peer list is not
@@ -137,9 +140,11 @@ must use absolute image paths or a NixOS login shell rather than assuming its
 minimal Debian-style PATH contains image tools.
 
 Before enrollment, extend and validate the operator's tailnet policy for the new
-service. The public example must include its tag owner, administrator SSH/HTTPS
-grant, intended user HTTPS grant and positive/negative policy tests. Never apply the
-example identities directly or put live identities in this repository.
+service. The public example must include its tag owner, administrator HTTPS grant,
+intended-user HTTPS grant, explicit denial of service TCP/22/root SSH and
+positive/negative policy tests. Administrator TCP/22 and checked root SSH remain
+exclusive to the hypervisor tag. Never apply the example identities directly or
+put live identities in this repository.
 
 After enrollment, independently verified escrow and restoration checks, activate
 with `homelab-activate` from the console. A fresh
