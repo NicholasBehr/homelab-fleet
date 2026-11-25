@@ -65,6 +65,7 @@ in
     assert !builtins.elem "rclone-import.timer" jellyfin.config.homelab.health.units;
     assert builtins.elem "rclone-ready.service" jellyfin.config.systemd.services.rclone-import.requires;
     assert builtins.elem "rclone-ready.service" jellyfin.config.systemd.timers.rclone-import.requires;
+    assert builtins.elem pkgs.glibc.getent jellyfin.config.systemd.services.jellyfin-directories.path;
     assert !builtins.elem "rclone-ready.service" jellyfin.config.systemd.services.jellyfin.requires;
     assert !builtins.elem "rclone-ready.service" jellyfin.config.systemd.services.tailscaled.requires;
     assert

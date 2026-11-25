@@ -1,3 +1,20 @@
+# v0.6.5 — wait for restored identity readiness
+
+Wait up to 30 seconds for a restored Tailscale identity to reach its Running
+backend state before applying the service's no-SSH and Serve policy. This closes
+the boot and backup-recovery race where `tailscaled.service` was active before
+its local API was ready, causing an otherwise successful workload or Borg job to
+fail and rely on a later policy retry.
+
+Declare glibc's `getent` output in the Jellyfin directory guard's service path.
+The guard can now validate existing persistent ownership after root replacement
+instead of failing before Jellyfin starts.
+
+The shared Tailscale module changes every service image, while the directory
+guard change is Jellyfin-specific. Persistent paths, storage markers, identities,
+credentials and contract versions remain compatible with disposable-root
+replacement. The repository version advances and CI must rebuild affected images.
+
 # v0.6.4 — repair Jellyfin first start and backup recovery
 
 Allow Jellyfin's confined pre-start helper to seed its loopback-only network

@@ -153,6 +153,7 @@ in
         };
         jellyfin-directories = {
           inherit (gate) requires after;
+          path = [ pkgs.glibc.getent ];
           before = [
             "jellyfin.service"
             "rclone-import.service"
