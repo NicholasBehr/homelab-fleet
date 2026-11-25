@@ -100,7 +100,7 @@ state layout, backup hooks and application tests. It must:
 
 The deployment explicitly imports shared modules and the service. Configure
 `homelab.storage.volumes`, persistent directories, the two Borg credential files,
-Tailscale Serve, lifecycle units, backup job/schedule and health units/probe. Each
+the shared tailnet HTTPS proxy, lifecycle units, backup job/schedule and health units/probe. Each
 service gets a distinct Tailscale identity, Borg subaccount, repository, SSH key,
 passphrase and `borg-<service-slug>` Document in the `Homelab` vault.
 

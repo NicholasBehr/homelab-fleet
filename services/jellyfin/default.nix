@@ -80,6 +80,7 @@ in
   config = lib.mkMerge [
     {
       environment.etc."homelab-versions.json".text = builtins.toJSON {
+        caddy = pkgs.caddy.version;
         jellyfin = config.services.jellyfin.package.version;
         rclone = pkgs.rclone.version;
         contractVersion = c.contractVersion;

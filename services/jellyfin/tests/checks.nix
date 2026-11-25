@@ -25,6 +25,7 @@ let
   operationalReadyScript = pkgs.writeText "jellyfin-operational-ready-script" (
     jellyfin.config.systemd.services.operational-ready.script
   );
+  caddyStart = jellyfin.config.systemd.services.caddy.serviceConfig.ExecStart;
   jellyfinUnit = jellyfin.config.systemd.units."jellyfin.service".unit;
   rcloneReadyUnit = jellyfin.config.systemd.units."rclone-ready.service".unit;
   importUnit = jellyfin.config.systemd.units."rclone-import.service".unit;
@@ -46,6 +47,7 @@ in
     assert jellyfin.config.services.jellyfin.transcoding.hardwareDecodingCodecs.av1;
     assert jellyfin.config.services.jellyfin.transcoding.hardwareEncodingCodecs.hevc;
     assert !jellyfin.config.services.jellyfin.transcoding.hardwareEncodingCodecs.av1;
+    assert builtins.elem pkgs.intel-compute-runtime jellyfin.config.hardware.graphics.extraPackages;
     assert jellyfin.config.systemd.tmpfiles.settings.jellyfinDirs == { };
     assert jellyfin.config.homelab.backup.paths == [ "/persist" ];
     assert jellyfin.config.homelab.backup.writablePaths == [ "/persist" ];
@@ -64,6 +66,12 @@ in
       jellyfin.config.homelab.secrets.requiredFiles
     );
     assert jellyfin.config.homelab.tailscale.serveTarget == "http://127.0.0.1:8096";
+    assert jellyfin.config.services.caddy.enable;
+    assert jellyfin.config.services.caddy.openFirewall == false;
+    assert jellyfin.config.systemd.services.tailscaled.environment.TS_PERMIT_CERT_UID == "caddy";
+    assert builtins.elem "tailscale-policy.service" jellyfin.config.systemd.services.caddy.requires;
+    assert builtins.elem "caddy" jellyfin.config.homelab.lifecycle.units;
+    assert builtins.elem "caddy" jellyfin.config.homelab.health.units;
     assert !builtins.elem "rclone-import.timer" jellyfin.config.homelab.health.units;
     assert builtins.elem "rclone-ready.service" jellyfin.config.systemd.services.rclone-import.requires;
     assert builtins.elem "rclone-ready.service" jellyfin.config.systemd.timers.rclone-import.requires;
@@ -82,6 +90,13 @@ in
     pkgs.runCommand "jellyfin-service-config" { } ''
       grep -q '<string>127.0.0.1</string>' ${networkTemplate}
       grep -q '<EnableIPv6>false</EnableIPv6>' ${networkTemplate}
+      grep -q 'tailscale status --json' ${caddyStart}
+      grep -q 'tailscale ip -4' ${caddyStart}
+      grep -q 'auto_https disable_redirects' ${caddyStart}
+      grep -q 'protocols h1 h2' ${caddyStart}
+      grep -q 'bind %s' ${caddyStart}
+      grep -q 'reverse_proxy http://127.0.0.1:8096' ${caddyStart}
+      ! grep -q 'dorper-shade' ${caddyStart}
       grep -q '/dev/dri/renderD128 rw' ${jellyfinUnit}/jellyfin.service
       grep -q '0750' ${directoriesScript}
       grep -q 'ensure_directory .*data/media/movies.*root jellyfin 0750' ${directoriesScript}

@@ -31,6 +31,11 @@ let
   );
 in
 {
+  intel-opencl =
+    assert builtins.elem pkgs.intel-compute-runtime immich.config.hardware.graphics.extraPackages;
+    pkgs.runCommand "immich-intel-opencl-config" { } ''
+      touch "$out"
+    '';
   backup-runtime-endpoint = pkgs.runCommand "immich-backup-runtime-endpoint" { } ''
     endpoint=/tmp/homelab-borg-runtime-repository
     test ! -e "$endpoint"

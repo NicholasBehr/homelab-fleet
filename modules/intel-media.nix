@@ -13,6 +13,7 @@
     hardware.graphics = {
       enable = true;
       extraPackages = [
+        pkgs.intel-compute-runtime
         pkgs.intel-media-driver
         pkgs.vpl-gpu-rt
       ];

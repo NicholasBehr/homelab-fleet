@@ -47,6 +47,7 @@ in
       "tailscale-policy"
       "jellyfin-directories"
       "jellyfin"
+      "caddy"
     ];
     lifecycle.backupJob = "borgbackup-job-${config.homelab.backup.name}";
     intelMedia.renderGid = c.renderGid;
@@ -62,6 +63,7 @@ in
         "operational-ready"
         "tailscaled"
         "jellyfin"
+        "caddy"
       ];
       url = "http://127.0.0.1:${toString c.application.port}/health";
     };

@@ -1,8 +1,11 @@
 # Jellyfin
 
 Jellyfin runs in its own unprivileged NixOS LXC. Its HTTP listener is configured
-for `127.0.0.1:8096`; Tailscale Serve provides the private HTTPS endpoint. The
-physical-LAN firewall remains closed. Intel QSV uses the standard render-device
+for `127.0.0.1:8096`; Caddy binds only to the runtime Tailscale address and
+provides the private HTTPS endpoint. Caddy obtains and renews the node's
+`*.ts.net` certificate through `tailscaled`, while avoiding Tailscale Serve's
+userspace TCP path for high-bitrate media. The physical-LAN firewall remains
+closed. Intel QSV uses the standard render-device
 sharing configuration and the NixOS Intel media userspace. The planned i5-14500
 provides UHD Graphics 770: use QSV for H.264/HEVC encoding and H.264, HEVC,
 VP9 and AV1 decoding. Do not assume AV1 hardware encoding on this desktop iGPU.
@@ -108,9 +111,9 @@ later protected enrollment and start only that independent block with
 before relying on imports. A missing enrollment remains cleanly inactive.
 Then verify:
 
-1. Tailscale Serve works over HTTPS, Jellyfin health responds locally, and the
-   listener is bound only to `127.0.0.1`; no Jellyfin port is reachable on the
-   physical LAN.
+1. Caddy works over tailnet-only HTTPS, Jellyfin health responds locally, Caddy
+   binds only to the runtime Tailscale address, and Jellyfin binds only to
+   `127.0.0.1`; no application port is reachable on the physical LAN.
 2. The dashboard's transcode path is `/persist/jellyfin/transcodes`. Play
    representative media and verify QSV hardware decoding and H.264/HEVC encoding
    inside the container, not just the presence of the render device.
